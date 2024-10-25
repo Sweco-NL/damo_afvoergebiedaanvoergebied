@@ -18,3 +18,9 @@ def run_generator_culvert_locations(
         distance_vertices=distance_vertices,
         write_results=write_results
     )
+
+    # generate all potential culverts with max lenght = 40
+    culverts_generator.find_potential_culvert_locations(
+        max_culvert_length=max_culvert_length,
+        write_results=write_results
+    )
