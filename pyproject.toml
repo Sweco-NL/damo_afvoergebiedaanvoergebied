@@ -1,0 +1,35 @@
+[project]
+authors = [{name = "harm-nomden-sweco", email = "harm.nomden@sweco.nl"}]
+dependencies = ["ugrid>=0.13.0,<0.14", "tomli-w>=1.1.0,<2", "pandas-xlsx-tables>=1.0.0,<2"]
+description = "Python toolbox om afwateringseenheden te genereren op basis van basisdata en een raster"
+name = "generator_drainage_units"
+requires-python = ">= 3.11"
+version = "0.1.0"
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["win-64"]
+
+[tool.pixi.pypi-dependencies]
+generator_drainage_units = { path = ".", editable = true }
+
+[tool.pixi.tasks]
+
+[tool.pixi.dependencies]
+black = ">=24.10.0,<25"
+dask = ">=2024.10.0,<2025"
+geopandas = ">=1.0.1,<2"
+ipykernel = ">=6.29.5,<7"
+matplotlib = ">=3.9.2,<4"
+momepy = ">=0.8.1,<0.9"
+networkx = ">=3.4.2,<4"
+openpyxl = ">=3.1.5,<4"
+pydantic = ">=2.9.2,<3"
+xarray = ">=2024.9.0,<2025"
+xugrid = ">=0.12.1,<0.13"
+tomli = ">=2.0.2,<3"
+python-dotenv = ">=1.0.1,<1.1"
