@@ -5,6 +5,8 @@ from pathlib import Path
 import logging
 from shapely.geometry import Point, LineString, MultiLineString, Polygon
 
+from ..utils.general_functions import line_to_vertices
+
 
 class GeneratorCulvertLocations(BaseModel):
     """"Module to guess (best-guess) the locations of culverts 
@@ -60,3 +62,17 @@ class GeneratorCulvertLocations(BaseModel):
                     logging.debug(f" - get dataset {x.stem}")
                     setattr(self, x.stem, gpd.read_file(x, layer=x.stem))
 
+    def generate_vertices_along_waterlines(
+        self, 
+        distance_vertices=10,
+        waterlines=["hydroobjecten", "overige_watergangen"],
+        write_results=False
+    ):
+        waterlines = pd.concat([getattr(self, l) for l in waterlines])
+        logging.info(f" x generate vertices for {len(waterlines)} waterlines")
+        self.water_line_pnts = line_to_vertices(waterlines, distance=distance_vertices)
+        if write_results:
+            dir_results = Path(self.path, "1_tussenresultaat")
+            self.water_line_pnts.to_file(Path(dir_results, "water_line_pnts.gpkg"), layer="water_line_pnts")
+        return self.water_line_pnts
+    
