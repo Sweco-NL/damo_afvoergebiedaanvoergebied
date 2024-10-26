@@ -14,11 +14,10 @@ De toolbox bestaat uit een drietal onderdelen die samenwerken, maar ook onafhank
 
 ## Installation
 We gebruiken pixi om de environment te bepalen. Installatie pixi kan via de Windows Powershell.
-"""
+```
 iwr -useb https://pixi.sh/install.ps1 | iex
-"""
+```
 Binnen de projectfolder hoef je dan in de command prompt/terminal alleen maar het volgende te doen om de environment conform pyproject.toml op te bouwen.
-"""
+```
 pixi install
-"""
-
+```
