@@ -8,6 +8,6 @@ Dit wordt uitgevoerd in opdracht van waterschap Vallei & Veluwe. Er is voor geko
 Er wordt daarom ook geprobeerd om gestructureerd deze python toolbox op te zetten.
 
 De toolbox bestaat uit een drietal onderdelen die samenwerken, maar ook onafhankelijk zijn te gebruiken:
-1. Generator locaties duikers: we willen de overige watergangen (C-watergangen) meenemen, deze zijn deels bepalend in de afstroomrichting. Op dat niveau zijn echter de duikers niet bekend, alleen de waterdelen. Middels diverse algoritme zoeken wij de meest logische duikers.
+1. Generator locaties duikers: we willen de overige watergangen (C-watergangen) meenemen, deze zijn deels bepalend in de afstroomrichting. Op dat niveau zijn echter de duikers niet bekend, alleen de waterdelen. Middels diverse algoritmes en regels wordt een verbinding gezocht middels de meest logische duikers.
 2. Generator afwaterende eenheden: op basis van GHG raster 25x25m willen we op basis van afvoerrichting de afwaterende eenheden afleiden. Dit middels de python-moduel [PyFlwDir van Deltares](https://github.com/Deltares/pyflwdir)
 3. Generator orde-codering van het netwerk of afwaterende eenheden (conform [Leidraad Harmoniseren Afvoergebieden](https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf)).
