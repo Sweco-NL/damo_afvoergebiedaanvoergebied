@@ -13,13 +13,17 @@ De toolbox bestaat uit een drietal onderdelen die samenwerken, maar ook onafhank
 3. Generator afwaterende eenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van o.a. [PyFlwDir van Deltares](https://github.com/Deltares/pyflwdir)
 
 ## Installatie environment
-We gebruiken pixi om de environment op orde te houden. Installatie van pixi (prefix.dev) kan via de Windows Powershell.
+We gebruiken pixi om de environment op orde te houden. Installatie van pixi (prefix.dev) kan via de Windows Powershell:
 ```
 iwr -useb https://pixi.sh/install.ps1 | iex
 ```
-Bouw de environment op conform pyproject.toml door vanuit de projectfolder in de command prompt/terminal het volgende te draaien.
+Bouw de environment op conform pyproject.toml door vanuit de projectfolder in de command prompt/terminal het volgende te draaien:
 ```
 pixi install
+```
+Om te voorkomen dat de output en metadata van de jupyter notebooks wordt gecommit, draai dit:
+```
+git config filter.strip-notebook-output.clean 'jupyter nbconvert --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True --to=notebook --stdin --stdout --log-level=ERROR'
 ```
 We gebruiken ruff voor de code-formatting. Installatie ruff via:
 ```
