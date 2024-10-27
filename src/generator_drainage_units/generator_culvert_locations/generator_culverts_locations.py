@@ -163,8 +163,8 @@ class GeneratorCulvertLocations(BaseModel):
         read_results=None,
         write_results=None,
     ) -> gpd.GeoDataFrame:
-        """Find potential culvert locations based on water_line_pnts. 
-        THe connections between two points from different waterlines 
+        """Find potential culvert locations based on water_line_pnts.
+        THe connections between two points from different waterlines
         with a maximum distance of x m (max_culvert_length)
 
         Parameters
