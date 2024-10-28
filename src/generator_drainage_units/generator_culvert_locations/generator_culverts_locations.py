@@ -1,9 +1,10 @@
+import logging
+from pathlib import Path
+
 from pydantic import BaseModel, ConfigDict
 import pandas as pd
 import geopandas as gpd
-from pathlib import Path
-import logging
-from shapely.geometry import Point, LineString, MultiLineString, Polygon
+from shapely.geometry import LineString
 
 from ..utils.general_functions import line_to_vertices
 
@@ -57,7 +58,7 @@ class GeneratorCulvertLocations(BaseModel):
             )
         self.path = path
         self.name = self.path.name
-        logging.info(f" ### Case: {self.name.capitalize()} initiated ###")
+        logging.info(f' ### Case "{self.name.capitalize()}" ###')
         # check if directories 0_basisdata and 1_tussenresultaat exist
         if not Path(self.path, "0_basisdata").exists():
             raise ValueError(f"provided path [{path}] exists but without a 0_basisdata")
@@ -109,6 +110,7 @@ class GeneratorCulvertLocations(BaseModel):
                     if hasattr(self, x.stem):
                         logging.debug(f"    - get dataset {x.stem}")
                         setattr(self, x.stem, gpd.read_file(x, layer=x.stem))
+
 
     def generate_vertices_along_waterlines(
         self,
