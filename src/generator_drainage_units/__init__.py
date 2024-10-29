@@ -52,5 +52,8 @@ def run_generator_culvert_locations(
         max_culvert_length=max_culvert_length, write_results=write_results
     )
 
+    # check intersections culvert with objects and first filter
+    culverts_generator.check_intersections_potential_culverts()
+
     logging.info(f"   x Case finished in {round(time.time()-start_time, 3)} seconds")
     return culverts_generator

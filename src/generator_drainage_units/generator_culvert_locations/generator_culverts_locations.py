@@ -6,7 +6,7 @@ import pandas as pd
 import geopandas as gpd
 from shapely.geometry import LineString
 
-from ..utils.general_functions import line_to_vertices
+from ..utils.general_functions import shorten_line_two_vertices, line_to_vertices
 
 
 class GeneratorCulvertLocations(BaseModel):
@@ -33,7 +33,10 @@ class GeneratorCulvertLocations(BaseModel):
     write_results: bool = False
 
     water_line_pnts: gpd.GeoDataFrame = None
-    potential_culverts: gpd.GeoDataFrame = None
+    potential_culverts_0: gpd.GeoDataFrame = None # alle binnen 40m
+    potential_culverts_1: gpd.GeoDataFrame = None # filter kruizingen
+    potential_culverts_2: gpd.GeoDataFrame = None # scores
+    potential_culverts_3: gpd.GeoDataFrame = None # resultaat
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -62,7 +65,7 @@ class GeneratorCulvertLocations(BaseModel):
         # check if directories 0_basisdata and 1_tussenresultaat exist
         if not Path(self.path, "0_basisdata").exists():
             raise ValueError(f"provided path [{path}] exists but without a 0_basisdata")
-        for folder in ["1_tussenresultaat"]:
+        for folder in ["1_tussenresultaat", "2_resultaat"]:
             if not Path(self.path, folder).exists():
                 Path(self.path, folder).mkdir(parents=True, exist_ok=True)
 
@@ -99,7 +102,7 @@ class GeneratorCulvertLocations(BaseModel):
         baseresults_gpkgs = (
             [
                 Path(self.path, "1_tussenresultaat", f + ".gpkg")
-                for f in ["water_line_pnts", "potential_culverts"]
+                for f in ["water_line_pnts", "potential_culverts_0", "potential_culverts_1", "potential_culverts_2", "potential_culverts_3"]
             ]
             if self.read_results
             else []
@@ -142,15 +145,25 @@ class GeneratorCulvertLocations(BaseModel):
         if isinstance(write_results, bool):
             self.write_results = write_results
 
-        waterlines = pd.concat([getattr(self, l) for l in waterlines])
         if self.read_results and self.water_line_pnts is not None:
             logging.info(
                 f"   x {len(self.water_line_pnts)} vertices for {len(waterlines)} waterlines already generated"
             )
             return self.water_line_pnts
 
-        logging.info(f"   x generate vertices for {len(waterlines)} waterlines")
-        self.water_line_pnts = line_to_vertices(waterlines, distance=distance_vertices)
+        gdf_waterlines = None
+        for waterline_name in waterlines:
+            waterline = getattr(self, waterline_name)
+            waterline["WaterLineType"] = waterline_name
+            if gdf_waterlines is None:
+                gdf_waterlines = waterline.copy()
+            else:
+                gdf_waterlines = pd.concat([gdf_waterlines, waterline])
+
+        logging.info(f"   x generate vertices for {len(gdf_waterlines)} waterlines")
+        self.water_line_pnts = line_to_vertices(gdf_waterlines, distance=distance_vertices)
+        self.water_line_pnts["unique_id"] = self.water_line_pnts.reset_index(drop=True).index
+
         if self.write_results:
             dir_results = Path(self.path, "1_tussenresultaat")
             self.water_line_pnts.to_file(
@@ -182,7 +195,7 @@ class GeneratorCulvertLocations(BaseModel):
 
         Returns
         -------
-        potential_culverts: gpd.GeoDataFrame
+        potential_culverts_0: gpd.GeoDataFrame
             Locations potential culverts (between different water_lines)
         """
         # check read_results and write_results
@@ -199,17 +212,20 @@ class GeneratorCulvertLocations(BaseModel):
             self.water_line_pnts = water_line_pnts
 
         # check if potential culverts already exists and should be read
-        if self.read_results and self.potential_culverts is not None:
+        if self.read_results and self.potential_culverts_0 is not None:
             logging.info(
-                f"   x {len(self.potential_culverts)} potential culverts already generated"
+                f"   x {len(self.potential_culverts_0)} potential culverts already generated"
             )
-            return self.potential_culverts
+            return self.potential_culverts_0
 
         logging.info("   x find potential culvert locations")
-        self.water_line_pnts["unique_id"] = self.water_line_pnts.index
 
-        # Filter for end points
-        end_pnts = self.water_line_pnts[self.water_line_pnts["line_type"] == "dangling"]
+        # Filter for end points (only overige watergangen and not when connected)
+        end_pnts = self.water_line_pnts[
+            (self.water_line_pnts["line_type"] == "dangling") &
+            (self.water_line_pnts["WaterLineType"] == "overige_watergangen")
+        ]
+        end_pnts = end_pnts.drop_duplicates(subset="geometry", keep=False)
         end_pnts = end_pnts.rename(
             columns={"CODE": "dangling_CODE", "unique_id": "dangling_id"}
         )
@@ -243,20 +259,71 @@ class GeneratorCulvertLocations(BaseModel):
         )
 
         # create potential culverts (linestrings)
-        potential_culverts = end_pnts.copy()
-        potential_culverts.dropna(subset=["dangling_id"], inplace=True)
-        potential_culverts["geometry"] = potential_culverts.apply(
+        potential_culverts_0 = end_pnts.copy()
+        potential_culverts_0.dropna(subset=["dangling_id"], inplace=True)
+        potential_culverts_0["geometry"] = potential_culverts_0.apply(
             lambda x: LineString([x["geometry"], x["geometry2"]]), axis=1
         )
-        self.potential_culverts = potential_culverts.drop(columns="geometry2")
+        self.potential_culverts_0 = potential_culverts_0.drop(columns="geometry2")
 
         if write_results:
             dir_results = Path(self.path, "1_tussenresultaat")
-            self.potential_culverts.to_file(
-                Path(dir_results, "potential_culverts.gpkg"), layer="potential_culverts"
+            self.potential_culverts_0.to_file(
+                Path(dir_results, "potential_culverts_0.gpkg"), layer="potential_culverts_0"
             )
 
         logging.debug(
-            f"    - {len(self.potential_culverts)} potential culverts generated"
+            f"    - {len(self.potential_culverts_0)} potential culverts generated"
         )
-        return self.potential_culverts
+        return self.potential_culverts_0
+
+
+    def check_intersections_potential_culverts(self, shorten_line_offset=0.01) -> gpd.GeoDataFrame:
+        """Check intersections of culverts with other objects like roads, etc
+
+        Args:
+            shorten_line_offset (float, optional): shorten lines in analysis. Defaults to 0.01.
+
+        Returns:
+            gpd.GeoDataFrame: potential culverts without impossible intersections 
+        """
+        crossing_objects = ['hydroobjecten', 'overige_watergangen', "keringen", 'nwb', 'peilgebieden', 'snelwegen', 'spoorwegen']
+
+        culverts = self.potential_culverts_0.copy()
+        
+        logging.info("   x check intersections culverts with objects")
+        for crossing_object in crossing_objects:
+            if crossing_object in crossing_objects[:1]:
+                original_geometries = culverts['geometry'].copy()
+                culverts['geometry'] = culverts['geometry'].apply(shorten_line_two_vertices, offset=shorten_line_offset)
+
+            crossing_gdf = getattr(self, crossing_object)
+
+            culverts = culverts.merge(
+                gpd.sjoin(
+                    culverts,
+                    crossing_gdf[["CODE", "geometry"]].rename(columns={"CODE": f"{crossing_object}_code"}),
+                    predicate="crosses"
+                )[f"{crossing_object}_code"],
+                how="left",
+                left_index=True,
+                right_index=True
+            )
+            if crossing_object in crossing_objects[:1]:
+                culverts['geometry'] = original_geometries
+            culverts[f'crossings_{crossing_object}'] = culverts[f"{crossing_object}_code"].notna()
+            no_intersections = len(culverts[culverts[f'crossings_{crossing_object}'] == True])
+            
+            logging.debug(f"    - {crossing_object} ({no_intersections} crossings)")
+
+        for crossing_object in crossing_objects:
+            if crossing_object in ['hydroobjecten', 'overige_watergangen', "keringen", 'snelwegen', 'spoorwegen']:
+                culverts = culverts[culverts[f'crossings_{crossing_object}'] == False]
+        
+        self.potential_culverts_1 = culverts.copy()
+        self.potential_culverts_1.to_file(
+            Path(self.path, "1_tussenresultaat", "potential_cuvlerts_1.gpkg"), 
+            layer="potential_cuvlerts_1"
+        )
+        return self.potential_culverts_1
+    

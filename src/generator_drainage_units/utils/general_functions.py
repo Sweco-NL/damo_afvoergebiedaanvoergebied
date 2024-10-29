@@ -2,7 +2,23 @@ import geopandas as gpd
 from shapely import Point, LineString, MultiLineString
 
 
-def line_to_vertices(gdf, distance):
+def shorten_line_two_vertices(line, offset):
+    # Ensure the geometry is a LineString
+    if isinstance(line, LineString):
+        # Calculate the length of the line
+        length = line.length
+        
+        # Create new points for the shortened line
+        start_point = line.interpolate(offset)
+        end_point = line.interpolate(length - offset)
+        
+        # Return the new shortened line
+        return LineString([start_point, end_point])
+    else:
+        return line  # Return the original line if not a LineString
+
+
+def line_to_vertices(gdf, distance=10.0, keep_columns=["CODE", "WaterLineType"]):
     all_points = []
 
     for _, row in gdf.iterrows():
@@ -17,28 +33,21 @@ def line_to_vertices(gdf, distance):
             continue  # Skip if not a recognized geometry typ
 
         for line in lines:
-            # Generate start and end points
-            start_point = Point(line.coords[0][0], line.coords[0][1])
-            end_point = Point(line.coords[-1][0], line.coords[-1][1])
-            distance_from_start_end = line.length
-            distance_from_start_start = 0
             # Add start and end points to the list with 'dangling' label
-            all_points.append(
-                {
-                    "geometry": start_point,
-                    "line_type": "dangling",
-                    "distance_from_start": distance_from_start_start,
-                    "CODE": row["CODE"],
-                }
-            )
-            all_points.append(
-                {
-                    "geometry": end_point,
-                    "line_type": "dangling",
-                    "distance_from_start": distance_from_start_end,
-                    "CODE": row["CODE"],
-                }
-            )
+            start_point_x = {
+                "geometry": Point(line.coords[0][0], line.coords[0][1]),
+                "line_type": "dangling",
+                "distance_from_start": 0,
+            }
+            end_point_x = {
+                "geometry": Point(line.coords[-1][0], line.coords[-1][1]),
+                "line_type": "dangling",
+                "distance_from_start": line.length,
+            }
+            for point in [start_point_x, end_point_x]:
+                for col in keep_columns:
+                    point[col] = row[col]
+                all_points.append(point)
 
             # Generate intermediate points at specified intervals
             num_points = int(line.length / distance)
@@ -49,14 +58,14 @@ def line_to_vertices(gdf, distance):
                 point_2d = Point(point.x, point.y)
                 # Calculate the cumulative distance from the starting point
                 cumulative_distance = i * new_distance
-                all_points.append(
-                    {
-                        "geometry": point_2d,
-                        "line_type": "other",
-                        "distance_from_start": cumulative_distance,
-                        "CODE": row["CODE"],
-                    }
-                )
+                point = {
+                    "geometry": point_2d,
+                    "line_type": "other",
+                    "distance_from_start": cumulative_distance,
+                }
+                for col in keep_columns:
+                    point[col] = row[col]
+                all_points.append(point)
 
     # Create a new GeoDataFrame for the vertices
     points_gdf = gpd.GeoDataFrame(all_points, crs=gdf.crs)
