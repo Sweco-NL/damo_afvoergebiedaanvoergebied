@@ -7,11 +7,11 @@ def shorten_line_two_vertices(line, offset):
     if isinstance(line, LineString):
         # Calculate the length of the line
         length = line.length
-        
+
         # Create new points for the shortened line
         start_point = line.interpolate(offset)
         end_point = line.interpolate(length - offset)
-        
+
         # Return the new shortened line
         return LineString([start_point, end_point])
     else:

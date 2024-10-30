@@ -33,10 +33,10 @@ class GeneratorCulvertLocations(BaseModel):
     write_results: bool = False
 
     water_line_pnts: gpd.GeoDataFrame = None
-    potential_culverts_0: gpd.GeoDataFrame = None # alle binnen 40m
-    potential_culverts_1: gpd.GeoDataFrame = None # filter kruizingen
-    potential_culverts_2: gpd.GeoDataFrame = None # scores
-    potential_culverts_3: gpd.GeoDataFrame = None # resultaat
+    potential_culverts_0: gpd.GeoDataFrame = None  # alle binnen 40m
+    potential_culverts_1: gpd.GeoDataFrame = None  # filter kruizingen
+    potential_culverts_2: gpd.GeoDataFrame = None  # scores
+    potential_culverts_3: gpd.GeoDataFrame = None  # resultaat
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -102,7 +102,13 @@ class GeneratorCulvertLocations(BaseModel):
         baseresults_gpkgs = (
             [
                 Path(self.path, "1_tussenresultaat", f + ".gpkg")
-                for f in ["water_line_pnts", "potential_culverts_0", "potential_culverts_1", "potential_culverts_2", "potential_culverts_3"]
+                for f in [
+                    "water_line_pnts",
+                    "potential_culverts_0",
+                    "potential_culverts_1",
+                    "potential_culverts_2",
+                    "potential_culverts_3",
+                ]
             ]
             if self.read_results
             else []
@@ -113,7 +119,6 @@ class GeneratorCulvertLocations(BaseModel):
                     if hasattr(self, x.stem):
                         logging.debug(f"    - get dataset {x.stem}")
                         setattr(self, x.stem, gpd.read_file(x, layer=x.stem))
-
 
     def generate_vertices_along_waterlines(
         self,
@@ -161,8 +166,12 @@ class GeneratorCulvertLocations(BaseModel):
                 gdf_waterlines = pd.concat([gdf_waterlines, waterline])
 
         logging.info(f"   x generate vertices for {len(gdf_waterlines)} waterlines")
-        self.water_line_pnts = line_to_vertices(gdf_waterlines, distance=distance_vertices)
-        self.water_line_pnts["unique_id"] = self.water_line_pnts.reset_index(drop=True).index
+        self.water_line_pnts = line_to_vertices(
+            gdf_waterlines, distance=distance_vertices
+        )
+        self.water_line_pnts["unique_id"] = self.water_line_pnts.reset_index(
+            drop=True
+        ).index
 
         if self.write_results:
             dir_results = Path(self.path, "1_tussenresultaat")
@@ -222,8 +231,8 @@ class GeneratorCulvertLocations(BaseModel):
 
         # Filter for end points (only overige watergangen and not when connected)
         end_pnts = self.water_line_pnts[
-            (self.water_line_pnts["line_type"] == "dangling") &
-            (self.water_line_pnts["WaterLineType"] == "overige_watergangen")
+            (self.water_line_pnts["line_type"] == "dangling")
+            & (self.water_line_pnts["WaterLineType"] == "overige_watergangen")
         ]
         end_pnts = end_pnts.drop_duplicates(subset="geometry", keep=False)
         end_pnts = end_pnts.rename(
@@ -269,7 +278,8 @@ class GeneratorCulvertLocations(BaseModel):
         if write_results:
             dir_results = Path(self.path, "1_tussenresultaat")
             self.potential_culverts_0.to_file(
-                Path(dir_results, "potential_culverts_0.gpkg"), layer="potential_culverts_0"
+                Path(dir_results, "potential_culverts_0.gpkg"),
+                layer="potential_culverts_0",
             )
 
         logging.debug(
@@ -277,74 +287,97 @@ class GeneratorCulvertLocations(BaseModel):
         )
         return self.potential_culverts_0
 
-
-    def check_intersections_potential_culverts(self, shorten_line_offset=0.01) -> gpd.GeoDataFrame:
+    def check_intersections_potential_culverts(
+        self, shorten_line_offset=0.01
+    ) -> gpd.GeoDataFrame:
         """Check intersections of culverts with other objects like roads, etc
 
         Args:
             shorten_line_offset (float, optional): shorten lines in analysis. Defaults to 0.01.
 
         Returns:
-            gpd.GeoDataFrame: potential culverts without impossible intersections 
+            gpd.GeoDataFrame: potential culverts without impossible intersections
         """
-        #Crossing objects
-        crossing_objects = ['hydroobjecten', 'overige_watergangen', "keringen", 'nwb', 'peilgebieden', 'snelwegen', 'spoorwegen']
+        # Crossing objects
+        crossing_objects = [
+            "hydroobjecten",
+            "overige_watergangen",
+            "keringen",
+            "nwb",
+            "peilgebieden",
+            "snelwegen",
+            "spoorwegen",
+        ]
 
-        #Set culverts gdf
+        # Set culverts gdf
         culverts = self.potential_culverts_0.copy()
-        
+
         logging.info("   x check intersections culverts with objects")
         for crossing_object in crossing_objects:
-            
-            #Shorten potential culverts when finding crossings with hydroobjects and other waterways
+            # Shorten potential culverts when finding crossings with hydroobjects and other waterways
             if crossing_object in crossing_objects[:1]:
-                original_geometries = culverts['geometry'].copy()
-                culverts['geometry'] = culverts['geometry'].apply(shorten_line_two_vertices, offset=shorten_line_offset)
+                original_geometries = culverts["geometry"].copy()
+                culverts["geometry"] = culverts["geometry"].apply(
+                    shorten_line_two_vertices, offset=shorten_line_offset
+                )
 
-            #Read data for crossing objects
+            # Read data for crossing objects
             crossing_gdf = getattr(self, crossing_object)
 
-            #Find crossing objects by spatial join and merging results with culvert gdf
+            # Find crossing objects by spatial join and merging results with culvert gdf
             culverts = culverts.merge(
                 gpd.sjoin(
                     culverts,
-                    crossing_gdf[["CODE", "geometry"]].rename(columns={"CODE": f"{crossing_object}_code"}),
-                    predicate="crosses"
+                    crossing_gdf[["CODE", "geometry"]].rename(
+                        columns={"CODE": f"{crossing_object}_code"}
+                    ),
+                    predicate="crosses",
                 )[f"{crossing_object}_code"],
                 how="left",
                 left_index=True,
-                right_index=True
+                right_index=True,
             )
-            
-            #Restore potential culvert geometry
-            if crossing_object in crossing_objects[:1]:
-                culverts['geometry'] = original_geometries
 
-            #Set true in new column for features with crossing objects.
-            culverts[f'crossings_{crossing_object}'] = culverts[f"{crossing_object}_code"].notna()
-            no_intersections = len(culverts[culverts[f'crossings_{crossing_object}'] == True])
-            
+            # Restore potential culvert geometry
+            if crossing_object in crossing_objects[:1]:
+                culverts["geometry"] = original_geometries
+
+            # Set true in new column for features with crossing objects.
+            culverts[f"crossings_{crossing_object}"] = culverts[
+                f"{crossing_object}_code"
+            ].notna()
+            no_intersections = len(
+                culverts[culverts[f"crossings_{crossing_object}"] == True]
+            )
+
             logging.debug(f"    - {crossing_object} ({no_intersections} crossings)")
 
-        #Remove potential culverts crossing: main road, railways, barriers, hydroobjects and other waterways. (Drop columns for these objects).
+        # Remove potential culverts crossing: main road, railways, barriers, 
+        # hydroobjects and other waterways. (Drop columns for these objects).
         for crossing_object in crossing_objects:
-            if crossing_object in ['hydroobjecten', 'overige_watergangen', "keringen", 'snelwegen', 'spoorwegen']:
-                culverts = culverts[culverts[f'crossings_{crossing_object}'] == False]
-                #evt: culverts = culverts.drop(columns={f'crossings_{crossing_object}', f"{crossing_object}_code"})
-        
-        #Write data
+            if crossing_object in [
+                "hydroobjecten",
+                "overige_watergangen",
+                "keringen",
+                "snelwegen",
+                "spoorwegen",
+            ]:
+                culverts = culverts[culverts[f"crossings_{crossing_object}"] == False]
+
+        # Write data
         self.potential_culverts_1 = culverts.copy()
         self.potential_culverts_1.to_file(
-            Path(self.path, "1_tussenresultaat", "potential_cuvlerts_1.gpkg"), 
-            layer="potential_cuvlerts_1"
+            Path(self.path, "1_tussenresultaat", "potential_cuvlerts_1.gpkg"),
+            layer="potential_cuvlerts_1",
         )
         logging.debug(
             f"    - {len(self.potential_culverts_1)} potential culverts remaining"
         )
         return self.potential_culverts_1
-    
+
     def assign_scores_to_potential_culverts(self) -> gpd.GeoDataFrame:
-        """Assign scores to all potential culverts based on the connected vertice and crossings with roads and peilgebied borders. 
+        """Assign scores to all potential culverts based on the connected vertice 
+        and crossings with roads and peilgebied borders.
 
         Returns:
             gpd.GeoDataFrame: potential culverts with scores
@@ -352,111 +385,159 @@ class GeneratorCulvertLocations(BaseModel):
         culverts = self.potential_culverts_1.copy()
         logging.info("   x assigning scores to potential culverts")
         # 1e voorkeur
-        culverts.loc[(culverts['line_type'] == 'dangling') & 
-                    (culverts['WaterLineType'] == 'hydroobjecten') &
-                (culverts['crossings_peilgebieden'] == False) & 
-                (culverts['crossings_nwb'] == False), 'score'] = 1
+        culverts.loc[
+            (culverts["line_type"] == "dangling")
+            & (culverts["WaterLineType"] == "hydroobjecten")
+            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["crossings_nwb"] == False),
+            "score",
+        ] = 1
 
         # 2e voorkeur
-        culverts.loc[(culverts['line_type'] == 'other') &
-                    (culverts['WaterLineType'] == 'hydroobjecten') &
-                (culverts['crossings_peilgebieden'] == False) & 
-                (culverts['crossings_nwb'] == False), 'score'] = 2
+        culverts.loc[
+            (culverts["line_type"] == "other")
+            & (culverts["WaterLineType"] == "hydroobjecten")
+            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["crossings_nwb"] == False),
+            "score",
+        ] = 2
 
         # 3e voorkeur
-        culverts.loc[(culverts['line_type'] == 'dangling') &
-                    (culverts['WaterLineType'] == 'overige_watergangen') &
-                (culverts['crossings_peilgebieden'] == False) & 
-                (culverts['crossings_nwb'] == False), 'score'] = 3
+        culverts.loc[
+            (culverts["line_type"] == "dangling")
+            & (culverts["WaterLineType"] == "overige_watergangen")
+            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["crossings_nwb"] == False),
+            "score",
+        ] = 3
 
         # 4e voorkeur
-        culverts.loc[(culverts['line_type'] == 'other') &
-                    (culverts['WaterLineType'] == 'overige_watergangen') &
-                (culverts['crossings_peilgebieden'] == False) & 
-                (culverts['crossings_nwb'] == False), 'score'] = 4
+        culverts.loc[
+            (culverts["line_type"] == "other")
+            & (culverts["WaterLineType"] == "overige_watergangen")
+            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["crossings_nwb"] == False),
+            "score",
+        ] = 4
 
         # 5e voorkeur
-        culverts.loc[(culverts['line_type'] == 'dangling') & 
-                    (culverts['WaterLineType'] == 'hydroobjecten') &
-                (culverts['crossings_peilgebieden'] == False) & 
-                (culverts['crossings_nwb'] == False), 'score'] = 5
+        culverts.loc[
+            (culverts["line_type"] == "dangling")
+            & (culverts["WaterLineType"] == "hydroobjecten")
+            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["crossings_nwb"] == False),
+            "score",
+        ] = 5
 
         # 6e voorkeur
-        culverts.loc[(culverts['line_type'] == 'other') &
-                    (culverts['WaterLineType'] == 'hydroobjecten') &
-                (culverts['crossings_peilgebieden'] == False) & 
-                (culverts['crossings_nwb'] == True), 'score'] = 6
+        culverts.loc[
+            (culverts["line_type"] == "other")
+            & (culverts["WaterLineType"] == "hydroobjecten")
+            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["crossings_nwb"] == True),
+            "score",
+        ] = 6
 
         # 7e voorkeur
-        culverts.loc[(culverts['line_type'] == 'dangling') &
-                    (culverts['WaterLineType'] == 'overige_watergangen') &
-                (culverts['crossings_peilgebieden'] == False) & 
-                (culverts['crossings_nwb'] == True), 'score'] = 7
+        culverts.loc[
+            (culverts["line_type"] == "dangling")
+            & (culverts["WaterLineType"] == "overige_watergangen")
+            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["crossings_nwb"] == True),
+            "score",
+        ] = 7
 
         # 8e voorkeur
-        culverts.loc[(culverts['line_type'] == 'other') &
-                    (culverts['WaterLineType'] == 'overige_watergangen') &
-                (culverts['crossings_peilgebieden'] == False) & 
-                (culverts['crossings_nwb'] == True), 'score'] = 8
+        culverts.loc[
+            (culverts["line_type"] == "other")
+            & (culverts["WaterLineType"] == "overige_watergangen")
+            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["crossings_nwb"] == True),
+            "score",
+        ] = 8
 
         # 9e voorkeur
-        culverts.loc[(culverts['line_type'] == 'dangling') & 
-                    (culverts['WaterLineType'] == 'hydroobjecten') &
-                (culverts['crossings_peilgebieden'] == True) & 
-                (culverts['crossings_nwb'] == False), 'score'] = 9
+        culverts.loc[
+            (culverts["line_type"] == "dangling")
+            & (culverts["WaterLineType"] == "hydroobjecten")
+            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["crossings_nwb"] == False),
+            "score",
+        ] = 9
 
         # 10e voorkeur
-        culverts.loc[(culverts['line_type'] == 'other') &
-                    (culverts['WaterLineType'] == 'hydroobjecten') &
-                (culverts['crossings_peilgebieden'] == True) & 
-                (culverts['crossings_nwb'] == False), 'score'] = 10
+        culverts.loc[
+            (culverts["line_type"] == "other")
+            & (culverts["WaterLineType"] == "hydroobjecten")
+            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["crossings_nwb"] == False),
+            "score",
+        ] = 10
 
         # 11e voorkeur
-        culverts.loc[(culverts['line_type'] == 'dangling') &
-                    (culverts['WaterLineType'] == 'overige_watergangen') &
-                (culverts['crossings_peilgebieden'] == True) & 
-                (culverts['crossings_nwb'] == False), 'score'] = 11
+        culverts.loc[
+            (culverts["line_type"] == "dangling")
+            & (culverts["WaterLineType"] == "overige_watergangen")
+            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["crossings_nwb"] == False),
+            "score",
+        ] = 11
 
         # 12e voorkeur
-        culverts.loc[(culverts['line_type'] == 'other') &
-                    (culverts['WaterLineType'] == 'overige_watergangen') &
-                (culverts['crossings_peilgebieden'] == True) & 
-                (culverts['crossings_nwb'] == False), 'score'] = 12
+        culverts.loc[
+            (culverts["line_type"] == "other")
+            & (culverts["WaterLineType"] == "overige_watergangen")
+            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["crossings_nwb"] == False),
+            "score",
+        ] = 12
 
         # 13e voorkeur
-        culverts.loc[(culverts['line_type'] == 'dangling') & 
-                    (culverts['WaterLineType'] == 'hydroobjecten') &
-                (culverts['crossings_peilgebieden'] == True) & 
-                (culverts['crossings_nwb'] == False), 'score'] = 13
+        culverts.loc[
+            (culverts["line_type"] == "dangling")
+            & (culverts["WaterLineType"] == "hydroobjecten")
+            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["crossings_nwb"] == False),
+            "score",
+        ] = 13
 
         # 14e voorkeur
-        culverts.loc[(culverts['line_type'] == 'other') &
-                    (culverts['WaterLineType'] == 'hydroobjecten') &
-                (culverts['crossings_peilgebieden'] == True) & 
-                (culverts['crossings_nwb'] == True), 'score'] = 14
+        culverts.loc[
+            (culverts["line_type"] == "other")
+            & (culverts["WaterLineType"] == "hydroobjecten")
+            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["crossings_nwb"] == True),
+            "score",
+        ] = 14
 
         # 15e voorkeur
-        culverts.loc[(culverts['line_type'] == 'dangling') &
-                    (culverts['WaterLineType'] == 'overige_watergangen') &
-                (culverts['crossings_peilgebieden'] == True) & 
-                (culverts['crossings_nwb'] == True), 'score'] = 15
+        culverts.loc[
+            (culverts["line_type"] == "dangling")
+            & (culverts["WaterLineType"] == "overige_watergangen")
+            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["crossings_nwb"] == True),
+            "score",
+        ] = 15
 
         # 16e voorkeur
-        culverts.loc[(culverts['line_type'] == 'other') &
-                    (culverts['WaterLineType'] == 'overige_watergangen') &
-                (culverts['crossings_peilgebieden'] == True) & 
-                (culverts['crossings_nwb'] == True), 'score'] = 16
-        
-        logging.info("   x removing culverts without score")
-        
-        #Drop culverts that don't score 1-16
-        culverts = culverts[culverts['score'].notna()]
+        culverts.loc[
+            (culverts["line_type"] == "other")
+            & (culverts["WaterLineType"] == "overige_watergangen")
+            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["crossings_nwb"] == True),
+            "score",
+        ] = 16
 
-        #Set copy and save data
+        logging.info("   x removing culverts without score")
+
+        # Drop culverts that don't score 1-16
+        culverts = culverts[culverts["score"].notna()]
+
+        # Set copy and save data
         self.potential_culverts_2 = culverts.copy()
         self.potential_culverts_2.to_file(
-            Path(self.path, "1_tussenresultaat", "potential_cuvlerts_2.gpkg"), 
-            layer="potential_cuvlerts_2"
+            Path(self.path, "1_tussenresultaat", "potential_cuvlerts_2.gpkg"),
+            layer="potential_cuvlerts_2",
         )
         logging.debug(
             f"    - {len(self.potential_culverts_2)} potential culverts remaining"
