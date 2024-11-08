@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import LineString
+import numpy as np
 
 from ..utils.general_functions import shorten_line_two_vertices, line_to_vertices
 
@@ -36,7 +37,8 @@ class GeneratorCulvertLocations(BaseModel):
     potential_culverts_0: gpd.GeoDataFrame = None  # alle binnen 40m
     potential_culverts_1: gpd.GeoDataFrame = None  # filter kruizingen
     potential_culverts_2: gpd.GeoDataFrame = None  # scores
-    potential_culverts_3: gpd.GeoDataFrame = None  # resultaat
+    potential_culverts_3: gpd.GeoDataFrame = None  # eerste resultaat
+    potential_culverts_4: gpd.GeoDataFrame = None  # resultaat met nabewerking
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -288,7 +290,7 @@ class GeneratorCulvertLocations(BaseModel):
         return self.potential_culverts_0
 
     def check_intersections_potential_culverts(
-        self, shorten_line_offset=0.01
+        self, shorten_line_offset=0.3
     ) -> gpd.GeoDataFrame:
         """Check intersections of culverts with other objects like roads, etc
 
@@ -314,44 +316,48 @@ class GeneratorCulvertLocations(BaseModel):
 
         logging.info("   x check intersections culverts with objects")
         for crossing_object in crossing_objects:
-            # Shorten potential culverts when finding crossings with hydroobjects and other waterways
-            if crossing_object in crossing_objects[:1]:
-                original_geometries = culverts["geometry"].copy()
-                culverts["geometry"] = culverts["geometry"].apply(
-                    shorten_line_two_vertices, offset=shorten_line_offset
-                )
 
-            # Read data for crossing objects
             crossing_gdf = getattr(self, crossing_object)
-
-            # Find crossing objects by spatial join and merging results with culvert gdf
+    
+            # Merge operation
             culverts = culverts.merge(
                 gpd.sjoin(
                     culverts,
-                    crossing_gdf[["CODE", "geometry"]].rename(
-                        columns={"CODE": f"{crossing_object}_code"}
-                    ),
+                    crossing_gdf[["CODE", "geometry"]].rename(columns={"CODE": f"{crossing_object}_code"}),
                     predicate="crosses",
                 )[f"{crossing_object}_code"],
                 how="left",
                 left_index=True,
                 right_index=True,
             )
+            
+            if crossing_object in ['hydroobjecten','overige_watergangen']:
+                # Step 1: Create a copy with only the relevant columns
+                culverts_copy = culverts[[f"{crossing_object}_code", "dangling_CODE", "CODE", "unique_id"]].copy()
 
-            # Restore potential culvert geometry
-            if crossing_object in crossing_objects[:1]:
-                culverts["geometry"] = original_geometries
+                # Step 2: Ensure columns are of the same type (string) for comparison
+                culverts_copy[f"{crossing_object}_code"] = culverts_copy[f"{crossing_object}_code"].astype("string")
+                culverts_copy["dangling_CODE"] = culverts_copy["dangling_CODE"].astype("string")
+                culverts_copy["CODE"] = culverts_copy["CODE"].astype("string")
 
+                # Step 3: Check where f"{crossing_object}_code" matches either dangling_CODE or CODE
+                # Create boolean mask for each comparison
+                mask_dangling = culverts_copy[f"{crossing_object}_code"] == culverts_copy["dangling_CODE"]
+                mask_code = culverts_copy[f"{crossing_object}_code"] == culverts_copy["CODE"]
+
+                # Combine the masks: identify rows where f"{crossing_object}_code" matches either dangling_CODE or CODE
+                mask_combined = mask_dangling | mask_code
+
+                culverts.loc[culverts_copy[mask_combined].index, f"{crossing_object}_code"] = np.nan
+                
             # Set true in new column for features with crossing objects.
-            culverts[f"crossings_{crossing_object}"] = culverts[
-                f"{crossing_object}_code"
-            ].notna()
+            culverts[f"crossings_{crossing_object}"] = culverts[f"{crossing_object}_code"].notna()                                                              
+
             no_intersections = len(
                 culverts[culverts[f"crossings_{crossing_object}"] == True]
             )
-
             logging.debug(f"    - {crossing_object} ({no_intersections} crossings)")
-
+        culverts.to_file(Path(self.path, "1_tussenresultaat", "Test.gpkg"))
         # Remove potential culverts crossing: main road, railways, barriers, 
         # hydroobjects and other waterways. (Drop columns for these objects).
         for crossing_object in crossing_objects:
@@ -367,8 +373,8 @@ class GeneratorCulvertLocations(BaseModel):
         # Write data
         self.potential_culverts_1 = culverts.copy()
         self.potential_culverts_1.to_file(
-            Path(self.path, "1_tussenresultaat", "potential_cuvlerts_1.gpkg"),
-            layer="potential_cuvlerts_1",
+            Path(self.path, "1_tussenresultaat", "potential_culverts_1.gpkg"),
+            layer="potential_culverts_1",
         )
         logging.debug(
             f"    - {len(self.potential_culverts_1)} potential culverts remaining"
@@ -425,7 +431,7 @@ class GeneratorCulvertLocations(BaseModel):
             (culverts["line_type"] == "dangling")
             & (culverts["WaterLineType"] == "hydroobjecten")
             & (culverts["crossings_peilgebieden"] == False)
-            & (culverts["crossings_nwb"] == False),
+            & (culverts["crossings_nwb"] == True),
             "score",
         ] = 5
 
@@ -536,10 +542,166 @@ class GeneratorCulvertLocations(BaseModel):
         # Set copy and save data
         self.potential_culverts_2 = culverts.copy()
         self.potential_culverts_2.to_file(
-            Path(self.path, "1_tussenresultaat", "potential_cuvlerts_2.gpkg"),
-            layer="potential_cuvlerts_2",
+            Path(self.path, "1_tussenresultaat", "potential_culverts_2.gpkg"),
+            layer="potential_culverts_2",
         )
         logging.debug(
             f"    - {len(self.potential_culverts_2)} potential culverts remaining"
         )
         return self.potential_culverts_2
+
+    def select_correct_score_based_on_score_and_length(self)-> gpd.GeoDataFrame:
+
+        #Create copy of potential culverts and calculate length
+        culverts = self.potential_culverts_2.copy()
+        culverts['length'] = culverts.geometry.length
+
+        #Keep only shortest potential culverts when the score is equal
+        culverts = culverts.sort_values(by=['dangling_id', 'score', 'length'])
+        culverts = culverts.groupby(['dangling_id', 'score']).first().reset_index()
+        
+        logging.debug(
+            f"    - {len(culverts)} potential culverts remaining"
+        )
+
+        # Remove potential culverts when they are not in the highest score group of 4 that is available
+        # Define score groups
+        def get_score_group(score):
+            if score <= 4:
+                return 1
+            elif score <= 8:
+                return 2
+            elif score <= 12:
+                return 3
+            else:
+                return 4
+
+        # Create a new column for score group
+        culverts['score_group'] = culverts['score'].apply(get_score_group)
+        # Find the highest score group for each dangling_id
+        highest_group = culverts.groupby('dangling_id')['score_group'].min().reset_index()
+        highest_group.columns = ['dangling_id', 'highest_score_group']
+        # Merge back to the original DataFrame to filter based on highest score group
+        culverts = culverts.merge(highest_group, on='dangling_id')
+        # Filter to keep only scores in the highest score group
+        culverts = culverts[culverts['score_group'] == culverts['highest_score_group']]
+        # Drop the helper column
+        culverts = culverts.drop(columns=['score_group', 'highest_score_group'])
+
+        logging.debug(
+            f"    - {len(culverts)} potential culverts remaining"
+        )
+
+        # Remove potential culverts of score 9 and lower when the other side of the watergang that a culvert with score 8 or less.
+        #Find dangling IDs that have a corresponding higher score in the same dangling_CODE
+        def filter_low_scores(group):
+            # Find the lowest score in the group
+            low_score_ids = group[group['score'] >= 9]['dangling_id'].unique()
+            
+            # Check for any scores >= 8 in the group
+            if any(group['score'] >= 8):
+                # Drop all lines with low scores from dangling IDs
+                group = group[~group['dangling_id'].isin(low_score_ids)]
+            
+            return group
+
+        #Apply the filtering function to each group
+        culverts = culverts.groupby('dangling_CODE').apply(filter_low_scores).reset_index(drop=True)
+
+        logging.debug(
+            f"    - {len(culverts)} potential culverts remaining"
+        )
+
+        #Select correct score within group of 4 based on defined logic between score and lenght.
+        def select_best_lines(df):
+            dangling_ids = df.dangling_id.unique()
+
+            best_lines = []
+
+            for dangling_id in dangling_ids:
+                df_dangling_id = df[df.dangling_id==dangling_id]
+
+                selected_score = None
+                selected_length = None
+                # Loop through the defined groups
+                for base_score in [1, 5, 9, 13]:
+                    # Find the corresponding scores in the group
+                    score_a = base_score
+                    score_b = base_score + 1
+                    score_c = base_score + 2
+                    score_d = base_score + 3
+                    
+                    # Get lines for the score group
+                    line_a = df_dangling_id[df_dangling_id['score'] == score_a]
+                    line_b = df_dangling_id[df_dangling_id['score'] == score_b]
+                    line_c = df_dangling_id[df_dangling_id['score'] == score_c]
+                    line_d = df_dangling_id[df_dangling_id['score'] == score_d]
+                    
+                    # Select from score_a and score_b
+                    if not line_a.empty:
+                        selected_length = line_a['length'].values[0]
+                        selected_score = score_a
+                    
+                    if not line_b.empty and selected_length is None:
+                        selected_length = line_b['length'].values[0]
+                        selected_score = score_b
+                        
+                    if not line_b.empty and (line_b['length'].values[0] <= 0.5 * selected_length):
+                        selected_length = line_b['length'].values[0]
+                        selected_score = score_b
+                    
+
+                    # Check conditions for score_c and score_d
+                    if selected_score in [score_a, score_b]:
+                        if not line_c.empty:
+                            if line_c['length'].values[0] <= 0.25 * selected_length:
+                                selected_length = line_c['length'].values[0]
+                                selected_score = score_c
+                                
+                        if not line_d.empty:
+                            # First check if score_d is less than 50% of score_c
+                            if selected_score == score_c and (line_d['length'].values[0] <= 0.5 * line_c['length'].values[0]):
+                                selected_length = line_d['length'].values[0]
+                                selected_score = score_d
+                            # Also check if score_d is less than 25% of selected_length if selected_score was score_a or score_b
+                            elif selected_score in [score_a, score_b] and (line_d['length'].values[0] <= 0.25 * selected_length) and (line_d['length'].values[0] > 0.5 * line_c['length'].values[0]):
+                                selected_length = line_c['length'].values[0]
+                                selected_score = score_c
+                            elif selected_score in [score_a, score_b] and (line_d['length'].values[0] <= 0.25 * selected_length) and (line_d['length'].values[0] <= 0.5 * line_c['length'].values[0]):
+                                selected_length = line_d['length'].values[0]
+                                selected_score = score_d
+                    else:
+                        if not line_c.empty:
+                            selected_length = line_c['length'].values[0]
+                            selected_score = score_c
+                        if not line_d.empty and selected_length is not None and (line_d['length'].values[0] <= 0.5 * selected_length):
+                            selected_length = line_d['length'].values[0]
+                            selected_score = score_d
+                            
+                    # If selected_length is still None, check for line_d
+                    if selected_length is None and not line_d.empty:
+                        selected_length = line_d['length'].values[0]
+                        selected_score = score_d
+
+                if selected_score is not None:
+                    best_lines.append({"dangling_id": dangling_id, "selected_score": selected_score})
+
+            return pd.DataFrame(best_lines)
+
+        culverts = culverts.merge(select_best_lines(culverts), how='left', on='dangling_id')
+        culverts = culverts[culverts['selected_score'] == culverts['score']]
+        culverts = culverts.set_crs(28992)
+
+        #Set copy and save data
+        self.potential_culverts_3 = culverts.copy()
+        logging.debug(
+            f"    - {len(self.potential_culverts_3)} potential culverts remaining"
+        )
+        self.potential_culverts_3.to_file(
+            Path(self.path, "1_tussenresultaat", "potential_culverts_3.gpkg"),
+            layer="potential_culverts_3",
+        )
+        
+        return self.potential_culverts_3
+    
+    #def post_process_potential_culverts(self):
