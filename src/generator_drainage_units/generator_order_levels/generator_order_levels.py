@@ -10,9 +10,8 @@ from ..utils.general_functions import shorten_line_two_vertices, line_to_vertice
 
 
 class GeneratorOrderLevels(BaseModel):
-    """ "Module to guess (best-guess) the locations of culverts
-    based on existing water network, other water bodies (c-watergangen),
-    roads and level areas (peilgebieden)."""
+    """Module to generate partial networks and order levels for all water bodies,
+    based on ..."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -22,7 +21,7 @@ class GeneratorOrderLevels(BaseModel):
 
     hydroobjecten: gpd.GeoDataFrame = None
     rws_wateren: gpd.GeoDataFrame = None
-    # overige_watergangen: gpd.GeoDataFrame = None
+    overige_watergangen: gpd.GeoDataFrame = None
 
     read_results: bool = False
     write_results: bool = False
@@ -46,7 +45,7 @@ class GeneratorOrderLevels(BaseModel):
             path to case directory. name of directory is used as case name.
             self.path and self.name are set
 
-        Raises ValueErrors in case directory and 0_basisdata directory not exist
+        Raises ValueErrors in case directory and 0_basisdata directory do not exist
         """
         if not path.exists() and path.is_dir():
             raise ValueError(
@@ -82,6 +81,7 @@ class GeneratorOrderLevels(BaseModel):
             for f in [
                 "hydroobjecten",
                 "rws_wateren",
+                "overige_watergangen"
             ]
         ]
         if isinstance(read_results, bool):
