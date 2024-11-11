@@ -613,7 +613,7 @@ class GeneratorCulvertLocations(BaseModel):
         )
 
         #Select correct score within group of 4 based on defined logic between score and lenght.
-        def select_best_lines(df):
+        def select_best_lines(df, offset_1_2 = 0.75, offset_12_34 = 0.5, offset_3_4 = 0.5):
             dangling_ids = df.dangling_id.unique()
 
             best_lines = []
@@ -642,42 +642,29 @@ class GeneratorCulvertLocations(BaseModel):
                         selected_length = line_a['length'].values[0]
                         selected_score = score_a
                     
-                    if not line_b.empty and selected_length is None:
-                        selected_length = line_b['length'].values[0]
-                        selected_score = score_b
-                        
-                    if not line_b.empty and (line_b['length'].values[0] <= 0.5 * selected_length):
+                    if not line_b.empty and (selected_length is None or line_b['length'].values[0] <= offset_1_2 * selected_length):
                         selected_length = line_b['length'].values[0]
                         selected_score = score_b
                     
+                    # Check conditions for selecting score_c
+                    if selected_length is None and not line_c.empty:
+                        selected_length = line_c['length'].values[0]
+                        selected_score = score_c
 
-                    # Check conditions for score_c and score_d
-                    if selected_score in [score_a, score_b]:
-                        if not line_c.empty:
-                            if line_c['length'].values[0] <= 0.25 * selected_length:
-                                selected_length = line_c['length'].values[0]
-                                selected_score = score_c
-                                
-                        if not line_d.empty:
-                            # First check if score_d is less than 50% of score_c
-                            if selected_score == score_c and (line_d['length'].values[0] <= 0.5 * line_c['length'].values[0]):
-                                selected_length = line_d['length'].values[0]
-                                selected_score = score_d
-                            # Also check if score_d is less than 25% of selected_length if selected_score was score_a or score_b
-                            elif selected_score in [score_a, score_b] and (line_d['length'].values[0] <= 0.25 * selected_length) and (line_d['length'].values[0] > 0.5 * line_c['length'].values[0]):
-                                selected_length = line_c['length'].values[0]
-                                selected_score = score_c
-                            elif selected_score in [score_a, score_b] and (line_d['length'].values[0] <= 0.25 * selected_length) and (line_d['length'].values[0] <= 0.5 * line_c['length'].values[0]):
-                                selected_length = line_d['length'].values[0]
-                                selected_score = score_d
-                    else:
-                        if not line_c.empty:
-                            selected_length = line_c['length'].values[0]
-                            selected_score = score_c
-                        if not line_d.empty and selected_length is not None and (line_d['length'].values[0] <= 0.5 * selected_length):
+                    if not line_c.empty and (selected_score in [score_a, score_b]) and (line_c['length'].values[0] <= offset_12_34 * selected_length):
+                        selected_length = line_c['length'].values[0]
+                        selected_score = score_c
+
+                    # Check conditions for selecting score_d
+                    if not line_d.empty:
+                        if selected_score == score_c and (line_d['length'].values[0] <= offset_3_4 * selected_length):
                             selected_length = line_d['length'].values[0]
                             selected_score = score_d
-                            
+                        elif selected_score in [score_a, score_b] and (line_d['length'].values[0] <= offset_12_34 * selected_length):
+                            if line_c.empty or (line_d['length'].values[0] <= offset_3_4 * line_c['length'].values[0]):
+                                selected_length = line_d['length'].values[0]
+                                selected_score = score_d
+                                            
                     # If selected_length is still None, check for line_d
                     if selected_length is None and not line_d.empty:
                         selected_length = line_d['length'].values[0]
@@ -704,4 +691,3 @@ class GeneratorCulvertLocations(BaseModel):
         
         return self.potential_culverts_3
     
-    #def post_process_potential_culverts(self):
