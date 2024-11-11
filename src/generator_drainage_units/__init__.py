@@ -59,6 +59,6 @@ def run_generator_culvert_locations(
     culverts_generator.assign_scores_to_potential_culverts()
 
     culverts_generator.select_correct_score_based_on_score_and_length()
-    
+
     logging.info(f"   x Case finished in {round(time.time()-start_time, 3)} seconds")
     return culverts_generator
