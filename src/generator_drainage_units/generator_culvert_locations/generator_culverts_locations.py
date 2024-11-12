@@ -34,6 +34,7 @@ class GeneratorCulvertLocations(BaseModel):
     write_results: bool = False
 
     water_line_pnts: gpd.GeoDataFrame = None
+    duplicates: gpd.GeoDataFrame = None
     potential_culverts_0: gpd.GeoDataFrame = None  # alle binnen 40m
     potential_culverts_1: gpd.GeoDataFrame = None  # filter kruizingen
     potential_culverts_2: gpd.GeoDataFrame = None  # scores
@@ -174,6 +175,20 @@ class GeneratorCulvertLocations(BaseModel):
         self.water_line_pnts["unique_id"] = self.water_line_pnts.reset_index(
             drop=True
         ).index
+
+        # Identify duplicates among the "dangling" points
+        start_end_points = self.water_line_pnts[
+            self.water_line_pnts["line_type"] == "dangling"
+        ]
+
+        # Find duplicate indices based on geometry
+        duplicate_indices = start_end_points[
+            start_end_points.duplicated(subset="geometry", keep=False)
+        ].index
+        self.duplicates = self.water_line_pnts.loc[duplicate_indices].copy()
+
+        # Update all duplicated "dangling" points to "other"
+        self.water_line_pnts.loc[duplicate_indices, "line_type"] = "other"
 
         if self.write_results:
             dir_results = Path(self.path, "1_tussenresultaat")
@@ -725,3 +740,40 @@ class GeneratorCulvertLocations(BaseModel):
         )
 
         return self.potential_culverts_3
+
+    def post_process_potential_culverts(self):
+        culverts = self.potential_culverts_3.copy()
+
+        # Step 1: Check and create a dictionary for duplicate groups with non-empty CODE lists
+        duplicate_code_groups = (
+            self.duplicates.groupby("geometry")["CODE"]
+            .apply(
+                lambda codes: list(codes) if len(codes) > 1 else []
+            )  # Only create list if more than one CODE
+            .to_dict()
+        )
+
+        # Step 2: Define the filter function
+        def should_remove(row):
+            dangling_code = row["dangling_CODE"]
+            code = row["CODE"]
+
+            # Check if both dangling_code and code appear in any of the lists in duplicate_code_groups
+            for codes_list in duplicate_code_groups.values():
+                if dangling_code in codes_list and code in codes_list:
+                    return True  # Mark for removal if both are found in the same list
+
+            return False  # Otherwise, don't remove
+
+        # Step 3: Filter culverts using the modified function
+        culverts = culverts[~culverts.apply(should_remove, axis=1)].copy()
+
+        self.potential_culverts_4 = culverts.copy()
+        logging.debug(
+            f"    - {len(self.potential_culverts_4)} potential culverts remaining"
+        )
+        self.potential_culverts_4.to_file(
+            Path(self.path, "1_tussenresultaat", "potential_culverts_4.gpkg"),
+            layer="potential_culverts_4",
+        )
+        return self.potential_culverts_4
