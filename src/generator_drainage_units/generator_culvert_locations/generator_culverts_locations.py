@@ -7,7 +7,11 @@ import geopandas as gpd
 from shapely.geometry import LineString, Point
 import numpy as np
 
-from ..utils.general_functions import shorten_line_two_vertices, line_to_vertices, split_waterways_by_endpoints
+from ..utils.general_functions import (
+    shorten_line_two_vertices,
+    line_to_vertices,
+    split_waterways_by_endpoints,
+)
 
 
 class GeneratorCulvertLocations(BaseModel):
@@ -41,9 +45,15 @@ class GeneratorCulvertLocations(BaseModel):
     potential_culverts_3: gpd.GeoDataFrame = None  # eerste resultaat
     potential_culverts_4: gpd.GeoDataFrame = None  # resultaat met nabewerking
 
-    hydroobjecten_processed: gpd.GeoDataFrame = None #hydroobjecten including splits by culverts
-    overige_watergangen_processed: gpd.GeoDataFrame = None #overige_watergangen including splits by culverts
-    combined_hydroobjecten: gpd.GeoDataFrame = None #combined A, B, en C watergangen including splits
+    hydroobjecten_processed: gpd.GeoDataFrame = (
+        None  # hydroobjecten including splits by culverts
+    )
+    overige_watergangen_processed: gpd.GeoDataFrame = (
+        None  # overige_watergangen including splits by culverts
+    )
+    combined_hydroobjecten: gpd.GeoDataFrame = (
+        None  # combined A, B, en C watergangen including splits
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -746,11 +756,10 @@ class GeneratorCulvertLocations(BaseModel):
         return self.potential_culverts_3
 
     def post_process_potential_culverts(self):
-        
         culverts = self.potential_culverts_3.copy()
 
-        #Check for already connected watergangen and remove potential connections
-        #Check and create a dictionary for duplicate groups with non-empty CODE lists
+        # Check for already connected watergangen and remove potential connections
+        # Check and create a dictionary for duplicate groups with non-empty CODE lists
         duplicate_code_groups = (
             self.duplicates.groupby("geometry")["CODE"]
             .apply(
@@ -759,16 +768,14 @@ class GeneratorCulvertLocations(BaseModel):
             .to_dict()
         )
 
-        #Chose shortest culvert when two culverts go to the same point from both dangling_points of a watergang
-        culverts['code_pair'] = culverts.apply(
-            lambda row: frozenset([row['dangling_CODE'], row['CODE']]), axis=1
+        # Chose shortest culvert when two culverts go to the same point from both dangling_points of a watergang
+        culverts["code_pair"] = culverts.apply(
+            lambda row: frozenset([row["dangling_CODE"], row["CODE"]]), axis=1
         )
 
-        culverts = culverts.loc[
-        culverts.groupby('code_pair')['length'].idxmin()
-        ]
+        culverts = culverts.loc[culverts.groupby("code_pair")["length"].idxmin()]
 
-        #Define the filter function
+        # Define the filter function
         def should_remove(row):
             dangling_code = row["dangling_CODE"]
             code = row["CODE"]
@@ -780,7 +787,7 @@ class GeneratorCulvertLocations(BaseModel):
 
             return False  # Otherwise, don't remove
 
-        #Filter culverts using the modified function
+        # Filter culverts using the modified function
         culverts = culverts[~culverts.apply(should_remove, axis=1)].copy()
 
         self.potential_culverts_4 = culverts.copy()
@@ -794,25 +801,31 @@ class GeneratorCulvertLocations(BaseModel):
         return self.potential_culverts_4
 
     def splits_hydroobjecten_by_endpoints_of_culverts_and_combine(self):
+        other_culverts_hydro = self.potential_culverts_4[
+            (self.potential_culverts_4["line_type"] == "other")
+            & (self.potential_culverts_4["WaterLineType"] == "hydroobjecten")
+        ].copy()
+        other_culverts_other = self.potential_culverts_4[
+            (self.potential_culverts_4["line_type"] == "other")
+            & (self.potential_culverts_4["WaterLineType"] == "overige_watergangen")
+        ].copy()
 
-        other_culverts_hydro = self.potential_culverts_4[(self.potential_culverts_4['line_type'] == 'other') & (self.potential_culverts_4['WaterLineType'] == 'hydroobjecten')].copy()
-        other_culverts_other = self.potential_culverts_4[(self.potential_culverts_4['line_type'] == 'other') & (self.potential_culverts_4['WaterLineType'] == 'overige_watergangen')].copy()
-
-        self.hydroobjecten_processed = split_waterways_by_endpoints(self.hydroobjecten, other_culverts_hydro)
-        logging.debug(
-            "hydroobjecten gesplit"
+        self.hydroobjecten_processed = split_waterways_by_endpoints(
+            self.hydroobjecten, other_culverts_hydro
         )
-        self.overige_watergangen_processed = split_waterways_by_endpoints(self.overige_watergangen, other_culverts_other)
-
-        logging.debug(
-            "overige watergangen gesplit"
+        logging.debug("hydroobjecten gesplit")
+        self.overige_watergangen_processed = split_waterways_by_endpoints(
+            self.overige_watergangen, other_culverts_other
         )
 
-        self.combined_hydroobjecten = pd.concat([self.hydroobjecten_processed, self.overige_watergangen_processed], ignore_index=True)
+        logging.debug("overige watergangen gesplit")
 
-        logging.debug(
-            "hydroobjecten en overige watergangen gecombineerd"
+        self.combined_hydroobjecten = pd.concat(
+            [self.hydroobjecten_processed, self.overige_watergangen_processed],
+            ignore_index=True,
         )
+
+        logging.debug("hydroobjecten en overige watergangen gecombineerd")
 
         self.hydroobjecten_processed.to_file(
             Path(self.path, "1_tussenresultaat", "hydroobjecten_processed.gpkg"),
@@ -823,10 +836,14 @@ class GeneratorCulvertLocations(BaseModel):
             Path(self.path, "1_tussenresultaat", "overige_watergangen_processed.gpkg"),
             layer="overige_watergangen_processed",
         )
-        
+
         self.combined_hydroobjecten.to_file(
             Path(self.path, "1_tussenresultaat", "combined_hydroobjecten.gpkg"),
             layer="combined_hydroobjecten",
         )
-        
-        return self.combined_hydroobjecten, self.overige_watergangen_processed, self.hydroobjecten_processed
+
+        return (
+            self.combined_hydroobjecten,
+            self.overige_watergangen_processed,
+            self.hydroobjecten_processed,
+        )
