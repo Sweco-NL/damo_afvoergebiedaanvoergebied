@@ -9,6 +9,7 @@ import folium
 from folium.features import DivIcon
 
 from ..utils.general_functions import shorten_line_two_vertices, line_to_vertices
+from ..utils.folium_utils import add_labels_to_points_lines_polygons
 
 
 class GeneratorOrderLevels(BaseModel):
@@ -132,7 +133,7 @@ class GeneratorOrderLevels(BaseModel):
         dead_end_nodes = start_nodes.sjoin(end_nodes, how="right")
         dead_end_nodes = hydroobjects.loc[dead_end_nodes[dead_end_nodes.index_left.isna()].index, ["CODE", "end_node"]]
         dead_end_nodes = dead_end_nodes.rename(columns={"end_node": "geometry"})
-
+        
         dead_end_nodes["geometry"] = dead_end_nodes["geometry"].buffer(buffer_width)
         sjoin = dead_end_nodes.sjoin(hydroobjects[["CODE", "geometry"]])
         no_dead_end_node_ids = sjoin[sjoin["CODE_left"]!=sjoin["CODE_right"]].index
@@ -205,14 +206,23 @@ class GeneratorOrderLevels(BaseModel):
             z_index=2,
         ).add_to(m)
 
+        fg = folium.FeatureGroup(name=f"Uitstroompunten RWS-water", control=True).add_to(m)
+ 
         folium.GeoJson(
             self.outflow_nodes_all,
-            name="Uitstroompunten RWS-water",
+            name="Uitstroompunten RWS-wateren",
             marker=folium.Circle(radius=25, fill_color="red", fill_opacity=0.4, color="red", weight=3),
             highlight_function=lambda x: {"fillOpacity": 0.8},
             zoom_on_click=True,
             z_index=3,
-        ).add_to(m)
+        ).add_to(fg)
+        
+        add_labels_to_points_lines_polygons(
+            gdf=self.outflow_nodes_all, 
+            column='orde_code',
+            label_fontsize=8,
+            fg=fg
+        )
 
         folium.LayerControl(collapsed=False).add_to(m)
 
