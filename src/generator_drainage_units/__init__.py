@@ -62,5 +62,7 @@ def run_generator_culvert_locations(
 
     culverts_generator.post_process_potential_culverts()
 
+    culverts_generator.splits_hydroobjecten_by_endpoints_of_culverts_and_combine()
+
     logging.info(f"   x Case finished in {round(time.time()-start_time, 3)} seconds")
     return culverts_generator
