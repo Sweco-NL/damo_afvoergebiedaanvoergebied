@@ -244,6 +244,12 @@ class GeneratorNetworkLumping(BaseModel):
             direction=self.direction,
             split_points=inflow_outflow_splits
         )
+        self.inflow_outflow_nodes = define_list_upstream_downstream_edges_ids(
+            self.inflow_outflow_nodes.nodeID.unique(),
+            self.inflow_outflow_nodes,
+            self.inflow_outflow_edges,
+        )
+        return self.inflow_outflow_nodes
 
 
     def detect_split_points(self):
@@ -268,12 +274,7 @@ class GeneratorNetworkLumping(BaseModel):
 
         inflow_outflow_edges = None
 
-        inflow_outflow_nodes = define_list_upstream_downstream_edges_ids(
-            self.inflow_outflow_nodes.nodeID.unique(),
-            self.inflow_outflow_nodes,
-            self.inflow_outflow_edges,
-        )
-        inflow_outflow_nodes = inflow_outflow_nodes[inflow_outflow_nodes.no_downstream_edges>1]
+        inflow_outflow_nodes = self.inflow_outflow_nodes[self.inflow_outflow_nodes.no_downstream_edges>1]
 
         for i_node, node in enumerate(inflow_outflow_nodes.nodeID.values):
             if i_node%50 == 0:
@@ -323,7 +324,7 @@ class GeneratorNetworkLumping(BaseModel):
         else:
             inflow_outflow_splits = self.inflow_outflow_splits.copy()
             for edge in [f'{search_direction}_edge', f'{opposite_direction}_edge']:
-                inflow_outflow_splits[edge] = inflow_outflow_splits.apply(
+                    inflow_outflow_splits[edge] = inflow_outflow_splits.apply(
                     lambda x: x[edge] if len(x[edge+'s'].split(','))>1 else x[edge+'s'], 
                     axis=1
                 )
