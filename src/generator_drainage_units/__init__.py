@@ -91,7 +91,11 @@ def run_generator_network_lumping(
         direction=direction,
         no_inflow_outflow_points=no_inflow_outflow_points,
     )
+    network.calculate_angles_of_edges_at_splitpoints()
+    network.select_directions_for_splits_based_on_angle()
 
+    # Find upstream nodes again?
+    #network.find_upstream_downstream_nodes_edges(direction=network.direction)
     network.assign_drainage_units_to_outflow_points_based_on_length_hydroobject()
     network.dissolve_assigned_drainage_units()
 
