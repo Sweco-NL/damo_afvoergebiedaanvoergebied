@@ -70,7 +70,6 @@ def run_generator_culvert_locations(
     return culverts_generator
 
 
-
 def run_generator_network_lumping(
     path: Path,
     direction: str = "upstream",
@@ -112,11 +111,13 @@ def run_generator_network_lumping(
 def run_network_lumping_with_random_selection_splits(
     network: GeneratorNetworkLumping,
     include_areas: bool = True,
-    write_html: bool = False
+    write_html: bool = False,
 ):
     network.select_directions_for_splits()
     network.find_upstream_downstream_nodes_edges(direction=network.direction)
     network.assign_drainage_units_to_outflow_points_based_on_length_hydroobject()
     network.dissolve_assigned_drainage_units()
-    network.export_results_to_html_file(html_file_name=f"{network.name}_random_selection_splits")
+    network.export_results_to_html_file(
+        html_file_name=f"{network.name}_random_selection_splits"
+    )
     return network

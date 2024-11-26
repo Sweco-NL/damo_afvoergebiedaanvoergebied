@@ -378,4 +378,8 @@ def define_list_upstream_downstream_edges_ids(
         nodes_sel[f"{direction}_edges"] = nodes_sel.apply(
             lambda x: ",".join(list(edges[edges[node] == x.nodeID].code.values)), axis=1
         )
-    return nodes_sel.reset_index(drop=True)
+        nodes_sel[f"no_{direction}_edges"] = nodes_sel.apply(
+            lambda x: len(x[f"{direction}_edges"].split(",")), axis=1
+        )
+    nodes_sel = nodes_sel.reset_index(drop=True)
+    return nodes_sel

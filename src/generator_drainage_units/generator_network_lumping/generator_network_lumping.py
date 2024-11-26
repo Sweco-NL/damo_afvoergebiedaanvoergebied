@@ -38,7 +38,7 @@ class GeneratorNetworkLumping(BaseModel):
     hydroobjecten_extra: gpd.GeoDataFrame = None
     rivieren: gpd.GeoDataFrame = None
     afwateringseenheden: gpd.GeoDataFrame = None
-    
+
     inflow_outflow_points: gpd.GeoDataFrame = None
     inflow_outflow_splits: gpd.GeoDataFrame = None
 
@@ -62,13 +62,11 @@ class GeneratorNetworkLumping(BaseModel):
     folium_map: folium.Map = None
     folium_html_path: str = None
 
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if self.path is not None:
             self.check_case_path_directory(path=self.path)
             self.read_data_from_case()
-
 
     def check_case_path_directory(self, path: Path):
         """Checks if case directory exists and if required directory structure exists
@@ -95,7 +93,6 @@ class GeneratorNetworkLumping(BaseModel):
         for folder in [self.dir_inter_results, self.dir_results]:
             if not Path(self.path, folder).exists():
                 Path(self.path, folder).mkdir(parents=True, exist_ok=True)
-
 
     def read_data_from_case(self, path: Path = None, read_results: bool = None):
         """Read data from case: including basis data and intermediate results
@@ -152,7 +149,6 @@ class GeneratorNetworkLumping(BaseModel):
                             gdf = gdf.rename(columns={"CODE": "code"})
                         setattr(self, x.stem, gdf)
 
-
     def create_graph_from_network(
         self, water_lines=["rivieren", "hydroobjecten", "hydroobjecten_extra"]
     ):
@@ -167,7 +163,7 @@ class GeneratorNetworkLumping(BaseModel):
         """
         if water_lines is None:
             water_lines = ["hydroobjecten"]
-        logging.info("  x create network graph")
+        logging.info("   x create network graph")
         self.inflow_outflow_edges = None
         for water_line in water_lines:
             gdf_water_line = getattr(self, water_line)
@@ -176,15 +172,13 @@ class GeneratorNetworkLumping(BaseModel):
             if self.inflow_outflow_edges is None:
                 self.inflow_outflow_edges = gdf_water_line.explode()
             else:
-                self.inflow_outflow_edges = pd.concat([
-                    self.inflow_outflow_edges, 
-                    gdf_water_line.explode()
-                ])
+                self.inflow_outflow_edges = pd.concat(
+                    [self.inflow_outflow_edges, gdf_water_line.explode()]
+                )
         self.nodes, self.edges, self.graph = create_graph_from_edges(
             self.inflow_outflow_edges
         )
         self.network_positions = {n: [n[0], n[1]] for n in list(self.graph.nodes)}
-
 
     def find_upstream_downstream_nodes_edges(
         self, direction: str = "upstream", no_inflow_outflow_points: int = None
@@ -202,7 +196,7 @@ class GeneratorNetworkLumping(BaseModel):
             raise ValueError(f" x direction needs to be 'upstream' or 'downstream'")
         self.direction = direction
         logging.info(
-            f"  x find {direction} nodes and edges for {len(self.inflow_outflow_points)} outflow locations"
+            f"   x find {direction} nodes and edges for {len(self.inflow_outflow_points)} outflow locations"
         )
 
         if no_inflow_outflow_points is not None:
@@ -216,33 +210,45 @@ class GeneratorNetworkLumping(BaseModel):
 
         # split_points for inflow_outflow. check if which version 2, 1 or 0 needs to be used.
         inflow_outflow_splits = None
-        for i_splits, splits in enumerate([
-            self.inflow_outflow_splits_2, 
-            self.inflow_outflow_splits_1, 
-            self.inflow_outflow_splits_0, 
-            self.inflow_outflow_splits
-        ]):
+        for i_splits, splits in enumerate(
+            [
+                self.inflow_outflow_splits_2,
+                self.inflow_outflow_splits_1,
+                self.inflow_outflow_splits_0,
+                self.inflow_outflow_splits,
+            ]
+        ):
             if splits is not None:
-                splits[["upstream_edge", "downstream_edge"]] = splits[["upstream_edge", "downstream_edge"]].replace("", None)
+                splits[["upstream_edge", "downstream_edge"]] = splits[
+                    ["upstream_edge", "downstream_edge"]
+                ].replace("", None)
                 for direction in ["upstream", "downstream"]:
                     if f"{direction}_edge" not in splits.columns:
-                        if f"selected_{direction}_edge" in splits.columns: 
-                            splits[f"{direction}_edge"] = splits[f"selected_{direction}_edge"]
+                        if f"selected_{direction}_edge" in splits.columns:
+                            splits[f"{direction}_edge"] = splits[
+                                f"selected_{direction}_edge"
+                            ]
                         else:
                             splits[f"{direction}_edge"] = None
                     else:
-                        if f"selected_{direction}_edge" not in splits.columns: 
-                            splits[f"selected_{direction}_edge"] = splits[f"{direction}_edge"]
+                        if f"selected_{direction}_edge" not in splits.columns:
+                            splits[f"selected_{direction}_edge"] = splits[
+                                f"{direction}_edge"
+                            ]
                 inflow_outflow_splits = splits
                 break
 
-        self.inflow_outflow_nodes, self.inflow_outflow_edges = find_nodes_edges_for_direction(
-            nodes=self.nodes,
-            edges=self.edges,
-            node_ids=self.inflow_outflow_points["representative_node"].to_numpy(),
-            border_node_ids=self.inflow_outflow_points["representative_node"].to_numpy(),
-            direction=self.direction,
-            split_points=inflow_outflow_splits
+        self.inflow_outflow_nodes, self.inflow_outflow_edges = (
+            find_nodes_edges_for_direction(
+                nodes=self.nodes,
+                edges=self.edges,
+                node_ids=self.inflow_outflow_points["representative_node"].to_numpy(),
+                border_node_ids=self.inflow_outflow_points[
+                    "representative_node"
+                ].to_numpy(),
+                direction=self.direction,
+                split_points=inflow_outflow_splits,
+            )
         )
         self.inflow_outflow_nodes = define_list_upstream_downstream_edges_ids(
             self.inflow_outflow_nodes.nodeID.unique(),
@@ -250,7 +256,6 @@ class GeneratorNetworkLumping(BaseModel):
             self.inflow_outflow_edges,
         )
         return self.inflow_outflow_nodes
-
 
     def detect_split_points(self):
         """Detect all split points where the basins of two or more outflow/inflow points are connecting
@@ -260,7 +265,9 @@ class GeneratorNetworkLumping(BaseModel):
         self.inflow_outflow_splits_1: gpd.GeoDataFrame
             gdf with splitpoints, nodeid, downstream_edges_ids, upstream_edges_ids, etc.
         """
-        logging.info("  x search for split points based on the basins of outflow/inflow points")
+        logging.info(
+            "   x search for split points based on the basins of outflow/inflow points"
+        )
 
         inflow_outflow_nodes = self.inflow_outflow_points.representative_node.values
         if self.direction == "downstream":
@@ -274,22 +281,27 @@ class GeneratorNetworkLumping(BaseModel):
 
         inflow_outflow_edges = None
 
-        inflow_outflow_nodes = self.inflow_outflow_nodes[self.inflow_outflow_nodes.no_downstream_edges>1]
+        inflow_outflow_nodes = self.inflow_outflow_nodes[
+            self.inflow_outflow_nodes.no_downstream_edges > 1
+        ]
 
         for i_node, node in enumerate(inflow_outflow_nodes.nodeID.values):
-            if i_node%50 == 0:
-                logging.debug(f"    - detect points: {i_node}/{len(inflow_outflow_nodes)}")
+            if i_node % 50 == 0:
+                logging.debug(
+                    f"    - detect points: {i_node}/{len(inflow_outflow_nodes)}"
+                )
             upstream_edges = self.inflow_outflow_edges[
                 self.inflow_outflow_edges[node_search] == node
             ].copy()
 
             inflow_outflow_points_columns = [
-                f"{self.direction}_node_{n}" for n in self.inflow_outflow_points.representative_node.values
+                f"{self.direction}_node_{n}"
+                for n in self.inflow_outflow_points.representative_node.values
             ]
 
             for col in inflow_outflow_points_columns:
                 upstream_edges[col] = upstream_edges[col].replace(False, np.nan).copy()
-            
+
             upstream_edges = upstream_edges.dropna(
                 subset=inflow_outflow_points_columns, how="all"
             )
@@ -312,95 +324,121 @@ class GeneratorNetworkLumping(BaseModel):
             self.inflow_outflow_nodes,
             self.inflow_outflow_edges,
         )
-
-        for edge in [f'{search_direction}_edge', f'{opposite_direction}_edge']:
+        for edge in [f"{search_direction}_edge", f"{opposite_direction}_edge"]:
             self.inflow_outflow_splits_0[edge] = self.inflow_outflow_splits_0.apply(
-                lambda x: None if len(x[edge+'s'].split(','))>1 else x[edge+'s'], 
-                axis=1
+                lambda x: None if len(x[edge + "s"].split(",")) > 1 else x[edge + "s"],
+                axis=1,
             )
 
         if self.inflow_outflow_splits is None:
             self.inflow_outflow_splits_1 = self.inflow_outflow_splits_0.copy()
         else:
             inflow_outflow_splits = self.inflow_outflow_splits.copy()
-            for edge in [f'{search_direction}_edge', f'{opposite_direction}_edge']:
-                    inflow_outflow_splits[edge] = inflow_outflow_splits.apply(
-                    lambda x: x[edge] if len(x[edge+'s'].split(','))>1 else x[edge+'s'], 
-                    axis=1
+            inflow_outflow_splits = define_list_upstream_downstream_edges_ids(
+                inflow_outflow_splits.nodeID.unique(),
+                inflow_outflow_splits,
+                self.inflow_outflow_edges,
+            )
+            for edge in [f"{search_direction}_edge", f"{opposite_direction}_edge"]:
+                inflow_outflow_splits[edge] = inflow_outflow_splits.apply(
+                    lambda x: x[edge]
+                    if len(x[edge + "s"].split(",")) > 1
+                    else x[edge + "s"],
+                    axis=1,
                 )
-            self.inflow_outflow_splits_1 = pd.concat([
-                inflow_outflow_splits, 
-                self.inflow_outflow_splits_0
-            ]).reset_index(drop=True).drop_duplicates(subset="nodeID", keep='first')
-        
-        if self.inflow_outflow_splits is None:
-            logging.debug(f"   - no. of splits as input: {0}")
-        else:
-            logging.debug(f"   - no. of splits as input: {len(self.inflow_outflow_splits)}")
-        logging.debug(f"   - no. of splits found in network: {len(self.inflow_outflow_splits_0)}")
-        logging.debug(f"   - no. of splits in total: {len(self.inflow_outflow_splits_1)}")
-        
-        return self.inflow_outflow_splits_1
+            self.inflow_outflow_splits_1 = (
+                pd.concat([inflow_outflow_splits, self.inflow_outflow_splits_0])
+                .reset_index(drop=True)
+                .drop_duplicates(subset="nodeID", keep="first")
+            )
 
+        if self.inflow_outflow_splits is None:
+            logging.debug(f"    - no. of splits as input: {0}")
+        else:
+            logging.debug(
+                f"    - no. of splits as input: {len(self.inflow_outflow_splits)}"
+            )
+        logging.debug(
+            f"    - no. of splits found in network: {len(self.inflow_outflow_splits_0)}"
+        )
+        logging.debug(
+            f"    - no. of splits in total: {len(self.inflow_outflow_splits_1)}"
+        )
+
+        return self.inflow_outflow_splits_1
 
     def export_detected_split_points(self):
         if self.inflow_outflow_splits_1 is None:
-            logging.info("  x Splitsingen nog niet gevonden. gebruik functie .detect_split_points()")
+            logging.info(
+                "   x splitsingen nog niet gevonden. gebruik functie .detect_split_points()"
+            )
         else:
             base_dir = Path(self.path, self.dir_basis_data)
             file_detected_points = "inflow_outflow_splits_detected.gpkg"
-            logging.info(f"  x Split points found: saved as {self.dir_basis_data}/{file_detected_points}")
+            logging.info(
+                f"   x split points found: saved as {self.dir_basis_data}/{file_detected_points}"
+            )
             detected_inflow_outflow_splits = self.inflow_outflow_splits_1.drop(
                 columns=["selected_upstream_edge", "selected_downstream_edge"],
-                errors='ignore'
+                errors="ignore",
             )
             detected_inflow_outflow_splits.to_file(Path(base_dir, file_detected_points))
 
-
     def select_directions_for_splits(self, fillna_with_random=False):
-        """_summary_: This function can be used to define the random direction at split points. 
-        
-        inflow_outflow_splits_0 is the GeoDataFrame with the detected points, 
-        without decisions. These decisions can be made manually in GIS, 
-        by adding the correct hydroobject in the column {search_direction}_edges, 
-        and saving the file as inflow_outflow_splits_1. 
-        
+        """_summary_: This function can be used to define the random direction at split points.
+
+        inflow_outflow_splits_0 is the GeoDataFrame with the detected points,
+        without decisions. These decisions can be made manually in GIS,
+        by adding the correct hydroobject in the column {search_direction}_edges,
+        and saving the file as inflow_outflow_splits_1.
+
         This function fills the entire column when there is no inflow_outflow_splits_1
         GeoDataFrame. When it is present, the function only fills empty instances in the column.
         """
         # check whether to use inflow_outflow_splits_1 or inflow_outflow_splits_0
-        if self.inflow_outflow_splits_1 is not None and not self.inflow_outflow_splits_1.empty:
+        if (
+            self.inflow_outflow_splits_1 is not None
+            and not self.inflow_outflow_splits_1.empty
+        ):
             self.inflow_outflow_splits_2 = self.inflow_outflow_splits_1.copy()
-        elif self.inflow_outflow_splits_0 is not None and not self.inflow_outflow_splits_0.empty:
+        elif (
+            self.inflow_outflow_splits_0 is not None
+            and not self.inflow_outflow_splits_0.empty
+        ):
             self.inflow_outflow_splits_2 = self.inflow_outflow_splits_0.copy()
         else:
             logging.debug(" x no splits found: no direction for splits selected")
             return None
 
-        logging.info(" x search for direction in splits")
+        logging.info("   x search for direction in splits")
         for search_direction in ["upstream", "downstream"]:
-            no_splits_known = len(self.inflow_outflow_splits_2[
-                ~self.inflow_outflow_splits_2[f'{search_direction}_edge'].isna()
-            ])
-            logging.debug(f"   - known {search_direction} direction at splits: {no_splits_known}/{len(self.inflow_outflow_splits_2)}")
-            self.inflow_outflow_splits_2[f'selected_{search_direction}_edge'] = (
+            no_splits_known = len(
+                self.inflow_outflow_splits_2[
+                    ~self.inflow_outflow_splits_2[f"{search_direction}_edge"].isna()
+                ]
+            )
+            logging.debug(
+                f"    - known {search_direction} direction at splits: {no_splits_known}/{len(self.inflow_outflow_splits_2)}"
+            )
+            self.inflow_outflow_splits_2[f"selected_{search_direction}_edge"] = (
                 self.inflow_outflow_splits_2.apply(
-                    lambda x: random.choice(x[f"{search_direction}_edges"].split(','))
-                    if x[f'{search_direction}_edge'] is None
-                    else x[f'{search_direction}_edge'],
+                    lambda x: random.choice(x[f"{search_direction}_edges"].split(","))
+                    if x[f"{search_direction}_edge"] is None
+                    else x[f"{search_direction}_edge"],
                     axis=1,
                 )
             )
-            logging.debug(f"   - randomly choosen {search_direction} direction at splits: {
+            logging.debug(f"    - randomly choosen {search_direction} direction at splits: {
                 len(self.inflow_outflow_splits_2) - no_splits_known}/{len(self.inflow_outflow_splits_2)}")
         return self.inflow_outflow_splits_2
-
 
     def assign_drainage_units_to_outflow_points_based_on_id(self):
         self.afwateringseenheden["gridcode"] = (
             self.afwateringseenheden["gridcode"].round(0).astype("Int64").astype(str)
         )
-        self.inflow_outflow_edges["code"] = self.inflow_outflow_edges["code"].astype(str)
+        self.inflow_outflow_edges["code"] = self.inflow_outflow_edges["code"].astype(
+            str
+        )
 
         upstream_downstream_columns = [
             f"{self.direction}_node_{node}"
@@ -415,8 +453,9 @@ class GeneratorNetworkLumping(BaseModel):
             right_on="code",
         )
         self.afwateringseenheden_0 = self.afwateringseenheden_0.drop(columns=["code"])
-        self.afwateringseenheden_0[upstream_downstream_columns] = self.afwateringseenheden_0[upstream_downstream_columns].fillna(False)
-
+        self.afwateringseenheden_0[upstream_downstream_columns] = (
+            self.afwateringseenheden_0[upstream_downstream_columns].fillna(False)
+        )
 
     def assign_drainage_units_to_outflow_points_based_on_length_hydroobject(self):
         if self.afwateringseenheden is None:
@@ -441,7 +480,6 @@ class GeneratorNetworkLumping(BaseModel):
             how="inner",
         )
 
-
         # Select the rows from the merged GeoDataFrame that correspond to those indices
         max_intersections = merged.groupby("unique_id")["intersection_length"].idxmax()
         result = merged.loc[max_intersections]
@@ -464,9 +502,10 @@ class GeneratorNetworkLumping(BaseModel):
         ].copy()
 
         for col in upstream_columns:
-            self.afwateringseenheden_1[col] = self.afwateringseenheden_1[col].fillna(False)
+            self.afwateringseenheden_1[col] = self.afwateringseenheden_1[col].fillna(
+                False
+            )
         return self.afwateringseenheden_1
-
 
     def dissolve_assigned_drainage_units(self):
         if self.afwateringseenheden_1 is None:
@@ -484,17 +523,17 @@ class GeneratorNetworkLumping(BaseModel):
             if self.inflow_outflow_areas_0 is None:
                 self.inflow_outflow_areas_0 = dissolved_areas.reset_index(drop=True)
             else:
-                self.inflow_outflow_areas_0 = pd.concat([
-                    self.inflow_outflow_areas_0, 
-                    dissolved_areas
-                ]).reset_index(drop=True)
+                self.inflow_outflow_areas_0 = pd.concat(
+                    [self.inflow_outflow_areas_0, dissolved_areas]
+                ).reset_index(drop=True)
 
         self.inflow_outflow_areas_0.geometry = remove_holes_from_polygons(
             self.inflow_outflow_areas_0.geometry, min_area=50
         )
-        self.inflow_outflow_areas_0.geometry = self.inflow_outflow_areas_0.geometry.buffer(0.1)
+        self.inflow_outflow_areas_0.geometry = (
+            self.inflow_outflow_areas_0.geometry.buffer(0.1)
+        )
         return self.inflow_outflow_areas_0
-
 
     def export_results_all(
         self,
@@ -509,7 +548,6 @@ class GeneratorNetworkLumping(BaseModel):
             width_edges=width_edges,
             opacity_edges=opacity_edges,
         )
-
 
     def export_results_to_gpkg(self):
         """Export results to geopackages in folder 1_tussenresultaat"""
@@ -530,14 +568,13 @@ class GeneratorNetworkLumping(BaseModel):
                 logging.debug(f"   - {layer}")
                 result.to_file(Path(results_dir, f"{layer}.gpkg"))
 
-
     def export_results_to_html_file(
         self,
         html_file_name: str = None,
         include_areas: bool = True,
         width_edges: float = 10.0,
         opacity_edges: float = 0.5,
-        open_html: bool = False
+        open_html: bool = False,
     ):
         """Export results to folium html file
 
@@ -550,12 +587,12 @@ class GeneratorNetworkLumping(BaseModel):
         opacity_edges : float, optional
             opacity of edges in folium html, by default 0.5
         """
-        logging.info(f'   x saving html file')
+        logging.info(f"   x saving html file")
 
         nodes_selection = self.inflow_outflow_points.representative_node.to_numpy()
         no_nodes = len(self.inflow_outflow_points) + 1
         nodes_colors = plt.get_cmap("hsv", no_nodes)
-        i_nodes_colors = np.arange(start=0, stop=no_nodes-1)
+        i_nodes_colors = np.arange(start=0, stop=no_nodes - 1)
         np.random.shuffle(i_nodes_colors)
         nodes_colors = [nodes_colors(i) for i in i_nodes_colors]
         nodes_4326 = self.inflow_outflow_nodes.to_crs(4326)
@@ -590,7 +627,7 @@ class GeneratorNetworkLumping(BaseModel):
 
         if self.afwateringseenheden is not None and include_areas:
             folium.GeoJson(
-                self.afwateringseenheden[['geometry']].explode(ignore_index=True),
+                self.afwateringseenheden[["geometry"]].explode(ignore_index=True),
                 fill_opacity=0.0,
                 color="grey",
                 weight=0.5,
@@ -599,9 +636,9 @@ class GeneratorNetworkLumping(BaseModel):
             ).add_to(m)
 
         for inflow_outflow_areas in [
-            self.inflow_outflow_areas_2, 
-            self.inflow_outflow_areas_1, 
-            self.inflow_outflow_areas_0
+            self.inflow_outflow_areas_2,
+            self.inflow_outflow_areas_1,
+            self.inflow_outflow_areas_0,
         ]:
             if inflow_outflow_areas is not None:
                 break
@@ -609,15 +646,17 @@ class GeneratorNetworkLumping(BaseModel):
         inflow_outflow = "instroom" if self.direction == "downstream" else "uitstroom"
 
         fg = folium.FeatureGroup(
-            name=f"{inflow_outflow.capitalize()}punten", 
-            control=True, 
+            name=f"{inflow_outflow.capitalize()}punten",
+            control=True,
             show=True,
-            z_index=0
+            z_index=0,
         ).add_to(m)
         for i, node_selection in enumerate(nodes_selection):
-            inflow_outflow = "instroom" if self.direction == "downstream" else "uitstroom"
+            inflow_outflow = (
+                "instroom" if self.direction == "downstream" else "uitstroom"
+            )
             c = matplotlib.colors.rgb2hex(nodes_colors[i])
-        
+
             folium.GeoJson(
                 self.inflow_outflow_nodes.iloc[[node_selection]],
                 marker=folium.Circle(
@@ -634,17 +673,19 @@ class GeneratorNetworkLumping(BaseModel):
         for i, node_selection in enumerate(nodes_selection):
             c = matplotlib.colors.rgb2hex(nodes_colors[i])
             fg = folium.FeatureGroup(
-                name=f"Gebied {inflow_outflow}punt {node_selection}", 
-                control=True, 
+                name=f"Gebied {inflow_outflow}punt {node_selection}",
+                control=True,
                 show=True,
-                z_index=2
+                z_index=2,
             ).add_to(m)
 
             sel_inflow_outflow_edges = self.inflow_outflow_edges[
                 self.inflow_outflow_edges[f"{self.direction}_node_{node_selection}"]
             ].copy()
 
-            sel_inflow_outflow_edges.geometry = sel_inflow_outflow_edges.buffer(width_edges / 2.0)
+            sel_inflow_outflow_edges.geometry = sel_inflow_outflow_edges.buffer(
+                width_edges / 2.0
+            )
             if len(sel_inflow_outflow_edges) > 0:
                 folium.GeoJson(
                     sel_inflow_outflow_edges[["geometry"]],
@@ -656,7 +697,9 @@ class GeneratorNetworkLumping(BaseModel):
                 ).add_to(fg)
 
             if inflow_outflow_areas is not None and include_areas:
-                inflow_outflow_areas_node = inflow_outflow_areas[inflow_outflow_areas[f"inflow_outflow_point"]==node_selection].copy()
+                inflow_outflow_areas_node = inflow_outflow_areas[
+                    inflow_outflow_areas[f"inflow_outflow_point"] == node_selection
+                ].copy()
                 folium.GeoJson(
                     inflow_outflow_areas_node,
                     color=c,
@@ -678,14 +721,14 @@ class GeneratorNetworkLumping(BaseModel):
                     z_index=0,
                 ),
             ).add_to(fg)
-        
+
         # Voorgedefinieerde splits
         if self.inflow_outflow_splits is not None:
             folium.GeoJson(
                 self.inflow_outflow_splits.loc[
-                    self.inflow_outflow_splits[
-                        ["upstream_edge", "downstream_edge"]
-                    ].dropna(how='all').index
+                    self.inflow_outflow_splits[["upstream_edge", "downstream_edge"]]
+                    .dropna(how="all")
+                    .index
                 ],
                 marker=folium.Circle(
                     radius=width_edges * 7.5,
@@ -701,7 +744,9 @@ class GeneratorNetworkLumping(BaseModel):
 
         # Voorgedefinieerde splits
         if self.inflow_outflow_splits_1 is not None:
-            search_direction = "upstream" if self.direction == "downstream" else "downstream"
+            search_direction = (
+                "upstream" if self.direction == "downstream" else "downstream"
+            )
             folium.GeoJson(
                 self.inflow_outflow_splits_1.loc[
                     self.inflow_outflow_splits_1[f"{search_direction}_edge"].isna()
@@ -718,16 +763,10 @@ class GeneratorNetworkLumping(BaseModel):
                 show=True,
             ).add_to(m)
 
-        folium.TileLayer(
-            "openstreetmap", 
-            name="Open Street Map", 
-            show=False
-        ).add_to(m)
-        folium.TileLayer(
-            "cartodbpositron", 
-            name="Light Background", 
-            show=True
-        ).add_to(m)
+        folium.TileLayer("openstreetmap", name="Open Street Map", show=False).add_to(m)
+        folium.TileLayer("cartodbpositron", name="Light Background", show=True).add_to(
+            m
+        )
 
         folium.LayerControl(collapsed=False).add_to(m)
 
@@ -735,13 +774,12 @@ class GeneratorNetworkLumping(BaseModel):
 
         if html_file_name is None:
             html_file_name = self.name
-        
+
         self.folium_html_path = Path(self.path, f"{html_file_name}.html")
         m.save(self.folium_html_path)
 
-        logging.info(f' x html file saved: {html_file_name}.html')
+        logging.info(f"   x html file saved: {html_file_name}.html")
 
         if open_html:
             webbrowser.open(Path(self.path, f"{html_file_name}.html"))
         return m
-        

@@ -258,7 +258,7 @@ class GeneratorCulvertLocations(BaseModel):
             )
             return self.potential_culverts_0
 
-        logging.info("   x find potential culvert locations")
+        logging.info("  x find potential culvert locations")
 
         # Filter for end points (only overige watergangen and not when connected)
         end_pnts = self.water_line_pnts[
