@@ -383,3 +383,38 @@ def define_list_upstream_downstream_edges_ids(
         )
     nodes_sel = nodes_sel.reset_index(drop=True)
     return nodes_sel
+
+
+def calculate_angle(line, direction):
+    if direction == 'downstream':
+        # Get the first segment for downstream
+        coords = list(line.coords)
+        p1, p2 = coords[0], coords[1]  # First segment
+    elif direction == 'upstream':
+        # Get the last segment for upstream
+        coords = list(line.coords)
+        p1, p2 = coords[-2], coords[-1]  # Last segment
+    else:
+        raise ValueError("Direction must be 'upstream' or 'downstream'")
+
+    # Calculate the angle relative to the north (0 degrees)
+    angle = np.arctan2(p2[1] - p1[1], p2[0] - p1[0])  # Angle in radians
+    angle_degrees = np.degrees(angle)
+    angle_degrees = angle_degrees % 360  # Normalize to 0-360 degrees
+
+    return angle_degrees
+
+
+def find_closest_edge(reference_angle, angles, edge_codes):
+    
+    angles = np.array(angles, dtype=float) # Convert to numpy array for easier calculations
+    edge_codes = np.array(edge_codes)
+    reference_angle = float(reference_angle)
+    
+    # Calculate the angle differences
+    angle_differences = np.abs(angles - reference_angle)
+    
+    # Find the index of the minimum angle difference
+    min_index = np.argmin(angle_differences)
+    
+    return edge_codes[min_index]
