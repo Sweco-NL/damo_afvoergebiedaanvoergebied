@@ -11,6 +11,7 @@ def run_generator_culvert_locations(
     max_culvert_length: float = 40.0,
     read_results: bool = False,
     write_results: bool = False,
+    create_html_map: bool = False,
 ) -> GeneratorCulvertLocations:
     """Run Generator Culvert Locations (Duikergenerator)
 
@@ -66,6 +67,9 @@ def run_generator_culvert_locations(
 
     # split hydroobjects at endpoints culverts
     culverts_generator.splits_hydroobjecten_by_endpoints_of_culverts_and_combine()
+
+    if create_html_map:
+        culverts_generator.generate_folium_map()
 
     logging.info(f"   x Case finished in {round(time.time()-start_time, 3)} seconds")
     return culverts_generator

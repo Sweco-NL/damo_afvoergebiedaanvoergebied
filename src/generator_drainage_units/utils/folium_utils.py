@@ -33,11 +33,11 @@ def add_labels_to_points_lines_polygons(
             point = element.geometry
         else:
             raise ValueError(" * GeoDataFrame does not have the right geometry")
-        
+
         label_value = element[column]
         if isinstance(label_value, float) and np.isnan(label_value):
-            return 
-           
+            return
+
         if (
             isinstance(label_value, float) or isinstance(label_value, int)
         ) and label_decimals is not None:
