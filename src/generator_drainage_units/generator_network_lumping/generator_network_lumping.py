@@ -20,7 +20,7 @@ from ..utils.general_functions import (
     define_list_upstream_downstream_edges_ids,
     remove_holes_from_polygons,
     calculate_angle,
-    find_closest_edge
+    find_closest_edge,
 )
 
 
@@ -387,20 +387,19 @@ class GeneratorNetworkLumping(BaseModel):
             )
             detected_inflow_outflow_splits.to_file(Path(base_dir, file_detected_points))
 
-
     def calculate_angles_of_edges_at_splitpoints(self):
         self.inflow_outflow_splits_0 = self.inflow_outflow_splits.copy()
 
         # Initialize angle columns as empty strings
-        self.inflow_outflow_splits_0['upstream_angles'] = ""
-        self.inflow_outflow_splits_0['downstream_angles'] = ""
+        self.inflow_outflow_splits_0["upstream_angles"] = ""
+        self.inflow_outflow_splits_0["downstream_angles"] = ""
 
         for index, row in self.inflow_outflow_splits_0.iterrows():
             # Convert the string representation of downstream_edges to a list
-            upstream_edges_str = row['upstream_edges']  # Corrected to 'upstream_edges'
+            upstream_edges_str = row["upstream_edges"]  # Corrected to 'upstream_edges'
             upstream_edges = ast.literal_eval(f"[{upstream_edges_str}]")
-            
-            downstream_edges_str = row['downstream_edges']
+
+            downstream_edges_str = row["downstream_edges"]
             downstream_edges = ast.literal_eval(f"[{downstream_edges_str}]")
 
             # Initialize lists to hold angles
@@ -409,71 +408,85 @@ class GeneratorNetworkLumping(BaseModel):
 
             # Calculate angles for upstream edges
             for edge_id in upstream_edges:
-                matching_lines = self.inflow_outflow_edges.loc[self.inflow_outflow_edges['code'] == str(edge_id), 'geometry']
+                matching_lines = self.inflow_outflow_edges.loc[
+                    self.inflow_outflow_edges["code"] == str(edge_id), "geometry"
+                ]
                 line = matching_lines.values[0]
-                angle = calculate_angle(line, 'upstream').round(2)
+                angle = calculate_angle(line, "upstream").round(2)
                 upstream_angles.append(angle)
 
             # Join and assign as a string
             if upstream_angles:
-                self.inflow_outflow_splits_0.at[index, 'upstream_angles'] = ', '.join(map(str, upstream_angles))
+                self.inflow_outflow_splits_0.at[index, "upstream_angles"] = ", ".join(
+                    map(str, upstream_angles)
+                )
 
             # Calculate angles for downstream edges
             for edge_id in downstream_edges:
-                matching_lines = self.inflow_outflow_edges.loc[self.inflow_outflow_edges['code'] == str(edge_id), 'geometry']
+                matching_lines = self.inflow_outflow_edges.loc[
+                    self.inflow_outflow_edges["code"] == str(edge_id), "geometry"
+                ]
                 line = matching_lines.values[0]
-                angle = calculate_angle(line, 'downstream').round(2)
+                angle = calculate_angle(line, "downstream").round(2)
                 downstream_angles.append(angle)
 
             # Join and assign as a string
             if downstream_angles:
-                self.inflow_outflow_splits_0.at[index, 'downstream_angles'] = ', '.join(map(str, downstream_angles))
+                self.inflow_outflow_splits_0.at[index, "downstream_angles"] = ", ".join(
+                    map(str, downstream_angles)
+                )
 
         return self.inflow_outflow_splits_0
-    
-    
+
     def select_directions_for_splits_based_on_angle(self):
         self.inflow_outflow_splits_1 = self.inflow_outflow_splits_0.copy()
 
         for index, row in self.inflow_outflow_splits_1.iterrows():
-            if self.direction == 'upstream':
+            if self.direction == "upstream":
                 # Get upstream angles and edges
-                upstream_angles = row['upstream_angles']
+                upstream_angles = row["upstream_angles"]
                 print(upstream_angles)
-                upstream_edges = row['upstream_edges']
-                downstream_angles_str = row['downstream_angles']
-                downstream_edges_str = row['downstream_edges']
+                upstream_edges = row["upstream_edges"]
+                downstream_angles_str = row["downstream_angles"]
+                downstream_edges_str = row["downstream_edges"]
                 # Convert strings to lists
-                downstream_edges_list = downstream_edges_str.split(',')
-                downstream_angles_list = downstream_angles_str.split(',')
-                
+                downstream_edges_list = downstream_edges_str.split(",")
+                downstream_angles_list = downstream_angles_str.split(",")
+
                 # Assuming there's a reference angle, e.g., the first angle in the list
                 reference_angle = upstream_angles
-                
-                selected_edge = find_closest_edge(reference_angle, downstream_angles_list, downstream_edges_list)
-                
-                # Update the selected columns
-                self.inflow_outflow_splits_1.at[index, 'selected_downstream_edge'] = selected_edge
 
-            elif self.direction == 'downstream':
+                selected_edge = find_closest_edge(
+                    reference_angle, downstream_angles_list, downstream_edges_list
+                )
+
+                # Update the selected columns
+                self.inflow_outflow_splits_1.at[index, "selected_downstream_edge"] = (
+                    selected_edge
+                )
+
+            elif self.direction == "downstream":
                 # Get downstream angles and edges
-                downstream_angles = row['downstream_angles']
-                downstream_edges = row['downstream_edges']
-                upstream_angles_str = row['upstream_angles']
-                upstream_edges_str = row['upstream_edges']
-                upstream_edges_list = upstream_edges_str.split(',')
-                upstream_angles_list = upstream_angles_str.split(',')
-                
+                downstream_angles = row["downstream_angles"]
+                downstream_edges = row["downstream_edges"]
+                upstream_angles_str = row["upstream_angles"]
+                upstream_edges_str = row["upstream_edges"]
+                upstream_edges_list = upstream_edges_str.split(",")
+                upstream_angles_list = upstream_angles_str.split(",")
+
                 # Assuming there's a reference angle, e.g., the first angle in the list
                 reference_angle = downstream_angles
-                
-                selected_edge = find_closest_edge(reference_angle, upstream_angles_list, upstream_edges_list)
-                
+
+                selected_edge = find_closest_edge(
+                    reference_angle, upstream_angles_list, upstream_edges_list
+                )
+
                 # Update the selected columns
-                self.inflow_outflow_splits_1.at[index, 'selected_upstream_edge'] = selected_edge
+                self.inflow_outflow_splits_1.at[index, "selected_upstream_edge"] = (
+                    selected_edge
+                )
 
         return self.inflow_outflow_splits_1
-
 
     def select_directions_for_splits(self, fillna_with_random=False):
         """_summary_: This function can be used to define the random direction at split points.

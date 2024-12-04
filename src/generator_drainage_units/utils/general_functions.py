@@ -386,11 +386,11 @@ def define_list_upstream_downstream_edges_ids(
 
 
 def calculate_angle(line, direction):
-    if direction == 'downstream':
+    if direction == "downstream":
         # Get the first segment for downstream
         coords = list(line.coords)
         p1, p2 = coords[0], coords[1]  # First segment
-    elif direction == 'upstream':
+    elif direction == "upstream":
         # Get the last segment for upstream
         coords = list(line.coords)
         p1, p2 = coords[-2], coords[-1]  # Last segment
@@ -406,15 +406,16 @@ def calculate_angle(line, direction):
 
 
 def find_closest_edge(reference_angle, angles, edge_codes):
-    
-    angles = np.array(angles, dtype=float) # Convert to numpy array for easier calculations
+    angles = np.array(
+        angles, dtype=float
+    )  # Convert to numpy array for easier calculations
     edge_codes = np.array(edge_codes)
     reference_angle = float(reference_angle)
-    
+
     # Calculate the angle differences
     angle_differences = np.abs(angles - reference_angle)
-    
+
     # Find the index of the minimum angle difference
     min_index = np.argmin(angle_differences)
-    
+
     return edge_codes[min_index]
