@@ -54,6 +54,9 @@ class GeneratorCulvertLocations(BaseModel):
     combined_hydroobjecten: gpd.GeoDataFrame = (
         None  # combined A, B, en C watergangen including splits
     )
+    combined_end_product: gpd.GeoDataFrame = (
+        None  # combined A, B, en C watergangen, and culverts. including splits
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -841,7 +844,7 @@ class GeneratorCulvertLocations(BaseModel):
             Path(self.path, "1_tussenresultaat", "combined_hydroobjecten.gpkg"),
             layer="combined_hydroobjecten",
         )
-
+        
         return (
             self.combined_hydroobjecten,
             self.overige_watergangen_processed,
