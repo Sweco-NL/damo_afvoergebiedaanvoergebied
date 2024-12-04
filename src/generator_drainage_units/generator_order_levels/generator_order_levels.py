@@ -212,6 +212,10 @@ class GeneratorOrderLevels(BaseModel):
             z_index=0,
         ).add_to(m)
 
+        fg = folium.FeatureGroup(
+            name=f"Watergangen", control=True
+        ).add_to(m)
+
         folium.GeoJson(
             self.hydroobjecten.geometry,  # .buffer(10),
             name="Watergangen",
@@ -219,7 +223,16 @@ class GeneratorOrderLevels(BaseModel):
             fill_color="blue",
             zoom_on_click=True,
             z_index=1,
-        ).add_to(m)
+        ).add_to(fg)
+
+        if 'orde_nr' in self.hydroobjecten.columns:
+            add_labels_to_points_lines_polygons(
+                gdf=self.hydroobjecten[self.hydroobjecten['orde_nr']>1],
+                column="orde_nr", 
+                label_decimals=0,
+                label_fontsize=8, 
+                fg=fg
+            )
 
         folium.GeoJson(
             self.dead_end_nodes,
