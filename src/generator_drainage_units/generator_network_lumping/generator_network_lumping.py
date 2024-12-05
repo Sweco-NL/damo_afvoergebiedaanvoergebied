@@ -22,6 +22,7 @@ from ..utils.general_functions import (
     calculate_angle,
     find_closest_edge,
 )
+from ..utils.folium_utils import add_basemaps_to_folium_map
 
 
 class GeneratorNetworkLumping(BaseModel):
@@ -679,6 +680,7 @@ class GeneratorNetworkLumping(BaseModel):
         width_edges: float = 10.0,
         opacity_edges: float = 0.5,
         open_html: bool = False,
+        base_map: str = "OpenStreetMap",
     ):
         """Export results to folium html file
 
@@ -866,12 +868,9 @@ class GeneratorNetworkLumping(BaseModel):
                 name=f"Extra gevonden splitsingen",
                 show=True,
             ).add_to(m)
-
-        folium.TileLayer("openstreetmap", name="Open Street Map", show=False).add_to(m)
-        folium.TileLayer("cartodbpositron", name="Light Background", show=True).add_to(
-            m
-        )
-
+        
+        m = add_basemaps_to_folium_map(m=m, base_map=base_map)
+        
         folium.LayerControl(collapsed=False).add_to(m)
 
         self.folium_map = m

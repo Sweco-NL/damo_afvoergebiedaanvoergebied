@@ -9,7 +9,7 @@ import folium
 from folium.features import DivIcon
 
 from ..utils.general_functions import shorten_line_two_vertices, line_to_vertices
-from ..utils.folium_utils import add_labels_to_points_lines_polygons
+from ..utils.folium_utils import add_labels_to_points_lines_polygons, add_basemaps_to_folium_map
 
 
 class GeneratorOrderLevels(BaseModel):
@@ -188,7 +188,7 @@ class GeneratorOrderLevels(BaseModel):
         self.outflow_nodes_all = outflow_nodes_all.reset_index(drop=True)
         return self.outflow_nodes_all
 
-    def generate_folium_map(self):
+    def generate_folium_map(self, base_map="OpenStreetMap"):
         # Make figure
         outflow_nodes_4326 = self.outflow_nodes_all.to_crs(4326)
 
@@ -198,6 +198,7 @@ class GeneratorOrderLevels(BaseModel):
                 outflow_nodes_4326.geometry.x.mean(),
             ],
             zoom_start=12,
+            tiles=None
         )
 
         folium.GeoJson(
@@ -259,6 +260,7 @@ class GeneratorOrderLevels(BaseModel):
         add_labels_to_points_lines_polygons(
             gdf=self.outflow_nodes_all, column="orde_code", label_fontsize=8, fg=fg
         )
+        m = add_basemaps_to_folium_map(m=m, base_map=base_map)
 
         folium.LayerControl(collapsed=False).add_to(m)
 

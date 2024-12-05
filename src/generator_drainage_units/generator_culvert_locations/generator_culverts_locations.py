@@ -14,6 +14,7 @@ from ..utils.general_functions import (
     line_to_vertices,
     split_waterways_by_endpoints,
 )
+from ..utils.folium_utils import add_basemaps_to_folium_map
 
 
 class GeneratorCulvertLocations(BaseModel):
@@ -855,7 +856,7 @@ class GeneratorCulvertLocations(BaseModel):
             self.hydroobjecten_processed,
         )
 
-    def generate_folium_map(self):
+    def generate_folium_map(self, base_map="OpenStreetMap"):
         # Make figure
 
         hydro_4326 = self.hydroobjecten_processed.to_crs(4326)
@@ -867,6 +868,7 @@ class GeneratorCulvertLocations(BaseModel):
         m = folium.Map(
             location=center,
             zoom_start=14,
+            tiles=None,
         )
 
         folium.GeoJson(
@@ -895,6 +897,8 @@ class GeneratorCulvertLocations(BaseModel):
             zoom_on_click=True,
             z_index=1,
         ).add_to(m)
+
+        m = add_basemaps_to_folium_map(m=m, base_map=base_map)
 
         folium.LayerControl(collapsed=False).add_to(m)
 
