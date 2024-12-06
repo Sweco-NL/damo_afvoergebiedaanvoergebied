@@ -167,8 +167,6 @@ class GeneratorCulvertLocations(BaseModel):
         """
         if isinstance(read_results, bool):
             self.read_results = read_results
-        if isinstance(write_results, bool):
-            self.write_results = write_results
 
         if self.read_results and self.water_line_pnts is not None:
             logging.info(
@@ -207,6 +205,9 @@ class GeneratorCulvertLocations(BaseModel):
         # Update all duplicated "dangling" points to "other"
         self.water_line_pnts.loc[duplicate_indices, "line_type"] = "other"
 
+        if isinstance(write_results, bool):
+            self.write_results = write_results
+            
         if self.write_results:
             dir_results = Path(self.path, "1_tussenresultaat")
             self.water_line_pnts.to_file(

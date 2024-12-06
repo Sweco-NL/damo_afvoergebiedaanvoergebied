@@ -21,6 +21,7 @@ from ..utils.general_functions import (
     remove_holes_from_polygons,
     calculate_angle,
     find_closest_edge,
+    calculate_angles_of_edges_at_nodes
 )
 
 
@@ -390,52 +391,10 @@ class GeneratorNetworkLumping(BaseModel):
     def calculate_angles_of_edges_at_splitpoints(self):
         self.inflow_outflow_splits_0 = self.inflow_outflow_splits.copy()
 
-        # Initialize angle columns as empty strings
-        self.inflow_outflow_splits_0["upstream_angles"] = ""
-        self.inflow_outflow_splits_0["downstream_angles"] = ""
-
-        for index, row in self.inflow_outflow_splits_0.iterrows():
-            # Convert the string representation of downstream_edges to a list
-            upstream_edges_str = row["upstream_edges"]  # Corrected to 'upstream_edges'
-            upstream_edges = ast.literal_eval(f"[{upstream_edges_str}]")
-
-            downstream_edges_str = row["downstream_edges"]
-            downstream_edges = ast.literal_eval(f"[{downstream_edges_str}]")
-
-            # Initialize lists to hold angles
-            upstream_angles = []
-            downstream_angles = []
-
-            # Calculate angles for upstream edges
-            for edge_id in upstream_edges:
-                matching_lines = self.inflow_outflow_edges.loc[
-                    self.inflow_outflow_edges["code"] == str(edge_id), "geometry"
-                ]
-                line = matching_lines.values[0]
-                angle = calculate_angle(line, "upstream").round(2)
-                upstream_angles.append(angle)
-
-            # Join and assign as a string
-            if upstream_angles:
-                self.inflow_outflow_splits_0.at[index, "upstream_angles"] = ", ".join(
-                    map(str, upstream_angles)
-                )
-
-            # Calculate angles for downstream edges
-            for edge_id in downstream_edges:
-                matching_lines = self.inflow_outflow_edges.loc[
-                    self.inflow_outflow_edges["code"] == str(edge_id), "geometry"
-                ]
-                line = matching_lines.values[0]
-                angle = calculate_angle(line, "downstream").round(2)
-                downstream_angles.append(angle)
-
-            # Join and assign as a string
-            if downstream_angles:
-                self.inflow_outflow_splits_0.at[index, "downstream_angles"] = ", ".join(
-                    map(str, downstream_angles)
-                )
-
+        self.inflow_outflow_splits_0 = calculate_angles_of_edges_at_nodes(
+            nodes=self.inflow_outflow_splits_0,
+            edges=self.inflow_outflow_edges
+        )
         return self.inflow_outflow_splits_0
 
     def select_directions_for_splits_based_on_angle(self):

@@ -24,6 +24,8 @@ def run_generator_network_lumping(
         no_inflow_outflow_points=no_inflow_outflow_points,
     )
 
+    network.calculate_angles_of_edges_at_splitpoints()
+
     network.assign_drainage_units_to_outflow_points_based_on_length_hydroobject()
     network.dissolve_assigned_drainage_units()
 

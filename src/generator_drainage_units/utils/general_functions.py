@@ -311,6 +311,44 @@ def calculate_angle(line, direction):
     return angle_degrees
 
 
+def calculate_angles_of_edges_at_nodes(nodes: gpd.GeoDataFrame, edges: gpd.GeoDataFrame):
+    nodes["upstream_angles"] = ""
+    nodes["downstream_angles"] = ""
+
+    def calculate_angles_of_edges_at_node(node, edges):
+        upstream_edges = node["upstream_edges"].split(',')
+        downstream_edges = node["downstream_edges"].split(',')
+
+        upstream_angles = []
+        downstream_angles = []
+
+        for edge_id in upstream_edges:
+            if edge_id == "":
+                continue
+            line = edges.loc[edges["code"] == str(edge_id), "geometry"].values[0]
+            angle = calculate_angle(line, "upstream").round(2)
+            upstream_angles.append(angle)
+
+        if upstream_angles:
+            node["upstream_angles"] = ", ".join(map(str, upstream_angles))
+
+        # Calculate angles for downstream edges
+        for edge_id in downstream_edges:
+            if edge_id == "":
+                continue
+            line = edges.loc[edges["code"] == str(edge_id), "geometry"].values[0]
+            angle = calculate_angle(line, "downstream").round(2)
+            downstream_angles.append(angle)
+
+        # Join and assign as a string
+        if downstream_angles:
+            node["downstream_angles"] = ", ".join(map(str, downstream_angles))
+        return node
+
+    nodes = nodes.apply(lambda node: calculate_angles_of_edges_at_node(node, edges), axis=1)
+    return nodes
+
+
 def find_closest_edge(reference_angle, angles, edge_codes):
     angles = np.array(
         angles, dtype=float
