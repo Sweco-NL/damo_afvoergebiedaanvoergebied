@@ -112,7 +112,7 @@ def split_waterways_by_endpoints(hydroobjects, relevant_culverts):
         else geom
     )
 
-    hydroobjects = gpd.GeoDataFrame(hydroobjects, geometry='geometry', crs=28992)
+    hydroobjects = gpd.GeoDataFrame(hydroobjects, geometry="geometry", crs=28992)
 
     # Create lists to store start and end points
     start_points = []
@@ -136,108 +136,140 @@ def split_waterways_by_endpoints(hydroobjects, relevant_culverts):
         pd.concat([combined_points_gdf, end_points_gdf], ignore_index=True),
         crs="EPSG:28992",
     )
-    combined_end_points_gdf = combined_end_points_gdf.drop_duplicates(subset='geometry')
+    combined_end_points_gdf = combined_end_points_gdf.drop_duplicates(subset="geometry")
 
     def split_lines_at_points(gdf_lines, gdf_points):
+        # Create list of coordinates of linestring in gdf_lines
+        gdf_lines["coords"] = gdf_lines.apply(lambda x: list(x.geometry.coords), axis=1)
 
-        #Create list of coordinates of linestring in gdf_lines
-        gdf_lines['coords'] = gdf_lines.apply(lambda x: list(x.geometry.coords), axis=1)
-        
-        #Create segments with coords
-        gdf_lines['segments'] = gdf_lines.apply(lambda x: [LineString(x['coords'][i-1 : i + 1]) for i in range(1, len(x['coords']))], axis=1)
-        
-        #Create gdf from segments of linestring
+        # Create segments with coords
+        gdf_lines["segments"] = gdf_lines.apply(
+            lambda x: [
+                LineString(x["coords"][i - 1 : i + 1])
+                for i in range(1, len(x["coords"]))
+            ],
+            axis=1,
+        )
+
+        # Create gdf from segments of linestring
         gdf_segments = gpd.GeoDataFrame(
-            gdf_lines[["CODE", "segments"]].explode("segments").rename(columns={'segments': "geometry"}), 
-            geometry="geometry", 
-            crs=gdf_lines.crs
+            gdf_lines[["CODE", "segments"]]
+            .explode("segments")
+            .rename(columns={"segments": "geometry"}),
+            geometry="geometry",
+            crs=gdf_lines.crs,
         ).reset_index(drop=True)
-        
-        #Determine which segment point of points_gdf are located on
+
+        # Determine which segment point of points_gdf are located on
         gdf_segments = gdf_segments.merge(
-            gdf_points[["dangling_id", 'geometry']].sjoin_nearest(
-                gdf_segments.drop(columns="CODE")
-            ).groupby('index_right').agg({'dangling_id': list, 'geometry': lambda x: list(x.apply(lambda geom: (geom.x, geom.y)))}).reset_index(), 
-            how='outer', 
-            left_index=True, 
+            gdf_points[["dangling_id", "geometry"]]
+            .sjoin_nearest(gdf_segments.drop(columns="CODE"))
+            .groupby("index_right")
+            .agg(
+                {
+                    "dangling_id": list,
+                    "geometry": lambda x: list(x.apply(lambda geom: (geom.x, geom.y))),
+                }
+            )
+            .reset_index(),
+            how="outer",
+            left_index=True,
             right_on="index_right",
-            suffixes=("", "_2")
+            suffixes=("", "_2"),
         ).reset_index(drop=True)
-        
+
         def split_linestring(linestring, coordinates):
             # Convert coordinates to Points
             points = [Point(coord) for coord in coordinates]
-            
+
             # Sort points by their position on the LineString
             points = sorted(points, key=lambda point: linestring.project(point))
-            
+
             segments = []
             prev_point = Point(linestring.coords[0])
-            
+
             for point in points:
                 segment = LineString([prev_point, point])
                 segments.append(segment)
                 prev_point = point
-            
+
             # Add the last segment
             segments.append(LineString([prev_point, Point(linestring.coords[-1])]))
             return segments
 
         def split_and_explode(row):
-            if not row['geometry_2'] or isinstance(row['geometry_2'], float):
-                return [row['geometry']]
+            if not row["geometry_2"] or isinstance(row["geometry_2"], float):
+                return [row["geometry"]]
             else:
-                return split_linestring(row['geometry'], row['geometry_2'])
+                return split_linestring(row["geometry"], row["geometry_2"])
 
         gdf_segments["geometry"] = gdf_segments.apply(split_and_explode, axis=1)
-        
+
         # Explode the list of geometries into separate rows
         gdf_segments = gdf_segments.explode("geometry").reset_index(drop=True)
 
-        #Determine which segments are located between the same points of points_gdf
+        # Determine which segments are located between the same points of points_gdf
         gdf_segments["index_right_diff"] = gdf_segments["index_right"].diff(1)
-        gdf_segments["index_right_cumsum"] = gdf_segments["index_right_diff"].map({0.0: 1, 1.0: 0})
+        gdf_segments["index_right_cumsum"] = gdf_segments["index_right_diff"].map(
+            {0.0: 1, 1.0: 0}
+        )
         gdf_segments.loc[0, "index_right_cumsum"] = 0.0
-        gdf_segments["index_right_cumsum"] = gdf_segments["index_right_cumsum"].cumsum().astype(int)
-        
-        #Group segments that are between points, creating a list of geometries in geometry
-        gdf_segments = gdf_segments.groupby(['index_right_cumsum', 'CODE']).agg({
-            "CODE": 'first', 
-            "geometry": list, 
-            'dangling_id': 'first',
-        }).reset_index(drop=True)
-        
-        #Remove segments with a length of 0 (created points that are already between 2 linestrings of gdf_lines)
-        gdf_segments["geometry_len"] = gdf_segments.apply(lambda x: sum([y.length for y in x["geometry"]]), axis=1)
-        gdf_segments = gdf_segments[gdf_segments["geometry_len"]>0.0]
+        gdf_segments["index_right_cumsum"] = (
+            gdf_segments["index_right_cumsum"].cumsum().astype(int)
+        )
 
-        #Merge the geometries of the segments that are listed in geometry
-        gdf_segments["geometry"] = gdf_segments.apply(lambda x: linemerge(x["geometry"]), axis=1)
+        # Group segments that are between points, creating a list of geometries in geometry
+        gdf_segments = (
+            gdf_segments.groupby(["index_right_cumsum", "CODE"])
+            .agg(
+                {
+                    "CODE": "first",
+                    "geometry": list,
+                    "dangling_id": "first",
+                }
+            )
+            .reset_index(drop=True)
+        )
 
-        #Create gdf from 
-        gdf_segments = gpd.GeoDataFrame(gdf_segments.reset_index(drop=True), geometry='geometry', crs = gdf_lines.crs)
+        # Remove segments with a length of 0 (created points that are already between 2 linestrings of gdf_lines)
+        gdf_segments["geometry_len"] = gdf_segments.apply(
+            lambda x: sum([y.length for y in x["geometry"]]), axis=1
+        )
+        gdf_segments = gdf_segments[gdf_segments["geometry_len"] > 0.0]
+
+        # Merge the geometries of the segments that are listed in geometry
+        gdf_segments["geometry"] = gdf_segments.apply(
+            lambda x: linemerge(x["geometry"]), axis=1
+        )
+
+        # Create gdf from
+        gdf_segments = gpd.GeoDataFrame(
+            gdf_segments.reset_index(drop=True), geometry="geometry", crs=gdf_lines.crs
+        )
 
         # Function to add suffixes to duplicate CODEs
         def add_suffixes(df, column):
             counts = df[column].value_counts()
             suffixes = {code: 0 for code in counts.index if counts[code] > 1}
-            
+
             def suffix_code(code):
                 if code in suffixes:
                     suffix = suffixes[code]
                     suffixes[code] += 1
                     return f"{code}-{suffix}"
                 return code
-    
+
             df[column] = df[column].apply(suffix_code)
             return df
+
         # Apply the function to your GeoDataFrame
-        gdf_segments = add_suffixes(gdf_segments, 'CODE')
+        gdf_segments = add_suffixes(gdf_segments, "CODE")
 
         return gdf_segments
 
     result = split_lines_at_points(hydroobjects, combined_end_points_gdf)
     return result
+
 
 def _remove_holes(geom, min_area):
     def p(p: Polygon, min_area) -> Polygon:
@@ -282,7 +314,10 @@ def define_list_upstream_downstream_edges_ids(
     nodes_sel = nodes[nodes.nodeID.isin(node_ids)].copy()
     for direction, node in zip(["upstream", "downstream"], ["node_end", "node_start"]):
         nodes_sel[f"{direction}_edges"] = nodes_sel.apply(
-            lambda x: ",".join(list(edges[edges[node] == x.nodeID].code.values)), axis=1
+            lambda x: ",".join(
+                list(edges.loc[edges[node] == x["nodeID"], "code"].values) if len(edges.loc[edges[node] == x["nodeID"]])>0 else []
+            ),
+            axis=1,
         )
         nodes_sel[f"no_{direction}_edges"] = nodes_sel.apply(
             lambda x: len(x[f"{direction}_edges"].split(",")), axis=1
@@ -325,3 +360,17 @@ def find_closest_edge(reference_angle, angles, edge_codes):
     min_index = np.argmin(angle_differences)
 
     return edge_codes[min_index]
+
+
+def remove_z_dims(_gdf: gpd.GeoDataFrame):
+    _gdf.geometry = [
+        (Point(g.coords[0][:2]) if len(g.coords[0]) > 2 else Point(g.coords[0]))
+        if isinstance(g, Point)
+        else (
+            (LineString([c[:2] if len(c) > 2 else c for c in g.coords]))
+            if isinstance(g, LineString)
+            else Polygon([c[:2] if len(c) > 2 else c for c in g.exterior.coords])
+        )
+        for g in _gdf.geometry.values
+    ]
+    return _gdf

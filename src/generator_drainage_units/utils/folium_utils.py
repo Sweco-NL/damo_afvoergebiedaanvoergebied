@@ -33,11 +33,11 @@ def add_labels_to_points_lines_polygons(
             point = element.geometry
         else:
             raise ValueError(" * GeoDataFrame does not have the right geometry")
-        
+
         label_value = element[column]
         if isinstance(label_value, float) and np.isnan(label_value):
-            return 
-           
+            return
+
         if (
             isinstance(label_value, float) or isinstance(label_value, int)
         ) and label_decimals is not None:
@@ -65,3 +65,67 @@ def add_labels_to_points_lines_polygons(
             _label.add_to(fgs)
         else:
             _label.add_to(fg)
+
+
+def add_basemaps_to_folium_map(m: folium.Map, base_map="OpenStreetMap"):
+    m.tiles = None
+    basemaps = ["ESRI Luchtfoto", "Dark Mode", "Light Mode", "OpenStreetMap"]
+    basemap_types = [
+        {
+            "tiles": "cartodbpositron",
+            "name": "Light Mode",
+            "attr": None,
+            "control": True,
+            "maxNativeZoom": 20,
+            "maxZoom": 20,
+        },
+        {
+            "tiles": "openstreetmap",
+            "name": "OpenStreetMap",
+            "attr": None,
+            "control": True,
+            "maxNativeZoom": 19,
+            "maxZoom": 19,
+            "show": True,
+        },
+        {
+            "tiles": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            "attr": "Esri",
+            "name": "ESRI Luchtfoto",
+            "control": True,
+            "maxNativeZoom": 21,
+            "maxZoom": 21,
+            "show": True,
+        },
+        {
+            "tiles": "cartodbdark_matter",
+            "name": "Dark Mode",
+            "attr": None,
+            "control": True,
+            "maxNativeZoom": 20,
+            "maxZoom": 20,
+            "show": True,
+        },
+        {
+            "tiles": "Stamen Toner",
+            "name": "Stamen Toner",
+            "attr": None,
+            "control": True,
+            "maxNativeZoom": 17,
+            "maxZoom": 17,
+            "show": True,
+        },
+    ]
+
+    for bm in basemaps:
+        basemap = [o for o in basemap_types if o["name"] == bm][0]
+        folium.TileLayer(
+            tiles=basemap["tiles"],
+            name=basemap["name"],
+            attr=basemap["attr"],
+            control=basemap["control"],
+            maxNativeZoom=basemap["maxNativeZoom"],
+            maxZoom=basemap["maxZoom"],
+            show=True if basemap["name"] == base_map else False,
+        ).add_to(m)
+    return m

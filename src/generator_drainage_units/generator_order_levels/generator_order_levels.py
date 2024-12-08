@@ -9,7 +9,10 @@ import folium
 from folium.features import DivIcon
 
 from ..utils.general_functions import shorten_line_two_vertices, line_to_vertices
-from ..utils.folium_utils import add_labels_to_points_lines_polygons
+from ..utils.folium_utils import (
+    add_labels_to_points_lines_polygons,
+    add_basemaps_to_folium_map,
+)
 
 
 class GeneratorOrderLevels(BaseModel):
@@ -38,13 +41,11 @@ class GeneratorOrderLevels(BaseModel):
 
     folium_map: folium.Map = None
 
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if self.path is not None:
             self.check_case_path_directory(path=self.path)
             self.read_data_from_case()
-
 
     def check_case_path_directory(self, path: Path):
         """Checks if case directory exists and if required directory structure exists
@@ -70,7 +71,6 @@ class GeneratorOrderLevels(BaseModel):
         for folder in ["1_tussenresultaat", "2_resultaat"]:
             if not Path(self.path, folder).exists():
                 Path(self.path, folder).mkdir(parents=True, exist_ok=True)
-
 
     def read_data_from_case(self, path: Path = None, read_results: bool = None):
         """Read data from case: including basis data and intermediate results
@@ -111,7 +111,6 @@ class GeneratorOrderLevels(BaseModel):
                     if hasattr(self, x.stem):
                         logging.debug(f"    - get dataset {x.stem}")
                         setattr(self, x.stem, gpd.read_file(x, layer=x.stem))
-
 
     def find_end_points_hydroobjects(self, buffer_width=0.5):
         # Copy hydroobject data to new variable 'hydroobjects' and make dataframes with start and end nodes
@@ -154,7 +153,6 @@ class GeneratorOrderLevels(BaseModel):
 
         return self.dead_end_nodes
 
-
     def generate_rws_code_for_all_outflow_points(self, buffer_rws=10.0):
         logging.info(f"   - Generating order code for all outflow points")
         rws_wateren = self.rws_wateren.copy()
@@ -193,8 +191,7 @@ class GeneratorOrderLevels(BaseModel):
         self.outflow_nodes_all = outflow_nodes_all.reset_index(drop=True)
         return self.outflow_nodes_all
 
-
-    def generate_folium_map(self):
+    def generate_folium_map(self, base_map="OpenStreetMap"):
         # Make figure
         outflow_nodes_4326 = self.outflow_nodes_all.to_crs(4326)
 
@@ -204,6 +201,7 @@ class GeneratorOrderLevels(BaseModel):
                 outflow_nodes_4326.geometry.x.mean(),
             ],
             zoom_start=12,
+            tiles=None,
         )
 
         folium.GeoJson(
@@ -212,9 +210,7 @@ class GeneratorOrderLevels(BaseModel):
             z_index=0,
         ).add_to(m)
 
-        fg = folium.FeatureGroup(
-            name=f"Watergangen", control=True
-        ).add_to(m)
+        fg = folium.FeatureGroup(name=f"Watergangen", control=True).add_to(m)
 
         folium.GeoJson(
             self.hydroobjecten.geometry,  # .buffer(10),
@@ -225,13 +221,13 @@ class GeneratorOrderLevels(BaseModel):
             z_index=1,
         ).add_to(fg)
 
-        if 'orde_nr' in self.hydroobjecten.columns:
+        if "orde_nr" in self.hydroobjecten.columns:
             add_labels_to_points_lines_polygons(
-                gdf=self.hydroobjecten[self.hydroobjecten['orde_nr']>1],
-                column="orde_nr", 
+                gdf=self.hydroobjecten[self.hydroobjecten["orde_nr"] > 1],
+                column="orde_nr",
                 label_decimals=0,
-                label_fontsize=8, 
-                fg=fg
+                label_fontsize=8,
+                fg=fg,
             )
 
         folium.GeoJson(
@@ -267,6 +263,7 @@ class GeneratorOrderLevels(BaseModel):
         add_labels_to_points_lines_polygons(
             gdf=self.outflow_nodes_all, column="orde_code", label_fontsize=8, fg=fg
         )
+        m = add_basemaps_to_folium_map(m=m, base_map=base_map)
 
         folium.LayerControl(collapsed=False).add_to(m)
 

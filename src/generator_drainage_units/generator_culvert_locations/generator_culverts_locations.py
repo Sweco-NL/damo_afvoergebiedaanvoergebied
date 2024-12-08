@@ -6,12 +6,15 @@ import pandas as pd
 import geopandas as gpd
 from shapely.geometry import LineString, Point
 import numpy as np
+import folium
+from folium.features import DivIcon
 
 from ..utils.general_functions import (
     shorten_line_two_vertices,
     line_to_vertices,
     split_waterways_by_endpoints,
 )
+from ..utils.folium_utils import add_basemaps_to_folium_map
 
 
 class GeneratorCulvertLocations(BaseModel):
@@ -57,6 +60,8 @@ class GeneratorCulvertLocations(BaseModel):
     combined_end_product: gpd.GeoDataFrame = (
         None  # combined A, B, en C watergangen, and culverts. including splits
     )
+
+    folium_map: folium.Map = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -844,9 +849,58 @@ class GeneratorCulvertLocations(BaseModel):
             Path(self.path, "1_tussenresultaat", "combined_hydroobjecten.gpkg"),
             layer="combined_hydroobjecten",
         )
-        
+
         return (
             self.combined_hydroobjecten,
             self.overige_watergangen_processed,
             self.hydroobjecten_processed,
         )
+
+    def generate_folium_map(self, base_map="OpenStreetMap"):
+        # Make figure
+
+        hydro_4326 = self.hydroobjecten_processed.to_crs(4326)
+        # Calculate the extent (bounding box) of your GeoDataFrame
+        bounds = hydro_4326.total_bounds  # returns (minx, miny, maxx, maxy)
+
+        # Center the map around the mean coordinates of the bounds
+        center = [(bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2]
+        m = folium.Map(
+            location=center,
+            zoom_start=14,
+            tiles=None,
+        )
+
+        folium.GeoJson(
+            self.hydroobjecten_processed.geometry,
+            name="A/B-Watergangen",
+            color="blue",
+            fill_color="blue",
+            zoom_on_click=True,
+            z_index=1,
+        ).add_to(m)
+
+        folium.GeoJson(
+            self.overige_watergangen_processed.geometry,
+            name="C-Watergangen",
+            color="cadetblue",
+            fill_color="blue",
+            zoom_on_click=True,
+            z_index=1,
+        ).add_to(m)
+
+        folium.GeoJson(
+            self.potential_culverts_4.geometry,
+            name="Duikers",
+            color="red",
+            fill_color="blue",
+            zoom_on_click=True,
+            z_index=1,
+        ).add_to(m)
+
+        m = add_basemaps_to_folium_map(m=m, base_map=base_map)
+
+        folium.LayerControl(collapsed=False).add_to(m)
+
+        self.folium_map = m
+        return m
