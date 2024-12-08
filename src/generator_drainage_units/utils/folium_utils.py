@@ -69,7 +69,7 @@ def add_labels_to_points_lines_polygons(
 
 def add_basemaps_to_folium_map(m: folium.Map, base_map="OpenStreetMap"):
     m.tiles = None
-    basemaps = ['ESRI Luchtfoto', "Dark Mode", 'Light Mode', 'OpenStreetMap']
+    basemaps = ["ESRI Luchtfoto", "Dark Mode", "Light Mode", "OpenStreetMap"]
     basemap_types = [
         {
             "tiles": "cartodbpositron",
@@ -126,6 +126,6 @@ def add_basemaps_to_folium_map(m: folium.Map, base_map="OpenStreetMap"):
             control=basemap["control"],
             maxNativeZoom=basemap["maxNativeZoom"],
             maxZoom=basemap["maxZoom"],
-            show=True if basemap["name"] == base_map else False
+            show=True if basemap["name"] == base_map else False,
         ).add_to(m)
     return m

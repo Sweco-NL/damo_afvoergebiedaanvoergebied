@@ -9,7 +9,10 @@ import folium
 from folium.features import DivIcon
 
 from ..utils.general_functions import shorten_line_two_vertices, line_to_vertices
-from ..utils.folium_utils import add_labels_to_points_lines_polygons, add_basemaps_to_folium_map
+from ..utils.folium_utils import (
+    add_labels_to_points_lines_polygons,
+    add_basemaps_to_folium_map,
+)
 
 
 class GeneratorOrderLevels(BaseModel):
@@ -198,7 +201,7 @@ class GeneratorOrderLevels(BaseModel):
                 outflow_nodes_4326.geometry.x.mean(),
             ],
             zoom_start=12,
-            tiles=None
+            tiles=None,
         )
 
         folium.GeoJson(

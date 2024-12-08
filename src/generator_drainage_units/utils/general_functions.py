@@ -314,7 +314,10 @@ def define_list_upstream_downstream_edges_ids(
     nodes_sel = nodes[nodes.nodeID.isin(node_ids)].copy()
     for direction, node in zip(["upstream", "downstream"], ["node_end", "node_start"]):
         nodes_sel[f"{direction}_edges"] = nodes_sel.apply(
-            lambda x: ",".join(list(edges[edges[node] == x.nodeID].code.values)), axis=1
+            lambda x: ",".join(
+                list(edges.loc[edges[node] == x["nodeID"], "code"].values) if len(edges.loc[edges[node] == x["nodeID"]])>0 else []
+            ),
+            axis=1,
         )
         nodes_sel[f"no_{direction}_edges"] = nodes_sel.apply(
             lambda x: len(x[f"{direction}_edges"].split(",")), axis=1
@@ -357,3 +360,17 @@ def find_closest_edge(reference_angle, angles, edge_codes):
     min_index = np.argmin(angle_differences)
 
     return edge_codes[min_index]
+
+
+def remove_z_dims(_gdf: gpd.GeoDataFrame):
+    _gdf.geometry = [
+        (Point(g.coords[0][:2]) if len(g.coords[0]) > 2 else Point(g.coords[0]))
+        if isinstance(g, Point)
+        else (
+            (LineString([c[:2] if len(c) > 2 else c for c in g.coords]))
+            if isinstance(g, LineString)
+            else Polygon([c[:2] if len(c) > 2 else c for c in g.exterior.coords])
+        )
+        for g in _gdf.geometry.values
+    ]
+    return _gdf

@@ -24,8 +24,9 @@ def run_generator_network_lumping(
         no_inflow_outflow_points=no_inflow_outflow_points,
     )
 
-    network.assign_drainage_units_to_outflow_points_based_on_length_hydroobject()
-    network.dissolve_assigned_drainage_units()
+    if include_areas:
+        network.assign_drainage_units_to_outflow_points_based_on_length_hydroobject()
+        network.dissolve_assigned_drainage_units()
 
     if detect_split_points:
         network.detect_split_points()
