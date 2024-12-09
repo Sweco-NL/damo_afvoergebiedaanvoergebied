@@ -153,18 +153,10 @@ class GeneratorNetworkLumping(BaseModel):
                             gdf = gdf.rename(columns={"CODE": "code"})
                         setattr(self, x.stem, gdf)
 
+
     def create_graph_from_network(
         self, water_lines=["rivieren", "hydroobjecten", "hydroobjecten_extra"]
     ):
-        """_summary_
-
-        _extended_summary_
-
-        Parameters
-        ----------
-        water_lines : list, optional
-            _description_, by default ["rivieren", "hydroobjecten", "hydroobjecten_extra"]
-        """
         if water_lines is None:
             water_lines = ["hydroobjecten"]
         logging.info("   x create network graph")
@@ -183,6 +175,7 @@ class GeneratorNetworkLumping(BaseModel):
             self.inflow_outflow_edges
         )
         self.network_positions = {n: [n[0], n[1]] for n in list(self.graph.nodes)}
+
 
     def find_upstream_downstream_nodes_edges(
         self, direction: str = "upstream", no_inflow_outflow_points: int = None
