@@ -285,7 +285,7 @@ def define_list_upstream_downstream_edges_ids(
             lambda x: ",".join(list(edges[edges[node] == x.nodeID].code.values)), axis=1
         )
         nodes_sel[f"no_{direction}_edges"] = nodes_sel.apply(
-            lambda x: len(x[f"{direction}_edges"].split(",")), axis=1
+            lambda x: len(x[f"{direction}_edges"].split(",")) if x[f"{direction}_edges"] else 0, axis=1
         )
     nodes_sel = nodes_sel.reset_index(drop=True)
     return nodes_sel
@@ -333,17 +333,19 @@ def calculate_angles_of_edges_at_nodes(nodes: gpd.GeoDataFrame, edges: gpd.GeoDa
     return nodes, edges
 
 
-def find_closest_edge(reference_angle, angles, edge_codes):
-    angles = np.array(
-        angles, dtype=float
-    )  # Convert to numpy array for easier calculations
-    edge_codes = np.array(edge_codes)
+def angle_difference(angle1, angle2):
+    diff = abs(angle1 % 360 - angle2 % 360)
+    if diff > 180:
+        diff = 360 - diff
+    return diff
+
+
+def find_edge_smallest_angle_difference(reference_angle, angles, edge_codes):
+    if reference_angle is None:
+        return [None for a in angles], None
     reference_angle = float(reference_angle)
-
-    # Calculate the angle differences
-    angle_differences = np.abs(angles - reference_angle)
-
-    # Find the index of the minimum angle difference
+    angle_differences = np.array([angle_difference(angle, reference_angle) for angle in angles])
     min_index = np.argmin(angle_differences)
 
-    return edge_codes[min_index]
+    return angle_differences, edge_codes[min_index]
+

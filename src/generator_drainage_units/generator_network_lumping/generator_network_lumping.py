@@ -20,7 +20,7 @@ from ..utils.general_functions import (
     define_list_upstream_downstream_edges_ids,
     remove_holes_from_polygons,
     calculate_angle,
-    find_closest_edge,
+    find_edge_smalles_angle_difference,
     calculate_angles_of_edges_at_nodes
 )
 
@@ -408,7 +408,7 @@ class GeneratorNetworkLumping(BaseModel):
                 # Assuming there's a reference angle, e.g., the first angle in the list
                 reference_angle = upstream_angles
 
-                selected_edge = find_closest_edge(
+                selected_edge = find_edge_smalles_angle_difference(
                     reference_angle, downstream_angles_list, downstream_edges_list
                 )
 
@@ -429,7 +429,7 @@ class GeneratorNetworkLumping(BaseModel):
                 # Assuming there's a reference angle, e.g., the first angle in the list
                 reference_angle = downstream_angles
 
-                selected_edge = find_closest_edge(
+                selected_edge = find_edge_smalles_angle_difference(
                     reference_angle, upstream_angles_list, upstream_edges_list
                 )
 
