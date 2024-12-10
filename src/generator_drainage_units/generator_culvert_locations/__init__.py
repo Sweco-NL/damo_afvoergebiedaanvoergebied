@@ -68,6 +68,19 @@ def run_generator_culvert_locations(
     # split hydroobjects at endpoints culverts
     culverts_generator.splits_hydroobjecten_by_endpoints_of_culverts_and_combine()
 
+    # check if culverts are in the right direction
+    culverts_generator.check_culverts_direction()
+
+    culverts_generator.combine_culvert_with_line()
+
+    # check if culverts are in the right direction
+    culverts_generator.check_culverts_direction()
+
+    culverts_generator.combine_culvert_with_line()
+    
+    culverts_generator.splits_hydroobjecten_by_endpoind_of_culverts_and_combine_2()
+
+    # create map
     if create_html_map:
         culverts_generator.generate_folium_map()
 
