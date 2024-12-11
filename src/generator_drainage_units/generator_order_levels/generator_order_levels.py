@@ -3,11 +3,10 @@ from pathlib import Path
 
 import folium
 import geopandas as gpd
-import pandas as pd
 import networkx as nx
-from folium.features import DivIcon
+import pandas as pd
 from pydantic import BaseModel, ConfigDict
-from shapely.geometry import LineString, Point
+from shapely.geometry import Point
 
 from ..utils.create_graph import create_graph_from_edges
 from ..utils.folium_utils import add_labels_to_points_lines_polygons
