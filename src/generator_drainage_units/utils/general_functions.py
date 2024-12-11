@@ -4,6 +4,9 @@ from shapely import Point, LineString, MultiLineString, Polygon, MultiPolygon
 from shapely.ops import split, linemerge
 import numpy as np
 from typing import TypeVar
+import time
+import logging
+import warnings
 
 
 def shorten_line_two_vertices(line, offset):
@@ -374,3 +377,330 @@ def remove_z_dims(_gdf: gpd.GeoDataFrame):
         for g in _gdf.geometry.values
     ]
     return _gdf
+
+def connect_lines_by_endpoints(
+    split_endpoints: gpd.GeoDataFrame, lines: gpd.GeoDataFrame
+) -> gpd.GeoDataFrame:
+    """
+    Connects boundary lines to other lines, based on instructions for each line endpoint. Connections are
+    created by inserting the endpoints into their target lines. The target line features are
+    split afterwards in order to create nodes at the intersection of the connected linestrings.
+
+    Args:
+        split_endpoints (gpd.GeoDataFrame): Dataframe containing line endpoints and instructions
+        lines (list): Vector Dataset containing line features
+
+    Returns:
+        gpd.GeoDataFrame: line feature dataframe
+    """
+    split_endpoints["lines_to_add_point"] = split_endpoints.apply(
+        lambda x: np.append(x["starting_lines"], x["ending_lines"]), axis=1
+    )
+    split_endpoints["points_to_add"] = split_endpoints.apply(
+        lambda x: np.array([Point(p) for p in x["points_to_add"]]), axis=1
+    )
+    split_endpoints["lines_to_add_point"] = split_endpoints.apply(
+        lambda x: x["unconnected_lines"]
+        if x["points_to_add"].size == 0
+        else x["lines_to_add_point"],
+        axis=1,
+    )
+    split_endpoints["points_to_add"] = split_endpoints.apply(
+        lambda x: [Point(p) for p in set(x["points_to_add"])]
+        if list(x["lines_to_add_point"]) != list(x["unconnected_lines"])
+        else [x["coordinates"]],
+        axis=1,
+    )
+    connections_to_create = split_endpoints[["lines_to_add_point", "points_to_add"]]
+    connections_to_create["inserted"] = False
+
+    # A dataframe is created to store the resulting linestrings from the splits
+    split_lines = gpd.GeoDataFrame(columns=lines.columns)
+    split_lines["preprocessing_split"] = None
+    split_lines["new_code"] = split_lines["code"]
+
+    for ind, split_action in split_endpoints.iterrows():
+        logging.info(split_action["lines_to_add_point"])
+        line = lines[lines["code"].isin(split_action["lines_to_add_point"])].iloc[0]
+        linestring = line["geometry"]
+        nodes_to_add = []
+        for node in split_action["points_to_add"]:
+            new_linestring, index_new_point = add_point_to_linestring(node, linestring)
+
+            if index_new_point == 0 and linestring.coords[0] in list(
+                connections_to_create.loc[
+                    connections_to_create["inserted"] == True, "points_to_add"
+                ].values
+            ):
+                continue
+
+            elif index_new_point == len(linestring.coords) - 1 and linestring.coords[
+                -1
+            ] in list(
+                connections_to_create.loc[
+                    connections_to_create["inserted"] == True, "points_to_add"
+                ].values
+            ):
+                continue
+
+            new_linestring = new_linestring.simplify(tolerance=0.0)
+            if linestring == new_linestring:
+                connections_to_create = connections_to_create[
+                    [
+                        False if split_action["lines_to_add_point"][0] in c else True
+                        for c in connections_to_create["lines_to_add_point"].values
+                    ]
+                ]
+                continue
+
+            linestring = new_linestring
+
+            connections_to_create["inserted"][
+                connections_to_create["points_to_add"] == node
+            ] = True
+
+            nodes_to_add += [node]
+
+        # The modified line will be divided in seperate linestrings
+        split_indices = [
+            list(linestring.coords).index(node.coords[0]) for node in nodes_to_add
+        ]
+        split_linestrings = split_linestring_by_indices(linestring, split_indices)
+
+        # Append split linestrings to collection of new lines
+        for k, split_linestring in enumerate(split_linestrings):
+            snip_line = line.copy()
+            snip_line["geometry"] = split_linestring
+            snip_line["preprocessing_split"] = "split"
+            snip_line["new_code"] = f'{snip_line["code"]}-{k}'
+            split_lines = pd.concat(
+                [split_lines, snip_line.to_frame().T], axis=0, join="inner"
+            )
+
+    # Remove lines that have been divided from original geodataframe, and append resulting lines
+    unedited_lines = lines[
+        ~lines["code"].isin(
+            [x for c in connections_to_create["lines_to_add_point"].values for x in c]
+        )
+    ]
+    lines = pd.concat([unedited_lines, split_lines], axis=0, join="outer").reset_index(
+        drop=True
+    )
+
+    # Remove excessive split lines
+    lines.geometry = lines.geometry.simplify(tolerance=0.0)
+    lines = lines.drop_duplicates(subset="geometry", keep="first")
+    lines = lines[lines.geometry.length > 0]
+    return lines
+
+
+def connect_endpoints_by_buffer(
+    lines: gpd.GeoDataFrame, buffer_distance: float = 0.5
+) -> gpd.GeoDataFrame:
+    """
+    Connects boundary line endpoints within a vector dataset to neighbouring lines that pass
+    within a specified buffer distance with respect to the the boundary endpoints. The boundary
+    endpoints are inserted into the passing linestrings
+
+    Args:
+        lines (gpd.GeoDataFrame): Line vector data
+        buffer distance (float): Buffer distance for connecting line boundary endpoints, expressed
+        in the distance unit of vector line dataset
+
+    Returns:
+        gpd.Geo: list of resulting linestrings
+    """
+    warnings.filterwarnings("ignore")
+    start_time = time.time()
+    iterations = 0
+    unconnected_endpoints_count = 0
+    finished = False
+    lines["preprocessing_split"] = None
+
+    logging.info(
+        f"Detect unconnected endpoints nearby linestrings, buffer distance: {buffer_distance}m"
+    )
+
+    while not finished:
+        endpoints = get_endpoints_from_lines(lines)
+
+        boundary_endpoints = gpd.GeoDataFrame(
+            endpoints[
+                (endpoints["starting_line_count"] == 0)
+                | (endpoints["ending_line_count"] == 0)
+            ]
+        )
+        lines["buffer_geometry"] = lines.geometry.buffer(
+            buffer_distance, join_style="round"
+        )
+
+        boundary_endpoints["overlaying_line_buffers"] = list(
+            map(
+                lambda x: lines[lines.buffer_geometry.contains(x)].code.tolist(),
+                boundary_endpoints.geometry,
+            )
+        )
+
+        # check on unconnected endpoints
+        boundary_endpoints["unconnected_lines"] = boundary_endpoints.apply(
+            lambda x: np.array(
+                [
+                    b
+                    for b in x["overlaying_line_buffers"]
+                    if (b not in x["starting_lines"] and b not in x["ending_lines"])
+                ]
+            ),
+            axis=1,
+        )
+        boundary_endpoints["startpoint_unconnected_lines"] = boundary_endpoints.apply(
+            lambda x: lines[lines.code.isin(x["unconnected_lines"])].endpoint.values,
+            axis=1,
+        )
+        boundary_endpoints["endpoint_unconnected_lines"] = boundary_endpoints.apply(
+            lambda x: lines[lines.code.isin(x["unconnected_lines"])].startpoint.values,
+            axis=1,
+        )
+        boundary_endpoints["unconnected_lines_present"] = boundary_endpoints.apply(
+            lambda x: len(x["unconnected_lines"]) > 0, axis=1
+        )
+
+        unconnected_endpoints = boundary_endpoints[
+            boundary_endpoints["unconnected_lines_present"] == True
+        ].reset_index(drop=True)
+
+        if unconnected_endpoints.empty:
+            unconnected_endpoints["unconnected_lines_present"] = None
+            unconnected_endpoints["points_to_add"] = None
+        else:
+            unconnected_endpoints["points_to_add"] = unconnected_endpoints.apply(
+                lambda x: np.array(
+                    [
+                        p
+                        for p in np.append(
+                            x["startpoint_unconnected_lines"],
+                            x["endpoint_unconnected_lines"],
+                        )
+                        if x["coordinates"].buffer(buffer_distance).covers(Point(p))
+                    ]
+                ),
+                axis=1,
+            )
+
+        previous_unconnected_endpoints_count = unconnected_endpoints_count
+        unconnected_endpoints_count = len(unconnected_endpoints)
+        if iterations == 0:
+            unconnected_endpoints_count_total = unconnected_endpoints_count
+        logging.info(
+            f"{unconnected_endpoints_count} unconnected endpoints nearby intersecting lines (iteration {iterations})"
+        )
+        if (
+            unconnected_endpoints_count != 0
+            and unconnected_endpoints_count != previous_unconnected_endpoints_count
+        ):
+            lines = connect_lines_by_endpoints(unconnected_endpoints, lines)
+            iterations += 1
+        else:
+            lines = lines.drop(["startpoint", "endpoint", "buffer_geometry"], axis=1)
+            finished = True
+
+    end_time = time.time()
+    passed_time = end_time - start_time
+    logging.info(
+        f"Summary:\n\n\
+          Detected unconnected endpoints nearby intersecting lines: {unconnected_endpoints_count_total} \n\
+          Connected endpoints: {unconnected_endpoints_count_total-unconnected_endpoints_count} \n\
+          Remaining unconnected endpoints: {unconnected_endpoints_count}\n\
+          Iterations: {iterations}"
+    )
+    logging.info(f"Finished within {passed_time}")
+    return lines
+
+def split_linestring_by_indices(linestring: LineString, split_indices: list) -> list:
+    """
+    Divides a linestring into multiple linestrings based on a list that contains
+    the indices of the split points within the linestring
+
+    Args:
+        linestring (LineString): Linestring
+        split_indices (list): List of indices of split nodes within the linestring
+
+    Returns:
+        list: list of resulting linestrings
+    """
+    split_linestrings = []
+    split_indices = sorted(
+        list(set([0] + split_indices + [len(linestring.coords) - 1]))
+    )
+    for i in range(len(split_indices) - 1):
+        split_linestrings.append(
+            LineString(linestring.coords[split_indices[i] : split_indices[i + 1] + 1])
+        )
+
+    return split_linestrings
+
+def add_point_to_linestring(point: Point, linestring: LineString) -> LineString:
+    """
+    Inserts point into a linestring, placing the point next to its
+    nearest neighboring point in a way that minimizes the total length
+    of the linestring.
+
+    Args:
+        point (Point): point
+        linestring (LineString): linestring
+
+    Returns:
+        LineString: resulting linestring
+    """
+    distances = [point.distance(Point(line_point)) for line_point in linestring.coords]
+    index_nearest_neighbour = distances.index(min(distances))
+    modified_linestring1 = LineString(
+        list(linestring.coords)[: index_nearest_neighbour + 1]
+        + [point.coords[0]]
+        + list(linestring.coords)[index_nearest_neighbour + 1 :]
+    )
+    modified_linestring2 = LineString(
+        list(linestring.coords)[:index_nearest_neighbour]
+        + [point.coords[0]]
+        + list(linestring.coords)[index_nearest_neighbour:]
+    )
+    modified_linestring = (
+        modified_linestring1
+        if modified_linestring1.length < modified_linestring2.length
+        else modified_linestring2
+    )
+    return modified_linestring, index_nearest_neighbour
+
+def get_endpoints_from_lines(lines: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """
+    Extract all unique endpoints of line features from vector data
+
+    Args:
+        lines (gpd.GeoDataFrame): GeoDataFrame containing line features
+
+    Returns:
+        gpd.GeoDataFrame: GeoDataFrame containing all unique endpoints from
+        line features
+    """
+    lines[["startpoint", "endpoint"]] = lines["geometry"].apply(
+        lambda x: pd.Series([x.coords[0], x.coords[-1]])
+    )
+    endpoints = pd.unique(lines[["startpoint", "endpoint"]].values.ravel("K"))
+    endpoints = gpd.GeoDataFrame({"coordinates": endpoints})
+    endpoints["starting_lines"] = endpoints["coordinates"].apply(
+        lambda x: lines["code"][lines["startpoint"] == x].values
+    )
+    endpoints["ending_lines"] = endpoints["coordinates"].apply(
+        lambda x: lines["code"][lines["endpoint"] == x].values
+    )
+    endpoints["starting_line_count"] = endpoints.apply(
+        lambda x: len(list(x["starting_lines"])), axis=1
+    )
+    endpoints["ending_line_count"] = endpoints.apply(
+        lambda x: len(list(x["ending_lines"])), axis=1
+    )
+    endpoints["connected_line_count"] = endpoints.apply(
+        lambda x: x["starting_line_count"] + x["ending_line_count"], axis=1
+    )
+    endpoints_geometry = endpoints.coordinates.apply(lambda x: Point(x))
+    endpoints = endpoints.set_geometry(endpoints_geometry)
+    return endpoints

@@ -11,3 +11,7 @@ from .generator_culvert_locations import (
     run_generator_culvert_locations,
     GeneratorCulvertLocations,
 )
+
+from .utils import (
+    connect_endpoints_by_buffer,
+)
