@@ -566,3 +566,35 @@ def snap_unconnected_endpoints_to_endpoint_or_line(
     )
 
     return hydroobjecten
+
+def check_duplicate_codes(gdf, column):
+    if column not in gdf.columns:
+        raise ValueError(f"Column '{column}' does not exist in the GeoDataFrame.")
+    
+    # Ensure the column is of type string
+    gdf[column] = gdf[column].astype(str)
+    
+    # Create a dictionary to keep track of the counts of each value
+    value_counts = {}
+    duplicate_count = 0  # Initialize the duplicate counter
+    
+    # Function to generate the new value with suffix
+    def generate_new_value(value):
+        nonlocal duplicate_count
+        if value not in value_counts:
+            value_counts[value] = 0  # Start suffix counting from -1
+            return f"{value}-{value_counts[value]}"
+        else:
+            value_counts[value] += 1
+            duplicate_count += 1
+            return f"{value}-{value_counts[value]}"
+    
+    # Apply the function to the column to rename duplicates
+    gdf[column] = gdf[column].apply(generate_new_value)
+    
+    # Print the number of duplicates found
+    print(f"Number of duplicates found: {duplicate_count}")
+    
+    return gdf
+
+
