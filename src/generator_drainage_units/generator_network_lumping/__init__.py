@@ -18,6 +18,7 @@ def run_generator_network_lumping(
     network = GeneratorNetworkLumping()
     network.read_data_from_case(path=path)
     network.create_graph_from_network(water_lines=water_lines)
+    network.calculate_angles_of_edges_at_nodes()
 
     network.find_upstream_downstream_nodes_edges(
         direction=direction,

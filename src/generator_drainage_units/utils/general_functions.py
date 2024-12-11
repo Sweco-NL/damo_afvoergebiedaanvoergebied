@@ -320,7 +320,7 @@ def define_list_upstream_downstream_edges_ids(
             axis=1,
         )
         nodes_sel[f"no_{direction}_edges"] = nodes_sel.apply(
-            lambda x: len(x[f"{direction}_edges"].split(",")), axis=1
+            lambda x: len(x[f"{direction}_edges"].split(",")) if x[f"{direction}_edges"] else 0, axis=1
         )
     nodes_sel = nodes_sel.reset_index(drop=True)
     return nodes_sel
@@ -346,20 +346,42 @@ def calculate_angle(line, direction):
     return angle_degrees
 
 
-def find_closest_edge(reference_angle, angles, edge_codes):
-    angles = np.array(
-        angles, dtype=float
-    )  # Convert to numpy array for easier calculations
-    edge_codes = np.array(edge_codes)
+def calculate_angles_of_edges_at_nodes(nodes: gpd.GeoDataFrame, edges: gpd.GeoDataFrame):
+    edges["downstream_angle"] = edges.apply(lambda x: calculate_angle(x['geometry'], 'downstream').round(2), axis=1)
+    edges["upstream_angle"] = edges.apply(lambda x: calculate_angle(x['geometry'], 'upstream').round(2), axis=1)
+
+    nodes["upstream_angles"] = ""
+    nodes["downstream_angles"] = ""
+
+    def calculate_angles_of_edges_at_node(node, edges):
+        for direction, opp_direction in zip(["upstream", "downstream"], ["downstream", "upstream"]):
+            dir_edges = node[f"{direction}_edges"].split(',')
+            
+            node[f"{direction}_angles"] = ", ".join([
+                str(edges.loc[edges["code"] == str(edge_id), f"{opp_direction}_angle"].values[0])
+                for edge_id in dir_edges if edge_id != ""
+            ])
+            
+        return node
+
+    nodes = nodes.apply(lambda node: calculate_angles_of_edges_at_node(node, edges), axis=1)
+    return nodes, edges
+
+
+def angle_difference(angle1, angle2):
+    diff = abs(angle1 % 360 - angle2 % 360)
+    if diff > 180:
+        diff = 360 - diff
+    return diff
+
+
+def find_edge_smallest_angle_difference(reference_angle, angles, edge_codes):
+    if reference_angle is None:
+        return [None for a in angles], None
     reference_angle = float(reference_angle)
-
-    # Calculate the angle differences
-    angle_differences = np.abs(angles - reference_angle)
-
-    # Find the index of the minimum angle difference
+    angle_differences = np.array([angle_difference(angle, reference_angle) for angle in angles])
     min_index = np.argmin(angle_differences)
-
-    return edge_codes[min_index]
+    return angle_differences, edge_codes[min_index]
 
 
 def remove_z_dims(_gdf: gpd.GeoDataFrame):
