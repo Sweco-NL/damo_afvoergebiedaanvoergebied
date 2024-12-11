@@ -281,6 +281,17 @@ def split_waterways_by_endpoints(hydroobjects, relevant_culverts):
     result = split_lines_at_points(hydroobjects, combined_end_points_gdf)
     return result
 
+# Function to check if line endpoints need to be flipped
+def check_and_flip(line, start_points, end_points):
+    start_point = line.coords[0]
+    end_point = line.coords[-1]
+
+    # Check if start and end points are in the correct positions
+    if start_point in end_points and end_point in start_points:
+        return line
+    else:
+        return LineString(line.coords[::-1])
+
 
 def _remove_holes(geom, min_area):
     def p(p: Polygon, min_area) -> Polygon:

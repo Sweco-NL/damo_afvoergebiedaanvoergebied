@@ -13,9 +13,14 @@ from ..utils.general_functions import (
     shorten_line_two_vertices,
     line_to_vertices,
     split_waterways_by_endpoints,
+    check_and_flip,
 )
 from ..utils.folium_utils import add_basemaps_to_folium_map
 
+import warnings
+
+# Suppress specific warnings
+warnings.filterwarnings("ignore", message="Geometry column does not contain geometry")
 
 class GeneratorCulvertLocations(BaseModel):
     """ "Module to guess (best-guess) the locations of culverts
@@ -177,6 +182,17 @@ class GeneratorCulvertLocations(BaseModel):
             logging.info(
                 f"   x {len(self.water_line_pnts)} vertices for {len(waterlines)} waterlines already generated"
             )
+
+            # Identify duplicates among the "dangling" points
+            start_end_points = self.water_line_pnts[
+                self.water_line_pnts["line_type"] == "dangling"
+            ]
+
+            # Find duplicate indices based on geometry
+            duplicate_indices = start_end_points[
+                start_end_points.duplicated(subset="geometry", keep=False)
+            ].index
+            self.duplicates = self.water_line_pnts.loc[duplicate_indices].copy()
             return self.water_line_pnts
 
         gdf_waterlines = None
@@ -212,13 +228,13 @@ class GeneratorCulvertLocations(BaseModel):
 
         if isinstance(write_results, bool):
             self.write_results = write_results
-            
+
         if self.write_results:
             dir_results = Path(self.path, "1_tussenresultaat")
             self.water_line_pnts.to_file(
                 Path(dir_results, "water_line_pnts.gpkg"), layer="water_line_pnts"
             )
-        return self.water_line_pnts
+        return self.water_line_pnts, self.duplicates
 
     def find_potential_culvert_locations(
         self,
@@ -328,7 +344,8 @@ class GeneratorCulvertLocations(BaseModel):
         return self.potential_culverts_0
 
     def check_intersections_potential_culverts(
-        self, shorten_line_offset=0.3
+        self,
+        read_results=None,
     ) -> gpd.GeoDataFrame:
         """Check intersections of culverts with other objects like roads, etc
 
@@ -339,6 +356,14 @@ class GeneratorCulvertLocations(BaseModel):
             gpd.GeoDataFrame: potential culverts without impossible intersections
         """
         # Crossing objects
+        if isinstance(read_results, bool):
+            self.read_results = read_results
+        if self.read_results and self.potential_culverts_1 is not None:
+            logging.info(
+                f"   x {len(self.potential_culverts_1)} potential culverts already generated"
+            )
+            return self.potential_culverts_1
+        
         crossing_objects = [
             "hydroobjecten",
             "overige_watergangen",
@@ -354,6 +379,7 @@ class GeneratorCulvertLocations(BaseModel):
 
         logging.info("   x check intersections culverts with objects")
         for crossing_object in crossing_objects:
+            
             crossing_gdf = getattr(self, crossing_object)
 
             # Merge operation
@@ -435,13 +461,21 @@ class GeneratorCulvertLocations(BaseModel):
         )
         return self.potential_culverts_1
 
-    def assign_scores_to_potential_culverts(self) -> gpd.GeoDataFrame:
+    def assign_scores_to_potential_culverts(self, read_results=None) -> gpd.GeoDataFrame:
         """Assign scores to all potential culverts based on the connected vertice
         and crossings with roads and peilgebied borders.
 
         Returns:
             gpd.GeoDataFrame: potential culverts with scores
         """
+        if isinstance(read_results, bool):
+            self.read_results = read_results
+        if self.read_results and self.potential_culverts_2 is not None:
+            logging.info(
+                f"   x {len(self.potential_culverts_2)} potential culverts already generated"
+            )
+            return self.potential_culverts_2
+        
         culverts = self.potential_culverts_1.copy()
         logging.info("   x assigning scores to potential culverts")
         # 1e voorkeur
@@ -604,8 +638,17 @@ class GeneratorCulvertLocations(BaseModel):
         )
         return self.potential_culverts_2
 
-    def select_correct_score_based_on_score_and_length(self) -> gpd.GeoDataFrame:
-        # Create copy of potential culverts and calculate length
+    def select_correct_score_based_on_score_and_length(self, read_results = None) -> gpd.GeoDataFrame:
+        
+        if isinstance(read_results, bool):
+            self.read_results = read_results
+        if self.read_results and self.potential_culverts_3 is not None:
+            logging.info(
+                f"   x {len(self.potential_culverts_3)} potential culverts already generated"
+            )
+            return self.potential_culverts_3
+
+        # Create copy of potential culverts and calculate length     
         culverts = self.potential_culverts_2.copy()
         culverts["length"] = culverts.geometry.length
 
@@ -856,6 +899,97 @@ class GeneratorCulvertLocations(BaseModel):
             self.overige_watergangen_processed,
             self.hydroobjecten_processed,
         )
+    
+    def check_culverts_direction(self):
+ 
+        culvert = self.potential_culverts_4.copy()
+        lines = self.combined_hydroobjecten.copy()
+    
+        # Extract starting and ending points from gdf2
+        gdf2_start_points = lines.geometry.apply(lambda geom: geom.coords[0])
+        gdf2_end_points = lines.geometry.apply(lambda geom: geom.coords[-1])
+    
+        # Apply the check_and_flip function to each line in gdf1
+        culvert['geometry'] = culvert.geometry.apply(
+            lambda line: check_and_flip(line, gdf2_start_points.tolist(), gdf2_end_points.tolist())
+        )
+
+        logging.debug("culvert direction checked")
+
+        self.potential_culverts_4 = culvert.copy()
+
+        self.potential_culverts_4.to_file(
+            Path(self.path, "1_tussenresultaat", "potential_culverts_4.gpkg"),
+            layer="potential_culverts_4",
+        )
+        return self.potential_culverts_4
+    
+    def combine_culvert_with_line(self):
+
+        culvert = self.potential_culverts_4.copy()
+        culvert_dict = culvert.groupby('dangling_CODE')['geometry'].apply(list).to_dict()
+        lines = self.overige_watergangen_processed.copy()
+        
+        def get_base_code(code):
+            return code.split('-')[0]
+
+        # Create base CODE column for merging
+        lines['base_CODE'] = lines['CODE'].apply(get_base_code)
+
+        # Define the combine_lines function
+        def combine_lines(line, culvert_dict):
+            base_code = line['base_CODE']
+            line_geom = line['geometry']
+            
+            if base_code in culvert_dict:
+                for culv in culvert_dict[base_code]:
+                    if culv.coords[-1] == line_geom.coords[0]:  # Culvert end to line start
+                        line_geom = LineString(list(culv.coords) + list(line_geom.coords))
+                    elif culv.coords[0] == line_geom.coords[-1]:  # Line end to culvert start
+                        line_geom = LineString(list(line_geom.coords) + list(culv.coords))
+            
+            return line_geom
+            
+        lines['geometry'] = lines.apply(
+            lambda line: combine_lines(line, culvert_dict), axis=1
+        )
+
+        logging.debug("culverts combined with watergangen")
+
+        self.overige_watergangen_processed = lines.copy()
+
+        self.overige_watergangen_processed.to_file(
+            Path(self.path, "1_tussenresultaat", "overige_watergangen_processed.gpkg"),
+            layer="overige_watergangen_processed",
+        )
+        return self.overige_watergangen_processed
+
+    def splits_hydroobjecten_by_endpoind_of_culverts_and_combine_2(self):
+        
+        # split overige watergangen opnieuw
+        overige_watergangen = self.overige_watergangen_processed.copy()
+        overige_watergangen = split_waterways_by_endpoints(overige_watergangen, overige_watergangen)
+        logging.debug("overige watergangen weer gesplit")
+
+        self.overige_watergangen_processed = overige_watergangen.copy()
+        self.combined_hydroobjecten = pd.concat(
+            [self.hydroobjecten_processed, self.overige_watergangen_processed],
+            ignore_index=True,
+        )
+
+        logging.debug("hydroobjecten en overige watergangen gecombineerd")
+
+        self.overige_watergangen_processed.to_file(
+            Path(self.path, "1_tussenresultaat", "overige_watergangen_processed.gpkg"),
+            layer="overige_watergangen_processed",
+        )
+
+        self.combined_hydroobjecten.to_file(
+            Path(self.path, "1_tussenresultaat", "combined_hydroobjecten.gpkg"),
+            layer="combined_hydroobjecten",
+        )
+
+        return self.overige_watergangen_processed, self.combined_hydroobjecten
 
     def generate_folium_map(self, base_map="OpenStreetMap"):
         # Make figure
