@@ -23,11 +23,11 @@ def run_generator_network_lumping(
         direction=direction,
         no_inflow_outflow_points=no_inflow_outflow_points,
     )
+    network.calculate_angles_of_edges_at_nodes()
 
-    network.calculate_angles_of_edges_at_splitpoints()
-
-    network.assign_drainage_units_to_outflow_points_based_on_length_hydroobject()
-    network.dissolve_assigned_drainage_units()
+    if include_areas:
+        network.assign_drainage_units_to_outflow_points_based_on_length_hydroobject()
+        network.dissolve_assigned_drainage_units()
 
     if detect_split_points:
         network.detect_split_points()
@@ -35,7 +35,7 @@ def run_generator_network_lumping(
 
     if write_results:
         network.export_results_to_gpkg()
-        network.export_results_to_html_file(
+        network.generate_folium_map(
             html_file_name=html_file_name,
             width_edges=width_edges,
             opacity_edges=opacity_edges,
@@ -46,13 +46,17 @@ def run_generator_network_lumping(
 def run_network_lumping_with_random_selection_splits(
     network: GeneratorNetworkLumping,
     include_areas: bool = True,
-    write_html: bool = False,
+    write_results: bool = False,
 ):
     network.select_directions_for_splits()
     network.find_upstream_downstream_nodes_edges(direction=network.direction)
-    network.assign_drainage_units_to_outflow_points_based_on_length_hydroobject()
-    network.dissolve_assigned_drainage_units()
-    network.export_results_to_html_file(
-        html_file_name=f"{network.name}_random_selection_splits"
-    )
+    if include_areas:
+        network.assign_drainage_units_to_outflow_points_based_on_length_hydroobject()
+        network.dissolve_assigned_drainage_units()
+
+    if write_results:
+        network.export_results_to_gpkg()
+        network.generate_folium_map(
+            html_file_name=f"{network.name}_random_selection_splits"
+        )
     return network

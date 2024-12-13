@@ -1,6 +1,6 @@
 # Generator afwateringseenheden
 
-## Algemeen
+## Algemeen 2.0
 Deze python-toolbox is opgezet door Sweco Nederland in opdracht van waterschap Vallei & Veluwe met als doel om uit basisdata afwateringseenheden af te leiden.
 Op basis van een raster met een hoogtemodel (maaiveld of grondwaterstand) en een waternetwerk worden stroomgebieden afgeleid, ook wel afwateringseenheden of hydrologische eenheden.
 Middels een systematische codering van deze stroomgebieden kan men de stroomgebieden voor verschillende niveaus afleiden.

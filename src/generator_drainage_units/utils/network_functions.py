@@ -249,5 +249,5 @@ def find_nodes_edges_for_direction(
                 & edges.node_end.isin(node_direction),
                 f"{direction}_node_{node_id}",
             ] = True
-    
+
     return nodes, edges
