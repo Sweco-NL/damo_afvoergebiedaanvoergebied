@@ -24,12 +24,6 @@ def run_generator_order_levels(
     )
     order.read_data_from_case(path=path)
 
-    order.hydroobjecten = gpd.read_file(Path(
-        order.path, 
-        '1_tussenresultaat', 
-        'hydroobjecten_processed.gpkg'
-    )).rename(columns={"CODE": "code"})
-    
     order.create_graph_from_network(
         water_lines=water_lines
     )

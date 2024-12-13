@@ -9,6 +9,7 @@ import numpy as np
 import folium
 from folium.features import DivIcon
 
+from ..generator_basis import GeneratorBasis
 from ..utils.general_functions import (
     shorten_line_two_vertices,
     line_to_vertices,
@@ -22,7 +23,8 @@ import warnings
 # Suppress specific warnings
 warnings.filterwarnings("ignore", message="Geometry column does not contain geometry")
 
-class GeneratorCulvertLocations(BaseModel):
+
+class GeneratorCulvertLocations(GeneratorBasis):
     """ "Module to guess (best-guess) the locations of culverts
     based on existing water network, other water bodies (c-watergangen),
     roads and level areas (peilgebieden)."""
@@ -68,87 +70,6 @@ class GeneratorCulvertLocations(BaseModel):
 
     folium_map: folium.Map = None
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if self.path is not None:
-            self.check_case_path_directory(path=self.path)
-            self.read_data_from_case()
-
-    def check_case_path_directory(self, path: Path):
-        """Checks if case directory exists and if required directory structure exists
-
-        Parameters
-        ----------
-        path : Path
-            path to case directory. name of directory is used as case name.
-            self.path and self.name are set
-
-        Raises ValueErrors in case directory and 0_basisdata directory not exist
-        """
-        if not path.exists() and path.is_dir():
-            raise ValueError(
-                f"provided path [{path}] does not exist or is not a directory"
-            )
-        self.path = path
-        self.name = self.path.name
-        logging.info(f' ### Case "{self.name.capitalize()}" ###')
-        # check if directories 0_basisdata and 1_tussenresultaat exist
-        if not Path(self.path, "0_basisdata").exists():
-            raise ValueError(f"provided path [{path}] exists but without a 0_basisdata")
-        for folder in ["1_tussenresultaat", "2_resultaat"]:
-            if not Path(self.path, folder).exists():
-                Path(self.path, folder).mkdir(parents=True, exist_ok=True)
-
-    def read_data_from_case(self, path: Path = None, read_results: bool = None):
-        """Read data from case: including basis data and intermediate results
-
-        Parameters
-        ----------
-        path : Path, optional
-            Path to the case directory including directories 0_basisdata and
-            1_tussenresultaat. Directory name is used as name for the case,
-            by default None
-        read_results : bool, optional
-            if True, it reads already all resulst from, by default None
-        """
-        if path is not None and path.exists():
-            self.check_case_path_directory(path=path)
-        logging.info(f"   x read basisdata")
-        basisdata_gpkgs = [
-            Path(self.path, "0_basisdata", f + ".gpkg")
-            for f in [
-                "hydroobjecten",
-                "overige_watergangen",
-                "bebouwing",
-                "keringen",
-                "nwb",
-                "peilgebieden",
-                "snelwegen",
-                "spoorwegen",
-            ]
-        ]
-        if isinstance(read_results, bool):
-            self.read_results = read_results
-        baseresults_gpkgs = (
-            [
-                Path(self.path, "1_tussenresultaat", f + ".gpkg")
-                for f in [
-                    "water_line_pnts",
-                    "potential_culverts_0",
-                    "potential_culverts_1",
-                    "potential_culverts_2",
-                    "potential_culverts_3",
-                ]
-            ]
-            if self.read_results
-            else []
-        )
-        for list_gpkgs in [basisdata_gpkgs, baseresults_gpkgs]:
-            for x in list_gpkgs:
-                if x.is_file():
-                    if hasattr(self, x.stem):
-                        logging.debug(f"    - get dataset {x.stem}")
-                        setattr(self, x.stem, gpd.read_file(x, layer=x.stem))
 
     def generate_vertices_along_waterlines(
         self,

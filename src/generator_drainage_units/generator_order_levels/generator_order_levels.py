@@ -8,15 +8,18 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict
 from shapely.geometry import Point
 
+from ..generator_basis import GeneratorBasis
 from ..utils.create_graph import create_graph_from_edges
 from ..utils.general_functions import shorten_line_two_vertices, line_to_vertices
 from ..utils.folium_utils import (
     add_labels_to_points_lines_polygons,
     add_basemaps_to_folium_map,
+    add_lines_to_map,
+    add_categorized_lines_to_map
 )
 
 
-class GeneratorOrderLevels(BaseModel):
+class GeneratorOrderLevels(GeneratorBasis):
     """Module to generate partial networks and order levels for all water bodies,
     based on ..."""
 
@@ -30,13 +33,16 @@ class GeneratorOrderLevels(BaseModel):
     range_orde_code_max: int = None
 
     hydroobjecten: gpd.GeoDataFrame = None
-    rws_wateren: gpd.GeoDataFrame = None
+    hydroobjecten_processed: gpd.GeoDataFrame = None
+
     overige_watergangen: gpd.GeoDataFrame = None
+    overige_watergangen_processed: gpd.GeoDataFrame = None
+
+    rws_wateren: gpd.GeoDataFrame = None
 
     read_results: bool = False
     write_results: bool = False
 
-    # water_line_pnts: gpd.GeoDataFrame = None
     dead_end_nodes: gpd.GeoDataFrame = None
     outflow_nodes_all: gpd.GeoDataFrame = None
     outflow_nodes: gpd.GeoDataFrame = None
@@ -47,80 +53,6 @@ class GeneratorOrderLevels(BaseModel):
     network_positions: dict = None
 
     folium_map: folium.Map = None
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if self.path is not None:
-            self.check_case_path_directory(path=self.path)
-            self.read_data_from_case()
-
-    def check_case_path_directory(self, path: Path):
-        """Checks if case directory exists and if required directory structure exists
-
-        Parameters
-        ----------
-        path : Path
-            path to case directory. name of directory is used as case name.
-            self.path and self.name are set
-
-        Raises ValueErrors in case directory and 0_basisdata directory do not exist
-        """
-        if not path.exists() and path.is_dir():
-            raise ValueError(
-                f"provided path [{path}] does not exist or is not a directory"
-            )
-        self.path = path
-        self.name = self.path.name
-        logging.info(f' ### Case "{self.name.capitalize()}" ###')
-        # check if directories 0_basisdata and 1_tussenresultaat exist
-        if not Path(self.path, "0_basisdata").exists():
-            raise ValueError(f"provided path [{path}] exists but without a 0_basisdata")
-        for folder in ["1_tussenresultaat", "2_resultaat"]:
-            if not Path(self.path, folder).exists():
-                Path(self.path, folder).mkdir(parents=True, exist_ok=True)
-
-    def read_data_from_case(self, path: Path = None, read_results: bool = None):
-        """Read data from case: including basis data and intermediate results
-
-        Parameters
-        ----------
-        path : Path, optional
-            Path to the case directory including directories 0_basisdata and
-            1_tussenresultaat. Directory name is used as name for the case,
-            by default None
-        read_results : bool, optional
-            if True, it reads already all resulst from, by default None
-        """
-        if path is not None and path.exists():
-            self.check_case_path_directory(path=path)
-        logging.info(f"   x read basisdata")
-        basisdata_gpkgs = [
-            Path(self.path, "0_basisdata", f + ".gpkg")
-            for f in ["hydroobjecten", "rws_wateren", "overige_watergangen"]
-        ]
-        if isinstance(read_results, bool):
-            self.read_results = read_results
-        baseresults_gpkgs = (
-            [
-                Path(self.path, "1_tussenresultaat", f + ".gpkg")
-                for f in [
-                    "water_line_pnts",
-                    "results_0",
-                    "results_1",
-                ]
-            ]
-            if self.read_results
-            else []
-        )
-        for list_gpkgs in [basisdata_gpkgs, baseresults_gpkgs]:
-            for x in list_gpkgs:
-                if x.is_file():
-                    if hasattr(self, x.stem):
-                        logging.debug(f"    - get dataset {x.stem}")
-                        gdf = gpd.read_file(x, layer=x.stem)
-                        if "CODE" in gdf.columns:
-                            gdf = gdf.rename(columns={"CODE": "code"})
-                        setattr(self, x.stem, gdf)
 
 
     def create_graph_from_network(
@@ -144,6 +76,7 @@ class GeneratorOrderLevels(BaseModel):
         self.network_positions = {n: [n[0], n[1]] for n in list(self.graph.nodes)}
         return self.nodes, self.edges, self.graph
 
+
     def find_end_points_hydroobjects(self, buffer_width=0.5):
         # Copy hydroobject data to new variable 'hydroobjects' and make dataframes with start and end nodes
         hydroobjects = self.hydroobjecten[["code", "geometry"]].explode()
@@ -159,7 +92,7 @@ class GeneratorOrderLevels(BaseModel):
         )
         end_nodes = hydroobjects[["end_node"]].rename(columns={"end_node": "geometry"})
 
-        logging.info(f"   - Start and end nodes defined")
+        logging.info(f"     - start and end nodes defined")
 
         # Determine dead-end end nodes (using buffer to deal with inaccuracies in geometry hydroobjects) and make new dataframe
         start_nodes["geometry"] = start_nodes.buffer(buffer_width)
@@ -181,12 +114,12 @@ class GeneratorOrderLevels(BaseModel):
         ].copy()
         self.dead_end_nodes.geometry = self.dead_end_nodes.geometry.centroid
 
-        logging.info(f"   - Dead end nodes defined")
+        logging.info(f"     - dead end nodes defined")
 
         return self.dead_end_nodes
 
     def generate_rws_code_for_all_outflow_points(self, buffer_rws=10.0):
-        logging.info(f"   - Generating order code for all outflow points")
+        logging.info(f"     - generating order code for all outflow points")
         rws_wateren = self.rws_wateren.copy()
         rws_wateren.geometry = rws_wateren.geometry.buffer(buffer_rws)
         outflow_nodes = (
@@ -214,11 +147,11 @@ class GeneratorOrderLevels(BaseModel):
             else:
                 outflow_nodes_all = pd.concat([outflow_nodes_all, outflows])
             logging.info(
-                f"   - RWS-water ({rws_code}): {len(outflows)} uitstroompunten"
+                f"     - RWS-water ({rws_code}): {len(outflows)} outflow_points"
             )
 
         logging.info(
-            f"   - Totaal aantal uitstroompunten op RWS-wateren voor {self.name}: {len(outflow_nodes_all)}"
+            f"     - total no. outflow_point on RWS-waters for {self.name}: {len(outflow_nodes_all)}"
         )
         self.outflow_nodes_all = outflow_nodes_all.reset_index(drop=True)
         return self.outflow_nodes_all
@@ -309,26 +242,30 @@ class GeneratorOrderLevels(BaseModel):
             z_index=0,
         ).add_to(m)
 
-        fg = folium.FeatureGroup(name=f"Watergangen", control=True).add_to(m)
-
+        if 'orde_nr' in self.edges.columns:
+            add_categorized_lines_to_map(
+                m=m,
+                lines_gdf=self.edges[self.edges['orde_nr']>1],
+                layer_name="Orde watergangen",
+                control=True,
+                lines=True,
+                line_color_column="orde_nr",
+                label=True,
+                label_column="orde_nr",
+                label_decimals=0,
+                line_weight=5,
+                z_index=1,
+            )
         folium.GeoJson(
             self.hydroobjecten.geometry,  # .buffer(10),
             name="Watergangen",
             color="blue",
             fill_color="blue",
             zoom_on_click=True,
+            show=False,
             z_index=1,
-        ).add_to(fg)
-
-        if 'orde_nr' in self.edges.columns:
-            add_labels_to_points_lines_polygons(
-                gdf=self.edges[self.edges['orde_nr']>1],
-                column="orde_nr", 
-                label_decimals=0,
-                label_fontsize=8,
-                fg=fg,
-            )
-
+        ).add_to(m)
+            
         folium.GeoJson(
             self.dead_end_nodes,
             name="Outflow points",

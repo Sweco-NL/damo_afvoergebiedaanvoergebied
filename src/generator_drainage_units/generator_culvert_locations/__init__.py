@@ -42,7 +42,7 @@ def run_generator_culvert_locations(
 
     # read basis data from folder 0_basisdata
     culverts_generator.read_data_from_case(path=path)
-
+    
     # generate all vertices every 10 meters
     culverts_generator.generate_vertices_along_waterlines(
         distance_vertices=distance_vertices, write_results=write_results
