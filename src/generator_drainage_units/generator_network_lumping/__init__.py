@@ -18,12 +18,12 @@ def run_generator_network_lumping(
     network = GeneratorNetworkLumping()
     network.read_data_from_case(path=path)
     network.create_graph_from_network(water_lines=water_lines)
-    network.calculate_angles_of_edges_at_nodes()
 
     network.find_upstream_downstream_nodes_edges(
         direction=direction,
         no_inflow_outflow_points=no_inflow_outflow_points,
     )
+    network.calculate_angles_of_edges_at_nodes()
 
     if include_areas:
         network.assign_drainage_units_to_outflow_points_based_on_length_hydroobject()
