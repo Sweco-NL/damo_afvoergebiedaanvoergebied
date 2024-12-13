@@ -64,7 +64,6 @@ class GeneratorNetworkLumping(GeneratorBasis):
     folium_map: folium.Map = None
     folium_html_path: str = None
 
-
     def create_graph_from_network(
         self, water_lines=["rivieren", "hydroobjecten", "hydroobjecten_extra"]
     ):
@@ -79,10 +78,9 @@ class GeneratorNetworkLumping(GeneratorBasis):
             if self.inflow_outflow_edges is None:
                 self.inflow_outflow_edges = gdf_water_line.explode()
             else:
-                self.inflow_outflow_edges = pd.concat([
-                    self.inflow_outflow_edges, 
-                    gdf_water_line.explode()
-                ])
+                self.inflow_outflow_edges = pd.concat(
+                    [self.inflow_outflow_edges, gdf_water_line.explode()]
+                )
         self.nodes, self.edges, self.graph = create_graph_from_edges(
             self.inflow_outflow_edges
         )
@@ -97,9 +95,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
         self.direction = direction
 
         if self.inflow_outflow_points is None:
-            logging.info(
-                f"   x no outflow locations available"
-            )
+            logging.info(f"   x no outflow locations available")
             return None
 
         logging.info(
@@ -181,7 +177,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             node_search = "node_start"
 
         inflow_outflow_edges = None
-        
+
         inflow_outflow_nodes = define_list_upstream_downstream_edges_ids(
             self.inflow_outflow_nodes.nodeID.unique(),
             self.inflow_outflow_nodes,
@@ -302,16 +298,13 @@ class GeneratorNetworkLumping(GeneratorBasis):
             ]
             detected_inflow_outflow_splits.to_file(Path(results_dir, file_detected_points))
 
-
     def calculate_angles_of_edges_at_nodes(self):
         self.inflow_outflow_nodes, self.inflow_outflow_edges = (
             calculate_angles_of_edges_at_nodes(
-                nodes=self.inflow_outflow_nodes,
-                edges=self.inflow_outflow_edges
+                nodes=self.inflow_outflow_nodes, edges=self.inflow_outflow_edges
             )
         )
         return self.inflow_outflow_nodes
-
 
     def select_directions_for_splits_based_on_angle(self):
         self.inflow_outflow_splits_1 = self.inflow_outflow_splits_0.copy()

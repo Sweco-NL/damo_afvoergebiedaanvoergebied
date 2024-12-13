@@ -17,6 +17,7 @@ from ..utils.general_functions import (
     check_and_flip,
 )
 from ..utils.folium_utils import add_basemaps_to_folium_map
+from ..utils.preprocess import preprocess_hydroobjecten
 
 import warnings
 
@@ -67,9 +68,11 @@ class GeneratorCulvertLocations(GeneratorBasis):
     combined_end_product: gpd.GeoDataFrame = (
         None  # combined A, B, en C watergangen, and culverts. including splits
     )
+    outflow_points_overig_to_hydro: gpd.GeoDataFrame = (
+        None  # outflow points from overige watergangen to hydroobjecten
+    )
 
     folium_map: folium.Map = None
-
 
     def generate_vertices_along_waterlines(
         self,
@@ -213,7 +216,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
         ]
         end_pnts = end_pnts.drop_duplicates(subset="geometry", keep=False)
         end_pnts = end_pnts.rename(
-            columns={"CODE": "dangling_CODE", "unique_id": "dangling_id"}
+            columns={"code": "dangling_code", "unique_id": "dangling_id"}
         )
         end_pnts_orig_geometry = end_pnts.geometry
 
@@ -222,13 +225,13 @@ class GeneratorCulvertLocations(GeneratorBasis):
         end_pnts["geometry"] = end_pnts.buffer(max_culvert_length)
         end_pnts = gpd.sjoin(
             end_pnts,
-            self.water_line_pnts[["geometry", "unique_id", "CODE", "line_type"]],
+            self.water_line_pnts[["geometry", "unique_id", "code", "line_type"]],
             how="left",
             predicate="intersects",
         ).drop(columns="index_right")
 
         # remove connections with same hydroobject
-        end_pnts = end_pnts[end_pnts["dangling_CODE"] != end_pnts["CODE"]]
+        end_pnts = end_pnts[end_pnts["dangling_code"] != end_pnts["code"]]
 
         # make water_line_pnts id into unique_id again,
         # restore dangling geometry to points,
@@ -239,7 +242,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
 
         end_pnts = pd.merge(
             self.water_line_pnts,
-            end_pnts[["unique_id", "dangling_id", "dangling_CODE", "geometry2"]],
+            end_pnts[["unique_id", "dangling_id", "dangling_code", "geometry2"]],
             on="unique_id",
             how="inner",
         )
@@ -284,7 +287,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
                 f"   x {len(self.potential_culverts_1)} potential culverts already generated"
             )
             return self.potential_culverts_1
-        
+
         crossing_objects = [
             "hydroobjecten",
             "overige_watergangen",
@@ -300,15 +303,14 @@ class GeneratorCulvertLocations(GeneratorBasis):
 
         logging.info("   x check intersections culverts with objects")
         for crossing_object in crossing_objects:
-            
             crossing_gdf = getattr(self, crossing_object)
 
             # Merge operation
             culverts = culverts.merge(
                 gpd.sjoin(
                     culverts,
-                    crossing_gdf[["CODE", "geometry"]].rename(
-                        columns={"CODE": f"{crossing_object}_code"}
+                    crossing_gdf[["code", "geometry"]].rename(
+                        columns={"code": f"{crossing_object}_code"}
                     ),
                     predicate="crosses",
                 )[f"{crossing_object}_code"],
@@ -316,33 +318,32 @@ class GeneratorCulvertLocations(GeneratorBasis):
                 left_index=True,
                 right_index=True,
             )
-
             if crossing_object in ["hydroobjecten", "overige_watergangen"]:
                 # Step 1: Create a copy with only the relevant columns
                 culverts_copy = culverts[
-                    [f"{crossing_object}_code", "dangling_CODE", "CODE", "unique_id"]
+                    [f"{crossing_object}_code", "dangling_code", "code", "unique_id"]
                 ].copy()
 
                 # Step 2: Ensure columns are of the same type (string) for comparison
                 culverts_copy[f"{crossing_object}_code"] = culverts_copy[
                     f"{crossing_object}_code"
                 ].astype("string")
-                culverts_copy["dangling_CODE"] = culverts_copy["dangling_CODE"].astype(
+                culverts_copy["dangling_code"] = culverts_copy["dangling_code"].astype(
                     "string"
                 )
-                culverts_copy["CODE"] = culverts_copy["CODE"].astype("string")
+                culverts_copy["code"] = culverts_copy["code"].astype("string")
 
-                # Step 3: Check where f"{crossing_object}_code" matches either dangling_CODE or CODE
+                # Step 3: Check where f"{crossing_object}_code" matches either dangling_code or code
                 # Create boolean mask for each comparison
                 mask_dangling = (
                     culverts_copy[f"{crossing_object}_code"]
-                    == culverts_copy["dangling_CODE"]
+                    == culverts_copy["dangling_code"]
                 )
                 mask_code = (
-                    culverts_copy[f"{crossing_object}_code"] == culverts_copy["CODE"]
+                    culverts_copy[f"{crossing_object}_code"] == culverts_copy["code"]
                 )
 
-                # Combine the masks: identify rows where f"{crossing_object}_code" matches either dangling_CODE or CODE
+                # Combine the masks: identify rows where f"{crossing_object}_code" matches either dangling_code or code
                 mask_combined = mask_dangling | mask_code
 
                 culverts.loc[
@@ -382,7 +383,9 @@ class GeneratorCulvertLocations(GeneratorBasis):
         )
         return self.potential_culverts_1
 
-    def assign_scores_to_potential_culverts(self, read_results=None) -> gpd.GeoDataFrame:
+    def assign_scores_to_potential_culverts(
+        self, read_results=None
+    ) -> gpd.GeoDataFrame:
         """Assign scores to all potential culverts based on the connected vertice
         and crossings with roads and peilgebied borders.
 
@@ -396,7 +399,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
                 f"   x {len(self.potential_culverts_2)} potential culverts already generated"
             )
             return self.potential_culverts_2
-        
+
         culverts = self.potential_culverts_1.copy()
         logging.info("   x assigning scores to potential culverts")
         # 1e voorkeur
@@ -559,8 +562,9 @@ class GeneratorCulvertLocations(GeneratorBasis):
         )
         return self.potential_culverts_2
 
-    def select_correct_score_based_on_score_and_length(self, read_results = None) -> gpd.GeoDataFrame:
-        
+    def select_correct_score_based_on_score_and_length(
+        self, read_results=None
+    ) -> gpd.GeoDataFrame:
         if isinstance(read_results, bool):
             self.read_results = read_results
         if self.read_results and self.potential_culverts_3 is not None:
@@ -569,7 +573,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
             )
             return self.potential_culverts_3
 
-        # Create copy of potential culverts and calculate length     
+        # Create copy of potential culverts and calculate length
         culverts = self.potential_culverts_2.copy()
         culverts["length"] = culverts.geometry.length
 
@@ -608,7 +612,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
         logging.debug(f"    - {len(culverts)} potential culverts remaining")
 
         # Remove potential culverts of score 9 and lower when the other side of the watergang that a culvert with score 8 or less.
-        # Find dangling IDs that have a corresponding higher score in the same dangling_CODE
+        # Find dangling IDs that have a corresponding higher score in the same dangling_code
         def filter_low_scores(group):
             # Find the lowest score in the group
             low_score_ids = group[group["score"] >= 9]["dangling_id"].unique()
@@ -622,7 +626,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
 
         # Apply the filtering function to each group
         culverts = (
-            culverts.groupby("dangling_CODE")
+            culverts.groupby("dangling_code")
             .apply(filter_low_scores)
             .reset_index(drop=True)
         )
@@ -732,26 +736,26 @@ class GeneratorCulvertLocations(GeneratorBasis):
         culverts = self.potential_culverts_3.copy()
 
         # Check for already connected watergangen and remove potential connections
-        # Check and create a dictionary for duplicate groups with non-empty CODE lists
+        # Check and create a dictionary for duplicate groups with non-empty code lists
         duplicate_code_groups = (
-            self.duplicates.groupby("geometry")["CODE"]
+            self.duplicates.groupby("geometry")["code"]
             .apply(
                 lambda codes: list(codes) if len(codes) > 1 else []
-            )  # Only create list if more than one CODE
+            )  # Only create list if more than one code
             .to_dict()
         )
 
         # Chose shortest culvert when two culverts go to the same point from both dangling_points of a watergang
         culverts["code_pair"] = culverts.apply(
-            lambda row: frozenset([row["dangling_CODE"], row["CODE"]]), axis=1
+            lambda row: frozenset([row["dangling_code"], row["code"]]), axis=1
         )
 
         culverts = culverts.loc[culverts.groupby("code_pair")["length"].idxmin()]
 
         # Define the filter function
         def should_remove(row):
-            dangling_code = row["dangling_CODE"]
-            code = row["CODE"]
+            dangling_code = row["dangling_code"]
+            code = row["code"]
 
             # Check if both dangling_code and code appear in any of the lists in duplicate_code_groups
             for codes_list in duplicate_code_groups.values():
@@ -820,21 +824,29 @@ class GeneratorCulvertLocations(GeneratorBasis):
             self.overige_watergangen_processed,
             self.hydroobjecten_processed,
         )
-    
+
     def check_culverts_direction(self):
- 
         culvert = self.potential_culverts_4.copy()
         lines = self.combined_hydroobjecten.copy()
-    
+
         # Extract starting and ending points from gdf2
         gdf2_start_points = lines.geometry.apply(lambda geom: geom.coords[0])
         gdf2_end_points = lines.geometry.apply(lambda geom: geom.coords[-1])
-    
+
+        # Initialize the 'flipped' column if it doesn't exist
+        if "flipped" not in culvert.columns:
+            culvert["flipped"] = 0
+
         # Apply the check_and_flip function to each line in gdf1
-        culvert['geometry'] = culvert.geometry.apply(
-            lambda line: check_and_flip(line, gdf2_start_points.tolist(), gdf2_end_points.tolist())
+        results = culvert.geometry.apply(
+            lambda line: check_and_flip(
+                line, gdf2_start_points.tolist(), gdf2_end_points.tolist()
+            )
         )
 
+        # Update the geometry and flipped columns
+        culvert["geometry"] = results.apply(lambda x: x[0])
+        culvert["flipped"] += results.apply(lambda x: 1 if x[1] else 0)
         logging.debug("culvert direction checked")
 
         self.potential_culverts_4 = culvert.copy()
@@ -844,34 +856,43 @@ class GeneratorCulvertLocations(GeneratorBasis):
             layer="potential_culverts_4",
         )
         return self.potential_culverts_4
-    
+
     def combine_culvert_with_line(self):
-
         culvert = self.potential_culverts_4.copy()
-        culvert_dict = culvert.groupby('dangling_CODE')['geometry'].apply(list).to_dict()
+        culvert_dict = (
+            culvert.groupby("dangling_code")["geometry"].apply(list).to_dict()
+        )
         lines = self.overige_watergangen_processed.copy()
-        
-        def get_base_code(code):
-            return code.split('-')[0]
 
-        # Create base CODE column for merging
-        lines['base_CODE'] = lines['CODE'].apply(get_base_code)
+        def get_base_code(code):
+            return code.split("-")[0]
+
+        # Create base code column for merging
+        lines["base_code"] = lines["code"].apply(get_base_code)
 
         # Define the combine_lines function
         def combine_lines(line, culvert_dict):
-            base_code = line['base_CODE']
-            line_geom = line['geometry']
-            
+            base_code = line["base_code"]
+            line_geom = line["geometry"]
+
             if base_code in culvert_dict:
                 for culv in culvert_dict[base_code]:
-                    if culv.coords[-1] == line_geom.coords[0]:  # Culvert end to line start
-                        line_geom = LineString(list(culv.coords) + list(line_geom.coords))
-                    elif culv.coords[0] == line_geom.coords[-1]:  # Line end to culvert start
-                        line_geom = LineString(list(line_geom.coords) + list(culv.coords))
-            
+                    if (
+                        culv.coords[-1] == line_geom.coords[0]
+                    ):  # Culvert end to line start
+                        line_geom = LineString(
+                            list(culv.coords) + list(line_geom.coords)
+                        )
+                    elif (
+                        culv.coords[0] == line_geom.coords[-1]
+                    ):  # Line end to culvert start
+                        line_geom = LineString(
+                            list(line_geom.coords) + list(culv.coords)
+                        )
+
             return line_geom
-            
-        lines['geometry'] = lines.apply(
+
+        lines["geometry"] = lines.apply(
             lambda line: combine_lines(line, culvert_dict), axis=1
         )
 
@@ -886,10 +907,11 @@ class GeneratorCulvertLocations(GeneratorBasis):
         return self.overige_watergangen_processed
 
     def splits_hydroobjecten_by_endpoind_of_culverts_and_combine_2(self):
-        
         # split overige watergangen opnieuw
         overige_watergangen = self.overige_watergangen_processed.copy()
-        overige_watergangen = split_waterways_by_endpoints(overige_watergangen, overige_watergangen)
+        overige_watergangen = split_waterways_by_endpoints(
+            overige_watergangen, overige_watergangen
+        )
         logging.debug("overige watergangen weer gesplit")
 
         self.overige_watergangen_processed = overige_watergangen.copy()
@@ -911,6 +933,43 @@ class GeneratorCulvertLocations(GeneratorBasis):
         )
 
         return self.overige_watergangen_processed, self.combined_hydroobjecten
+
+    def generate_outflow_points_overige_watergangen_to_hydroobjecten(self):
+        culverts_hydro = self.potential_culverts_4[
+            (self.potential_culverts_4["WaterLineType"] == "hydroobjecten")
+            & (self.potential_culverts_4["flipped"] % 2 == 0)
+        ]
+
+        # Extract end points and retain 'unique_id' and 'dangling_code'
+        culverts_hydro["end_point"] = culverts_hydro.geometry.apply(
+            lambda line: Point(line.coords[-1])
+            if isinstance(line, LineString)
+            else None
+        )
+
+        # Create GeoDataFrame with end points
+        end_points_gdf = gpd.GeoDataFrame(
+            culverts_hydro[["end_point", "unique_id", "dangling_code"]].dropna(
+                subset=["end_point"]
+            ),
+            geometry="end_point",
+            crs=culverts_hydro.crs,
+        )
+
+        # Rename the geometry column to 'geometry'
+        end_points_gdf = end_points_gdf.rename(
+            columns={"end_point": "geometry"}
+        ).set_geometry("geometry")
+
+        self.outflow_points_overig_to_hydro = end_points_gdf.copy()
+
+        # Save to file
+        self.outflow_points_overig_to_hydro.to_file(
+            Path(self.path, "1_tussenresultaat", "outflow_points_overig_to_hydro.gpkg"),
+            layer="outflow_points_overig_to_hydro",
+        )
+
+        return self.outflow_points_overig_to_hydro
 
     def generate_folium_map(self, base_map="OpenStreetMap"):
         # Make figure
