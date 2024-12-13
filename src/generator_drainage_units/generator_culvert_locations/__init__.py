@@ -77,8 +77,10 @@ def run_generator_culvert_locations(
     culverts_generator.check_culverts_direction()
 
     culverts_generator.combine_culvert_with_line()
-    
+
     culverts_generator.splits_hydroobjecten_by_endpoind_of_culverts_and_combine_2()
+
+    culverts_generator.generate_outflow_points_overige_watergangen_to_hydroobjecten()
 
     # create map
     if create_html_map:

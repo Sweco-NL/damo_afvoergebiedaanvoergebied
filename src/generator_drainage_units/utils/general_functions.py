@@ -1,12 +1,20 @@
 import geopandas as gpd
 import pandas as pd
-from shapely import Point, LineString, MultiLineString, Polygon, MultiPolygon
+from shapely.geometry import (
+    Point,
+    LineString,
+    MultiLineString,
+    Polygon,
+    MultiPolygon,
+    base,
+)
 from shapely.ops import split, linemerge, nearest_points
 import numpy as np
 from typing import TypeVar
 import time
 import logging
 import warnings
+import shapely
 
 
 def shorten_line_two_vertices(line, offset):
@@ -25,7 +33,7 @@ def shorten_line_two_vertices(line, offset):
         return line  # Return the original line if not a LineString
 
 
-def line_to_vertices(gdf, distance=10.0, keep_columns=["CODE", "WaterLineType"]):
+def line_to_vertices(gdf, distance=10.0, keep_columns=["code", "WaterLineType"]):
     all_points = []
 
     for _, row in gdf.iterrows():
@@ -163,7 +171,7 @@ def split_waterways_by_endpoints(hydroobjects, relevant_culverts):
 
         # Create gdf from segments of linestring
         gdf_segments = gpd.GeoDataFrame(
-            gdf_lines[["CODE", "segments", "NAAM", "status"]]
+            gdf_lines[["code", "segments", "NAAM", "status"]]
             .explode("segments")
             .rename(columns={"segments": "geometry"}),
             geometry="geometry",
@@ -173,7 +181,7 @@ def split_waterways_by_endpoints(hydroobjects, relevant_culverts):
         # Determine which segment point of points_gdf are located on
         gdf_segments = gdf_segments.merge(
             gdf_points[["geometry"]]
-            .sjoin_nearest(gdf_segments.drop(columns="CODE"))
+            .sjoin_nearest(gdf_segments.drop(columns="code"))
             .groupby("index_right")
             .agg(
                 {
@@ -229,10 +237,10 @@ def split_waterways_by_endpoints(hydroobjects, relevant_culverts):
 
         # Group segments that are between points, creating a list of geometries in geometry
         gdf_segments = (
-            gdf_segments.groupby(["index_right_cumsum", "CODE"])
+            gdf_segments.groupby(["index_right_cumsum", "code"])
             .agg(
                 {
-                    "CODE": "first",
+                    "code": "first",
                     "geometry": list,
                     "NAAM": "first",
                     "status": "first",
@@ -257,7 +265,7 @@ def split_waterways_by_endpoints(hydroobjects, relevant_culverts):
             gdf_segments.reset_index(drop=True), geometry="geometry", crs=gdf_lines.crs
         )
 
-        # Function to add suffixes to duplicate CODEs
+        # Function to add suffixes to duplicate codes
         def add_suffixes(df, column):
             counts = df[column].value_counts()
             suffixes = {code: 0 for code in counts.index if counts[code] > 1}
@@ -274,12 +282,13 @@ def split_waterways_by_endpoints(hydroobjects, relevant_culverts):
             return df
 
         # Apply the function to your GeoDataFrame
-        gdf_segments = add_suffixes(gdf_segments, "CODE")
+        gdf_segments = add_suffixes(gdf_segments, "code")
 
         return gdf_segments
 
     result = split_lines_at_points(hydroobjects, combined_end_points_gdf)
     return result
+
 
 # Function to check if line endpoints need to be flipped
 def check_and_flip(line, start_points, end_points):
@@ -288,9 +297,9 @@ def check_and_flip(line, start_points, end_points):
 
     # Check if start and end points are in the correct positions
     if start_point in end_points and end_point in start_points:
-        return line
+        return line, False
     else:
-        return LineString(line.coords[::-1])
+        return LineString(line.coords[::-1]), True
 
 
 def _remove_holes(geom, min_area):
@@ -344,7 +353,10 @@ def define_list_upstream_downstream_edges_ids(
             axis=1,
         )
         nodes_sel[f"no_{direction}_edges"] = nodes_sel.apply(
-            lambda x: len(x[f"{direction}_edges"].split(",")) if x[f"{direction}_edges"] else 0, axis=1
+            lambda x: len(x[f"{direction}_edges"].split(","))
+            if x[f"{direction}_edges"]
+            else 0,
+            axis=1,
         )
     nodes_sel = nodes_sel.reset_index(drop=True)
     return nodes_sel
@@ -370,25 +382,42 @@ def calculate_angle(line, direction):
     return angle_degrees
 
 
-def calculate_angles_of_edges_at_nodes(nodes: gpd.GeoDataFrame, edges: gpd.GeoDataFrame):
-    edges["downstream_angle"] = edges.apply(lambda x: calculate_angle(x['geometry'], 'downstream').round(2), axis=1)
-    edges["upstream_angle"] = edges.apply(lambda x: calculate_angle(x['geometry'], 'upstream').round(2), axis=1)
+def calculate_angles_of_edges_at_nodes(
+    nodes: gpd.GeoDataFrame, edges: gpd.GeoDataFrame
+):
+    edges["downstream_angle"] = edges.apply(
+        lambda x: calculate_angle(x["geometry"], "downstream").round(2), axis=1
+    )
+    edges["upstream_angle"] = edges.apply(
+        lambda x: calculate_angle(x["geometry"], "upstream").round(2), axis=1
+    )
 
     nodes["upstream_angles"] = ""
     nodes["downstream_angles"] = ""
 
     def calculate_angles_of_edges_at_node(node, edges):
-        for direction, opp_direction in zip(["upstream", "downstream"], ["downstream", "upstream"]):
-            dir_edges = node[f"{direction}_edges"].split(',')
-            
-            node[f"{direction}_angles"] = ", ".join([
-                str(edges.loc[edges["code"] == str(edge_id), f"{opp_direction}_angle"].values[0])
-                for edge_id in dir_edges if edge_id != ""
-            ])
-            
+        for direction, opp_direction in zip(
+            ["upstream", "downstream"], ["downstream", "upstream"]
+        ):
+            dir_edges = node[f"{direction}_edges"].split(",")
+
+            node[f"{direction}_angles"] = ", ".join(
+                [
+                    str(
+                        edges.loc[
+                            edges["code"] == str(edge_id), f"{opp_direction}_angle"
+                        ].values[0]
+                    )
+                    for edge_id in dir_edges
+                    if edge_id != ""
+                ]
+            )
+
         return node
 
-    nodes = nodes.apply(lambda node: calculate_angles_of_edges_at_node(node, edges), axis=1)
+    nodes = nodes.apply(
+        lambda node: calculate_angles_of_edges_at_node(node, edges), axis=1
+    )
     return nodes, edges
 
 
@@ -403,7 +432,9 @@ def find_edge_smallest_angle_difference(reference_angle, angles, edge_codes):
     if reference_angle is None:
         return [None for a in angles], None
     reference_angle = float(reference_angle)
-    angle_differences = np.array([angle_difference(angle, reference_angle) for angle in angles])
+    angle_differences = np.array(
+        [angle_difference(angle, reference_angle) for angle in angles]
+    )
     min_index = np.argmin(angle_differences)
     return angle_differences, edge_codes[min_index]
 
@@ -461,6 +492,8 @@ def get_endpoints_from_lines(lines: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 def snap_unconnected_endpoints_to_endpoint_or_line(
     hydroobjecten, snapping_distance=0.05
 ):
+    hydroobjecten = hydroobjecten.explode()
+
     endpoints = get_endpoints_from_lines(hydroobjecten)
 
     endpoints["ID"] = endpoints.index
@@ -480,7 +513,6 @@ def snap_unconnected_endpoints_to_endpoint_or_line(
     joined_points = gpd.sjoin(
         original_geometry, endpoints, how="inner", predicate="intersects"
     )
-
     # Filter out the endpoints with the same ID
     unconnected_endpoints_points = joined_points[
         joined_points["ID_left"] != joined_points["ID_right"]
@@ -520,7 +552,10 @@ def snap_unconnected_endpoints_to_endpoint_or_line(
         lambda row: replace_last_coordinate(row, point_df), axis=1, result_type="expand"
     )
 
-    joined_lines = gpd.sjoin(endpoints, hydroobjecten, how="left", predicate="crosses")
+    joined_lines = gpd.sjoin(
+        endpoints, hydroobjecten, how="left", predicate="intersects"
+    )
+
     joined_lines = joined_lines[
         joined_lines.apply(
             lambda x: x["code"] not in x["starting_lines"]
@@ -529,17 +564,39 @@ def snap_unconnected_endpoints_to_endpoint_or_line(
         )
     ]
 
-    joined_lines["geometry"] = original_geometry["geometry"]
+    # Merge the DataFrames on the 'ID' column to bring the correct geometry back
+    joined_lines = joined_lines.merge(
+        original_geometry[["ID", "geometry"]], on="ID", suffixes=("", "_original")
+    )
+
+    # Replace the geometry column in joined_lines with the one from original_geometry
+    joined_lines["geometry"] = joined_lines["geometry_original"]
+
+    # Drop the now redundant 'geometry_original' column
+    joined_lines.drop(columns=["geometry_original"], inplace=True)
+
     joined_lines["line_key"] = joined_lines.apply(
-        lambda row: str(sorted(row["starting_lines"]))
+        lambda row: str(
+            sorted(
+                row["starting_lines"] if isinstance(row["starting_lines"], list) else []
+            )
+        )
         + "-"
-        + str(sorted(row["ending_lines"])),
+        + str(
+            sorted(row["ending_lines"] if isinstance(row["ending_lines"], list) else [])
+        ),
         axis=1,
     )
     unconnected_endpoints_points["point_key"] = unconnected_endpoints_points.apply(
-        lambda row: str(sorted(row["starting_lines"]))
+        lambda row: str(
+            sorted(
+                row["starting_lines"] if isinstance(row["starting_lines"], list) else []
+            )
+        )
         + "-"
-        + str(sorted(row["ending_lines"])),
+        + str(
+            sorted(row["ending_lines"] if isinstance(row["ending_lines"], list) else [])
+        ),
         axis=1,
     )
     filtered_joined_lines = joined_lines[
@@ -547,6 +604,8 @@ def snap_unconnected_endpoints_to_endpoint_or_line(
     ]
 
     def project_point_onto_line(point, line):
+        if point is None or line is None:
+            return None  # Handle None values gracefully
         # Use shapely's nearest_points to find the closest point on the line
         projected_point = nearest_points(point, line)[1]
         return projected_point
@@ -554,10 +613,17 @@ def snap_unconnected_endpoints_to_endpoint_or_line(
     # Create a new column for the projected geometries
     filtered_joined_lines["projected_geometry"] = filtered_joined_lines.apply(
         lambda row: project_point_onto_line(
-            row["geometry"],
+            row["geometry"]
+            if isinstance(row["geometry"], (shapely.geometry.base.BaseGeometry, list))
+            else None,
             hydroobjecten.loc[hydroobjecten["code"] == row["code"], "geometry"].values[
                 0
-            ],
+            ]
+            if not pd.isna(row["code"])
+            and not hydroobjecten.loc[
+                hydroobjecten["code"] == row["code"], "geometry"
+            ].empty
+            else None,
         ),
         axis=1,
     )
@@ -600,17 +666,18 @@ def snap_unconnected_endpoints_to_endpoint_or_line(
 
     return hydroobjecten
 
+
 def check_duplicate_codes(gdf, column):
     if column not in gdf.columns:
         raise ValueError(f"Column '{column}' does not exist in the GeoDataFrame.")
-    
+
     # Ensure the column is of type string
     gdf[column] = gdf[column].astype(str)
-    
+
     # Create a dictionary to keep track of the counts of each value
     value_counts = {}
     duplicate_count = 0  # Initialize the duplicate counter
-    
+
     # Function to generate the new value with suffix
     def generate_new_value(value):
         nonlocal duplicate_count
@@ -621,13 +688,11 @@ def check_duplicate_codes(gdf, column):
             value_counts[value] += 1
             duplicate_count += 1
             return f"{value}-{value_counts[value]}"
-    
+
     # Apply the function to the column to rename duplicates
     gdf[column] = gdf[column].apply(generate_new_value)
-    
+
     # Print the number of duplicates found
     print(f"Number of duplicates found: {duplicate_count}")
-    
+
     return gdf
-
-

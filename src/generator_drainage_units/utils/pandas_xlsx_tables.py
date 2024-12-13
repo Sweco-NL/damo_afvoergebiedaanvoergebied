@@ -178,9 +178,7 @@ def table_to_df(
     return frame
 
 
-def xlsx_tables_to_dfs(
-    file, index: [Literal["auto"], int, Iterable[int]] = "auto"
-):
+def xlsx_tables_to_dfs(file, index: [Literal["auto"], int, Iterable[int]] = "auto"):
     """Get all tables from a given workbook. Returns a dictionary of tables.
     Requires a filename, which includes the file path and filename.
 
@@ -341,4 +339,3 @@ def df_to_xlsx_table(
         header_orientation=header_orientation,
         remove_timezone=remove_timezone,
     )
-
