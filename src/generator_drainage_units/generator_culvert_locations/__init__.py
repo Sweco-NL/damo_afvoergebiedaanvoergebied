@@ -37,11 +37,10 @@ def run_generator_culvert_locations(
     """
     start_time = time.time()
     culverts_generator = GeneratorCulvertLocations(
-        read_results=read_results, write_results=write_results
+        path=path,
+        read_results=read_results, 
+        write_results=write_results
     )
-
-    # read basis data from folder 0_basisdata
-    culverts_generator.read_data_from_case(path=path)
     
     # generate all vertices every 10 meters
     culverts_generator.generate_vertices_along_waterlines(
@@ -79,8 +78,6 @@ def run_generator_culvert_locations(
     culverts_generator.combine_culvert_with_line()
 
     culverts_generator.splits_hydroobjecten_by_endpoind_of_culverts_and_combine_2()
-
-    culverts_generator.generate_outflow_points_overige_watergangen_to_hydroobjecten()
 
     # create map
     if create_html_map:

@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import webbrowser
 
 import folium
 import geopandas as gpd
@@ -53,6 +54,7 @@ class GeneratorOrderLevels(GeneratorBasis):
     network_positions: dict = None
 
     folium_map: folium.Map = None
+    folium_html_path: Path = None
 
     def create_graph_from_network(
         self, water_lines=["rivieren", "hydroobjecten", "hydroobjecten_extra"]
@@ -153,7 +155,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         self.outflow_nodes_all = outflow_nodes_all.reset_index(drop=True)
         return self.outflow_nodes_all
 
-    def generate_order_levels_to_outflow_nodes_edges(self, max_order: int = 10):
+    def generate_order_levels_to_outflow_nodes_edges(self, max_order: int = None):
         logging.info(f"   x Generating order levels for all edges")
         self.edges["orde_nr"] = 0
 
@@ -163,8 +165,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
         self.outflow_nodes["hydroobject_code_out"] = None
         self.outflow_nodes["orde_nr"] = 1
-        for orde_nr in range(1, max_order):
-            print(orde_nr)
+        for orde_nr in range(1, max_order if max_order is not None else 100):
             outflow_nodes_order = self.outflow_nodes[
                 self.outflow_nodes["orde_nr"] == orde_nr
             ].copy()
@@ -210,10 +211,10 @@ class GeneratorOrderLevels(GeneratorBasis):
                 # Identify duplicated 'next_edge' values
                 next_edges_1 = next_edges[
                     ~next_edges.duplicated("next_edge", keep=False)
-                ]
+                ].explode("next_edge").reset_index()
                 next_edges_2 = next_edges[
                     next_edges.duplicated("next_edge", keep=False)
-                ]
+                ].explode("next_edge").reset_index()
 
                 # Create a new outflow_nodes based on multiple_next_hydro
                 for next_edge in next_edges_2["next_edge"].explode().unique():
@@ -246,9 +247,21 @@ class GeneratorOrderLevels(GeneratorBasis):
                     )
 
                 codes = next_edges_1["code"].tolist()
+        
+        if self.write_results:
+            self.edges.to_file(Path(self.dir_inter_results, 'edges.gpkg'), layer="edges")
         return self.edges, self.outflow_nodes
+    
 
-    def generate_folium_map(self, base_map="OpenStreetMap"):
+    def generate_folium_map(
+        self, 
+        html_file_name: str = None,
+        include_areas: bool = True,
+        width_edges: float = 10.0,
+        opacity_edges: float = 0.5,
+        open_html: bool = False,
+        base_map: str = "OpenStreetMap",
+    ):
         # Make figure
         outflow_nodes_4326 = self.outflow_nodes_all.to_crs(4326)
 
@@ -270,11 +283,12 @@ class GeneratorOrderLevels(GeneratorBasis):
         if 'orde_nr' in self.edges.columns:
             add_categorized_lines_to_map(
                 m=m,
-                lines_gdf=self.edges[self.edges['orde_nr']>1],
+                lines_gdf=self.edges[self.edges['orde_nr']>1][["code", "orde_nr", "geometry"]],
                 layer_name="Orde watergangen",
                 control=True,
                 lines=True,
                 line_color_column="orde_nr",
+                line_color_cmap='hsv',
                 label=True,
                 label_column="orde_nr",
                 label_decimals=0,
@@ -329,4 +343,15 @@ class GeneratorOrderLevels(GeneratorBasis):
         folium.LayerControl(collapsed=False).add_to(m)
 
         self.folium_map = m
+
+        if html_file_name is None:
+            html_file_name = self.name
+
+        self.folium_html_path = Path(self.path, f"{html_file_name}.html")
+        m.save(self.folium_html_path)
+
+        logging.info(f"   x html file saved: {html_file_name}.html")
+
+        if open_html:
+            webbrowser.open(Path(self.path, f"{html_file_name}.html"))
         return m
