@@ -51,12 +51,12 @@ def line_to_vertices(gdf, distance=10.0, keep_columns=["code", "WaterLineType"])
             # Add start and end points to the list with 'dangling' label
             start_point_x = {
                 "geometry": Point(line.coords[0][0], line.coords[0][1]),
-                "line_type": "dangling",
+                "line_type": "dangling_start",
                 "distance_from_start": 0,
             }
             end_point_x = {
                 "geometry": Point(line.coords[-1][0], line.coords[-1][1]),
-                "line_type": "dangling",
+                "line_type": "dangling_end",
                 "distance_from_start": line.length,
             }
             for point in [start_point_x, end_point_x]:
@@ -381,6 +381,35 @@ def calculate_angle(line, direction):
 
     return angle_degrees
 
+def calculate_angle_reverse(line):
+    coords = list(line.coords)
+    p1, p2 = coords[1], coords[0]
+
+    angle = np.arctan2(p2[1] - p1[1], p2[0] - p1[0])  # Angle in radians
+    angle_degrees = np.degrees(angle)
+    angle_degrees = angle_degrees % 360 
+        
+    return angle_degrees
+
+def calculate_angle_start(line):
+    coords = list(line.coords)
+    p1, p2 = coords[0], coords[1]
+
+    angle = np.arctan2(p2[1] - p1[1], p2[0] - p1[0])  # Angle in radians
+    angle_degrees = np.degrees(angle)
+    angle_degrees = angle_degrees % 360 
+        
+    return angle_degrees
+
+def calculate_angle_end(line):
+    coords = list(line.coords)
+    p1, p2 = coords[-2], coords[-1] 
+
+    angle = np.arctan2(p2[1] - p1[1], p2[0] - p1[0])  # Angle in radians
+    angle_degrees = np.degrees(angle)
+    angle_degrees = angle_degrees % 360
+
+    return angle_degrees
 
 def calculate_angles_of_edges_at_nodes(
     nodes: gpd.GeoDataFrame, edges: gpd.GeoDataFrame
