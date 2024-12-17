@@ -2,10 +2,6 @@ from pathlib import Path
 import geopandas as gpd
 
 from .generator_order_levels import GeneratorOrderLevels
-from ..utils.general_functions import (
-    define_list_upstream_downstream_edges_ids,
-    calculate_angles_of_edges_at_nodes,
-)
 
 
 def run_generator_order_levels(
@@ -19,6 +15,7 @@ def run_generator_order_levels(
     create_html_map: bool = False,
     open_html: bool = False,
 ) -> GeneratorOrderLevels:
+
     order = GeneratorOrderLevels(
         path=path,
         waterschap=waterschap,
@@ -27,22 +24,24 @@ def run_generator_order_levels(
         read_results=read_results,
         write_results=write_results,
     )
-    order.create_graph_from_network(
-        water_lines=water_lines
-    )
-    order.create_graph_from_network(water_lines=water_lines)
-    order.nodes = define_list_upstream_downstream_edges_ids(
-        node_ids=order.nodes.nodeID.values, nodes=order.nodes, edges=order.edges
-    )
-    order.nodes, order.edges = calculate_angles_of_edges_at_nodes(
-        nodes=order.nodes, edges=order.edges
-    )
-    order.find_end_points_hydroobjects()
-    order.generate_rws_code_for_all_outflow_points()
-    order.generate_order_levels_to_outflow_nodes_edges(max_order=None)
 
+    order.create_graph_from_network(water_lines=water_lines)
+    
+    order.define_list_upstream_downstream_edges_ids()
+    
+    order.calculate_angles_of_edges_at_nodes()
+    
+    order.select_downstream_upstream_edges(min_difference_angle=20.0)
+
+    order.find_end_points_hydroobjects()
+    
+    order.generate_rws_code_for_all_outflow_points()
+    
+    # order.generate_order_levels_to_outflow_nodes_edges(max_order=None)
+
+    if write_results:
+        order.export_results_to_gpkg()
+    
     if create_html_map:
-        order.generate_folium_map(
-            open_html=open_html
-        )
+        order.generate_folium_map(open_html=open_html)
     return order

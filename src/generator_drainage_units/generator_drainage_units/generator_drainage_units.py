@@ -53,7 +53,6 @@ class GeneratorDrainageUnits(GeneratorBasis):
     folium_map: folium.Map = None
     folium_html_path: str = None
 
-
     def generate_folium_map(self, base_map="OpenStreetMap"):
         # Make figure
         outflow_nodes_4326 = self.outflow_nodes_all.to_crs(4326)
@@ -73,10 +72,10 @@ class GeneratorDrainageUnits(GeneratorBasis):
             z_index=0,
         ).add_to(m)
 
-        if 'orde_nr' in self.edges.columns:
+        if "orde_nr" in self.edges.columns:
             add_categorized_lines_to_map(
                 m=m,
-                lines_gdf=self.edges[self.edges['orde_nr']>1],
+                lines_gdf=self.edges[self.edges["orde_nr"] > 1],
                 layer_name="Orde watergangen",
                 control=True,
                 lines=True,
@@ -96,7 +95,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
             show=False,
             z_index=1,
         ).add_to(m)
-            
+
         folium.GeoJson(
             self.dead_end_nodes,
             name="Outflow points",

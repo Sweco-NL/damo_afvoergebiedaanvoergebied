@@ -14,12 +14,12 @@ from .general_functions import (
 def preprocess_hydroobjecten(hydroobjecten):
     # explode
     hydroobjecten = hydroobjecten.explode()
-    
+
     # Setup hydroobjecten correctly
     hydroobjecten = remove_z_dims(hydroobjecten)
 
-    #check duplicates
-    hydroobjecten = check_duplicate_codes(hydroobjecten, 'code')
+    # check duplicates
+    hydroobjecten = check_duplicate_codes(hydroobjecten, "code")
 
     # Snap hydroobjecten
     hydroobjecten = snap_unconnected_endpoints_to_endpoint_or_line(

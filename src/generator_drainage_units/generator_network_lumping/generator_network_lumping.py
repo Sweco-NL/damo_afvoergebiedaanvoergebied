@@ -18,13 +18,14 @@ from ..generator_basis import GeneratorBasis
 from ..utils.create_graph import create_graph_from_edges
 from ..utils.folium_utils import add_basemaps_to_folium_map
 from ..utils.general_functions import (
-    calculate_angles_of_edges_at_nodes,
-    define_list_upstream_downstream_edges_ids,
     find_edge_smallest_angle_difference,
     remove_holes_from_polygons,
-    remove_z_dims,
 )
-from ..utils.network_functions import find_nodes_edges_for_direction
+from ..utils.network_functions import (
+    find_nodes_edges_for_direction, 
+    define_list_upstream_downstream_edges_ids,
+    calculate_angles_of_edges_at_nodes
+)
 
 
 class GeneratorNetworkLumping(GeneratorBasis):
@@ -86,9 +87,10 @@ class GeneratorNetworkLumping(GeneratorBasis):
         )
         self.network_positions = {n: [n[0], n[1]] for n in list(self.graph.nodes)}
 
-
     def find_upstream_downstream_nodes_edges(
-        self, direction: str = "upstream", no_inflow_outflow_points: int = None
+        self, 
+        direction: str = "upstream", 
+        no_inflow_outflow_points: int = None
     ):
         if direction not in ["upstream", "downstream"]:
             raise ValueError(f" x direction needs to be 'upstream' or 'downstream'")
@@ -98,9 +100,8 @@ class GeneratorNetworkLumping(GeneratorBasis):
             logging.info(f"   x no outflow locations available")
             return None
 
-        logging.info(
-            f"   x find {direction} nodes and edges for {len(self.inflow_outflow_points)} outflow locations"
-        )
+        logging_message = f"   x find {direction} nodes and edges for {len(self.inflow_outflow_points)} outflow locations"
+        logging.info(logging_message)
 
         if no_inflow_outflow_points is not None:
             self.inflow_outflow_points = self.nodes.sample(n=no_inflow_outflow_points)
@@ -133,7 +134,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
                     splits[f"selected_{direction}_edge"] = None
                 inflow_outflow_splits = splits
             break
-        
+
         self.inflow_outflow_nodes, self.inflow_outflow_edges = (
             find_nodes_edges_for_direction(
                 nodes=self.nodes,
@@ -296,12 +297,16 @@ class GeneratorNetworkLumping(GeneratorBasis):
                     "geometry",
                 ]
             ]
-            detected_inflow_outflow_splits.to_file(Path(results_dir, file_detected_points))
+            detected_inflow_outflow_splits.to_file(
+                Path(results_dir, file_detected_points)
+            )
 
     def calculate_angles_of_edges_at_nodes(self):
+        logging.info("   x calculate angles of edges to nodes")
         self.inflow_outflow_nodes, self.inflow_outflow_edges = (
             calculate_angles_of_edges_at_nodes(
-                nodes=self.inflow_outflow_nodes, edges=self.inflow_outflow_edges
+                nodes=self.inflow_outflow_nodes, 
+                edges=self.inflow_outflow_edges
             )
         )
         return self.inflow_outflow_nodes
@@ -419,7 +424,6 @@ class GeneratorNetworkLumping(GeneratorBasis):
             self.inflow_outflow_areas[upstream_downstream_columns].fillna(False)
         )
 
-
     def assign_drainage_units_to_outflow_points_based_on_length_hydroobject(self):
         if self.afwateringseenheden is None:
             return None
@@ -432,11 +436,9 @@ class GeneratorNetworkLumping(GeneratorBasis):
             how="inner",
             predicate="intersects",
         )
-
         joined["intersection_length"] = joined.apply(
             lambda row: row.geometry.intersection(row.savedgeom).length, axis=1
         )
-
         merged = self.afwateringseenheden.merge(
             joined[["unique_id", "code_hydroobject", "intersection_length"]],
             on="unique_id",
@@ -470,7 +472,6 @@ class GeneratorNetworkLumping(GeneratorBasis):
             )
         return self.inflow_outflow_areas
 
-
     def dissolve_assigned_drainage_units(self):
         if self.inflow_outflow_areas is None:
             return None
@@ -500,7 +501,6 @@ class GeneratorNetworkLumping(GeneratorBasis):
         ).buffer(-0.1)
         return self.inflow_outflow_areas
 
-
     def export_results_all(
         self,
         html_file_name: str = None,
@@ -514,6 +514,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             width_edges=width_edges,
             opacity_edges=opacity_edges,
         )
+
 
     def export_results_to_gpkg(self):
         """Export results to geopackages in folder 1_tussenresultaat"""
@@ -531,7 +532,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             else:
                 logging.debug(f"    - {layer} ({len(result)})")
                 result.to_file(Path(results_dir, f"{layer}.gpkg"))
-
+    
 
     def generate_folium_map(
         self,
@@ -609,6 +610,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             show=True,
             z_index=0,
         ).add_to(m)
+        
         for i, node_selection in enumerate(nodes_selection):
             inflow_outflow = (
                 "instroom" if self.direction == "downstream" else "uitstroom"

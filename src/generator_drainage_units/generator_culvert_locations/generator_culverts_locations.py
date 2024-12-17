@@ -66,10 +66,8 @@ class GeneratorCulvertLocations(GeneratorBasis):
 
     folium_map: folium.Map = None
 
-
     def use_processed_hydroobjecten(self):
         logging.debug("culvert generator will generate processed hydroobjecten")
-
 
     def generate_vertices_along_waterlines(
         self,
