@@ -6,25 +6,26 @@ import folium
 import geopandas as gpd
 import networkx as nx
 import pandas as pd
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 from shapely.geometry import Point
 
 from ..generator_basis import GeneratorBasis
 from ..utils.create_graph import create_graph_from_edges
-from ..utils.general_functions import shorten_line_two_vertices, line_to_vertices
+from ..utils.network_functions import (
+    define_list_upstream_downstream_edges_ids,
+    calculate_angles_of_edges_at_nodes,
+    select_downstream_upstream_edges
+)
 from ..utils.folium_utils import (
     add_labels_to_points_lines_polygons,
     add_basemaps_to_folium_map,
-    add_lines_to_map,
-    add_categorized_lines_to_map
+    add_categorized_lines_to_map,
 )
 
 
 class GeneratorOrderLevels(GeneratorBasis):
     """Module to generate partial networks and order levels for all water bodies,
     based on ..."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     path: Path = None
     name: str = None
@@ -36,8 +37,8 @@ class GeneratorOrderLevels(GeneratorBasis):
     hydroobjecten: gpd.GeoDataFrame = None
     hydroobjecten_processed: gpd.GeoDataFrame = None
 
-    overige_watergangen: gpd.GeoDataFrame = None
-    overige_watergangen_processed: gpd.GeoDataFrame = None
+    # overige_watergangen: gpd.GeoDataFrame = None
+    # overige_watergangen_processed: gpd.GeoDataFrame = None
 
     rws_wateren: gpd.GeoDataFrame = None
 
@@ -45,6 +46,8 @@ class GeneratorOrderLevels(GeneratorBasis):
     write_results: bool = False
 
     dead_end_nodes: gpd.GeoDataFrame = None
+    dead_start_nodes: gpd.GeoDataFrame = None
+
     outflow_nodes_all: gpd.GeoDataFrame = None
     outflow_nodes: gpd.GeoDataFrame = None
 
@@ -76,49 +79,49 @@ class GeneratorOrderLevels(GeneratorBasis):
         return self.nodes, self.edges, self.graph
 
 
-    def find_end_points_hydroobjects(self, buffer_width=0.5):
+    def define_list_upstream_downstream_edges_ids(self):
+        self.nodes = define_list_upstream_downstream_edges_ids(
+            node_ids=self.nodes.nodeID.values, 
+            nodes=self.nodes, 
+            edges=self.edges
+        )
+
+
+    def calculate_angles_of_edges_at_nodes(self):
+        logging.info("   x calculate angles of edges to nodes")
+        self.nodes, self.edges = calculate_angles_of_edges_at_nodes(
+            nodes=self.nodes, edges=self.edges
+        )
+        return self.nodes
+
+
+    def select_downstream_upstream_edges(self, min_difference_angle: str = 20.0):
+        logging.info("   x find downstream upstream edges")
+        self.nodes = select_downstream_upstream_edges(self.nodes)
+        return self.nodes
+
+
+    def find_end_points_hydroobjects(self, buffer_width=0.5, direction="upstream"):
         # Copy hydroobject data to new variable 'hydroobjects' and make dataframes with start and end nodes
-        hydroobjects = self.hydroobjecten[["code", "geometry"]].explode()
-        hydroobjects["start_node"] = hydroobjects.geometry.apply(
-            lambda x: Point(x.coords[0][0:2])
-        )
-        hydroobjects["end_node"] = hydroobjects.geometry.apply(
-            lambda x: Point(x.coords[-1][0:2])
-        )
+        logging.info("   x find start and end nodes hydrobojects")
 
-        start_nodes = hydroobjects[["start_node"]].rename(
-            columns={"start_node": "geometry"}
-        )
-        end_nodes = hydroobjects[["end_node"]].rename(columns={"end_node": "geometry"})
+        dead_end_nodes = self.edges[~self.edges.node_end.isin(self.edges.node_start.values)].copy()
+        dead_end_nodes["geometry"] = dead_end_nodes["geometry"].apply(lambda x: Point(x.coords[-1]))
+        dead_end_nodes["nodeID"] = dead_end_nodes["node_end"]
+        dead_end_nodes = dead_end_nodes[["code", "nodeID", "geometry"]].rename(columns={"code": "hydroobject_code"})
 
-        logging.info(f"     - start and end nodes defined")
+        dead_start_nodes = self.edges[~self.edges.node_start.isin(self.edges.node_end.values)].copy()
+        dead_start_nodes["geometry"] = dead_start_nodes["geometry"].apply(lambda x: Point(x.coords[0]))
+        dead_start_nodes["nodeID"] = dead_start_nodes["node_start"]
+        dead_start_nodes = dead_start_nodes[["code", "nodeID", "geometry"]].rename(columns={"code": "hydroobject_code"})
+        
+        self.dead_end_nodes = dead_end_nodes.copy()
+        self.dead_start_nodes = dead_start_nodes.copy()
+        return self.dead_end_nodes, self.dead_start_nodes
 
-        # Determine dead-end end nodes (using buffer to deal with inaccuracies in geometry hydroobjects) and make new dataframe
-        start_nodes["geometry"] = start_nodes.buffer(buffer_width)
-        end_nodes["geometry"] = end_nodes.buffer(buffer_width)
-
-        # Determine where start and end nodes overlap
-        dead_end_nodes = start_nodes.sjoin(end_nodes, how="right")
-        dead_end_nodes = hydroobjects.loc[
-            dead_end_nodes[dead_end_nodes.index_left.isna()].index, ["code", "end_node"]
-        ].copy()
-        dead_end_nodes = dead_end_nodes.rename(columns={"end_node": "geometry"})
-
-        dead_end_nodes["geometry"] = dead_end_nodes["geometry"].buffer(buffer_width)
-        sjoin = dead_end_nodes.sjoin(hydroobjects[["code", "geometry"]])
-        no_dead_end_node_ids = sjoin[sjoin["code_left"] != sjoin["code_right"]].index
-
-        self.dead_end_nodes = dead_end_nodes[
-            ~dead_end_nodes.index.isin(no_dead_end_node_ids)
-        ].copy()
-        self.dead_end_nodes.geometry = self.dead_end_nodes.geometry.centroid
-
-        logging.info(f"     - dead end nodes defined")
-
-        return self.dead_end_nodes
 
     def generate_rws_code_for_all_outflow_points(self, buffer_rws=10.0):
-        logging.info(f"     - generating order code for all outflow points")
+        logging.info("   x generating order code for all outflow points")
         rws_wateren = self.rws_wateren.copy()
         rws_wateren.geometry = rws_wateren.geometry.buffer(buffer_rws)
         outflow_nodes = (
@@ -127,7 +130,6 @@ class GeneratorOrderLevels(GeneratorBasis):
             .reset_index(drop=True)
         )
 
-        outflow_nodes = outflow_nodes.rename(columns={"code": "hydroobject_code"})
         outflow_nodes_all = None
         for rws_code in outflow_nodes.rws_code.unique():
             outflows = outflow_nodes[outflow_nodes.rws_code == rws_code].reset_index(
@@ -138,129 +140,49 @@ class GeneratorOrderLevels(GeneratorBasis):
                 lambda x: f"{x.rws_code}.{str(x.rws_code_no)}", axis=1
             )
             if outflows["rws_code_no"].max() > self.range_orde_code_max:
-                logging.info(
-                    f" XXX aantal uitstroompunten op RWS-water ({rws_code}) hoger dan range order_code waterschap"
-                )
+                logging_message = f" XXX aantal uitstroompunten op RWS-water ({rws_code}) hoger dan range order_code waterschap"
+                logging.debug(logging_message)
+
             if outflow_nodes_all is None:
                 outflow_nodes_all = outflows
             else:
                 outflow_nodes_all = pd.concat([outflow_nodes_all, outflows])
-            logging.info(
-                f"     - RWS-water ({rws_code}): {len(outflows)} outflow_points"
-            )
+            logging_message = f"    - RWS-water ({rws_code}): {len(outflows)} outflow_points"
+            logging.debug(logging_message)
 
-        logging.info(
-            f"     - total no. outflow_point on RWS-waters for {self.name}: {len(outflow_nodes_all)}"
-        )
+        logging_message = f"    - total no. outflow_point on RWS-waters for {self.name}: {len(outflow_nodes_all)}"
+        logging.debug(logging_message)
         self.outflow_nodes_all = outflow_nodes_all.reset_index(drop=True)
+        self.outflow_nodes_all["orde_nr"] = 2
         return self.outflow_nodes_all
 
-    def generate_order_levels_to_outflow_nodes_edges(self, max_order: int = None):
-        logging.info(f"   x Generating order levels for all edges")
-        self.edges["orde_nr"] = 0
 
-        self.outflow_nodes = self.outflow_nodes_all.copy()
-        self.outflow_nodes = self.outflow_nodes.rename(
-            columns={"hydroobject_code": "hydroobject_code_in"}
-        )
-        self.outflow_nodes["hydroobject_code_out"] = None
-        self.outflow_nodes["orde_nr"] = 1
-        for orde_nr in range(1, max_order if max_order is not None else 100):
-            outflow_nodes_order = self.outflow_nodes[
-                self.outflow_nodes["orde_nr"] == orde_nr
-            ].copy()
-            outflow_nodes_order["geometry"] = outflow_nodes_order.buffer(0.0001).to_crs(
-                28992
-            )
-
-            end_points = self.edges.copy()
-            end_points["geometry"] = end_points["geometry"].apply(
-                lambda geom: Point(geom.coords[-1])
-            )
-            sel_edges = gpd.sjoin(
-                outflow_nodes_order,
-                end_points[["code", "geometry"]],
-                how="left",
-                predicate="intersects",
-            )
-            codes = list(sel_edges["code"].values)
-
-            while codes:
-                # Find hydroobjects in gdf_hydroobjects whose endpoints match the start points of the current hydroobjects
-                start_points = (
-                    self.edges[self.edges["code"].isin(codes)]["geometry"]
-                    .apply(lambda x: x.coords[0])
-                    .tolist()
-                )
-                next_edges = self.edges[
-                    self.edges["geometry"].apply(lambda x: x.coords[-1] in start_points)
-                ].copy()
-
-                # Add a column 'next_edge' to store the hydroobject it ends at
-                next_edges["next_edge"] = next_edges["geometry"].apply(
-                    lambda x: [
-                        code
-                        for code, geom in zip(
-                            self.edges["code"], self.edges["geometry"]
-                        )
-                        if geom.coords[0] == x.coords[-1]
-                    ]
-                )
-                self.edges.loc[self.edges["code"].isin(codes), "orde_nr"] = orde_nr + 1
-
-                # Identify duplicated 'next_edge' values
-                next_edges_1 = next_edges[
-                    ~next_edges.duplicated("next_edge", keep=False)
-                ].explode("next_edge").reset_index()
-                next_edges_2 = next_edges[
-                    next_edges.duplicated("next_edge", keep=False)
-                ].explode("next_edge").reset_index()
-
-                # Create a new outflow_nodes based on multiple_next_hydro
-                for next_edge in next_edges_2["next_edge"].explode().unique():
-                    # Get hydroobjects with the same next_hydro
-                    next_edge_same = next_edges_2[
-                        next_edges_2["next_edge"].explode() == next_edge
-                    ]
-
-                    # Aggregate the hydroobject codes
-                    # hydroobjects_codes = ','.join(hydroobjects_with_same_next_hydro['CODE'].astype(str))
-                    edges_codes = list(next_edge_same["code"].astype(str).values)
-
-                    # Create a new outflow_node
-                    new_outflow_node = {
-                        "geometry": Point(
-                            next_edge_same.iloc[0]["geometry"].coords[-1]
-                        ),
-                        "hydroobject_code_out": next_edge,
-                        "hydroobject_code_in": edges_codes,
-                        "orde_nr": int(orde_nr + 1),
-                    }
-                    new_outflow_node = gpd.GeoDataFrame(
-                        pd.DataFrame([new_outflow_node]),
-                        geometry="geometry",
-                        crs=self.outflow_nodes.crs,
-                    )
-                    # Append the new outflow_node to outflow_nodes
-                    self.outflow_nodes = pd.concat(
-                        [self.outflow_nodes, new_outflow_node], ignore_index=True
-                    )
-
-                codes = next_edges_1["code"].tolist()
-        
-        if self.write_results:
-            self.edges.to_file(Path(self.dir_inter_results, 'edges.gpkg'), layer="edges")
-        return self.edges, self.outflow_nodes
+    def export_results_to_gpkg(self):
+        """Export results to geopackages in folder 1_tussenresultaat"""
+        results_dir = Path(self.path, self.dir_inter_results)
+        logging.info(f"  x export results")
+        for layer in [
+            "outflow_nodes_all",
+            "edges",
+            "nodes",
+        ]:
+            result = getattr(self, layer)
+            if result is None:
+                logging.debug(f"    - {layer} not available")
+            else:
+                logging.debug(f"    - {layer} ({len(result)})")
+                result.to_file(Path(results_dir, f"{layer}.gpkg"))
     
 
     def generate_folium_map(
-        self, 
+        self,
         html_file_name: str = None,
         include_areas: bool = True,
         width_edges: float = 10.0,
         opacity_edges: float = 0.5,
         open_html: bool = False,
         base_map: str = "OpenStreetMap",
+        order_labels: bool = False
     ):
         # Make figure
         outflow_nodes_4326 = self.outflow_nodes_all.to_crs(4326)
@@ -280,43 +202,46 @@ class GeneratorOrderLevels(GeneratorBasis):
             z_index=0,
         ).add_to(m)
 
-        if 'orde_nr' in self.edges.columns:
+        if "orde_nr" in self.edges.columns:
             add_categorized_lines_to_map(
                 m=m,
-                lines_gdf=self.edges[self.edges['orde_nr']>1][["code", "orde_nr", "geometry"]],
-                layer_name="Orde watergangen",
+                lines_gdf=self.edges[self.edges["orde_nr"] > 1][
+                    ["code", "orde_nr", "geometry"]
+                ],
+                layer_name="Orde-nummer watergangen",
                 control=True,
                 lines=True,
                 line_color_column="orde_nr",
-                line_color_cmap='hsv',
-                label=True,
-                label_column="orde_nr",
-                label_decimals=0,
+                line_color_cmap="hsv",
+                label=False,
                 line_weight=5,
                 z_index=1,
             )
+
+            if order_labels:
+                fg = folium.FeatureGroup(
+                    name=f"Orde-nummer watergangen (labels)", 
+                    control=True,
+                    show=False,
+                ).add_to(m)
+
+                add_labels_to_points_lines_polygons(
+                    gdf=self.edges[self.edges["orde_nr"] > 1][
+                        ["code", "orde_nr", "geometry"]
+                    ], 
+                    column="orde_nr", 
+                    label_fontsize=8, 
+                    label_decimals=0,
+                    fg=fg
+                )
+        
         folium.GeoJson(
-            self.hydroobjecten.geometry,  # .buffer(10),
+            self.hydroobjecten.geometry, 
             name="Watergangen",
             color="blue",
             fill_color="blue",
             zoom_on_click=True,
             show=False,
-            z_index=1,
-        ).add_to(m)
-
-        folium.GeoJson(
-            self.dead_end_nodes,
-            name="Outflow points",
-            marker=folium.Circle(
-                radius=10,
-                fill_color="orange",
-                fill_opacity=0.4,
-                color="orange",
-                weight=3,
-            ),
-            highlight_function=lambda x: {"fillOpacity": 0.8},
-            zoom_on_click=True,
             z_index=2,
         ).add_to(m)
 
@@ -325,7 +250,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         ).add_to(m)
 
         folium.GeoJson(
-            self.outflow_nodes_all,
+            self.outflow_nodes_all[self.outflow_nodes_all["orde_nr"]==2],
             name="Uitstroompunten RWS-wateren",
             marker=folium.Circle(
                 radius=25, fill_color="red", fill_opacity=0.4, color="red", weight=3
@@ -336,8 +261,26 @@ class GeneratorOrderLevels(GeneratorBasis):
         ).add_to(fg)
 
         add_labels_to_points_lines_polygons(
-            gdf=self.outflow_nodes_all, column="orde_code", label_fontsize=8, fg=fg
+            gdf=self.outflow_nodes_all[self.outflow_nodes_all["orde_nr"]==2], 
+            column="orde_code", 
+            label_fontsize=8, fg=fg
         )
+        
+        folium.GeoJson(
+            self.outflow_nodes_all[self.outflow_nodes_all["orde_nr"]>2],
+            name="Overige uitstroompunten",
+            marker=folium.Circle(
+                radius=15,
+                fill_color="orange",
+                fill_opacity=0.8,
+                color="orange",
+                weight=3,
+            ),
+            highlight_function=lambda x: {"fillOpacity": 0.8},
+            zoom_on_click=True,
+            z_index=2,
+        ).add_to(m)
+
         m = add_basemaps_to_folium_map(m=m, base_map=base_map)
 
         folium.LayerControl(collapsed=False).add_to(m)

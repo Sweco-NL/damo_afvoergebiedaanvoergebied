@@ -4,16 +4,23 @@ import numpy as np
 import pandas as pd
 from shapely.geometry import LineString, Point, Polygon
 import matplotlib
-from folium.plugins import FeatureGroupSubGroup, MeasureControl, FloatImage, MarkerCluster
+from folium.plugins import (
+    FeatureGroupSubGroup,
+    MeasureControl,
+    FloatImage,
+    MarkerCluster,
+)
 
 
-def check_map_exists_and_feature_group(m: folium.Map = None, feature_group: folium.FeatureGroup = None,
-                                        layer_name: str = None,
-                                        show: bool = True,
-                                        control: bool = True,
-                                        z_index: int = 1,
-                                        ):
-    """ Two things:
+def check_map_exists_and_feature_group(
+    m: folium.Map = None,
+    feature_group: folium.FeatureGroup = None,
+    layer_name: str = None,
+    show: bool = True,
+    control: bool = True,
+    z_index: int = 1,
+):
+    """Two things:
         - checks if map (self.m) exists and if not creates it.
         - creates a feature group (layer) and if input includes feature group, it creates a subgroup
     Input:  * feature_group: an existing feature_group (a subgroup will be created)
@@ -24,14 +31,15 @@ def check_map_exists_and_feature_group(m: folium.Map = None, feature_group: foli
             * z_index: z of the layer (does not always work well...)
     """
     if feature_group is not None:
-        fgs = FeatureGroupSubGroup(feature_group,
-                                    name=f' - {layer_name}',
-                                    show=show,
-                                    control=control)
+        fgs = FeatureGroupSubGroup(
+            feature_group, name=f" - {layer_name}", show=show, control=control
+        )
         fgs.add_to(feature_group)
         return feature_group, fgs
     else:
-        fg = folium.FeatureGroup(name=layer_name, show=show, control=control, z_index=z_index)
+        fg = folium.FeatureGroup(
+            name=layer_name, show=show, control=control, z_index=z_index
+        )
         m.add_child(fg)
         return fg, None
 
@@ -39,14 +47,16 @@ def check_map_exists_and_feature_group(m: folium.Map = None, feature_group: foli
 def check_fields_aliases(
     df: [pd.DataFrame, pd.Series, gpd.GeoDataFrame, gpd.GeoSeries],
     fields: [list[str], str, bool] = False,
-    aliases: [list[str], str] = None
+    aliases: [list[str], str] = None,
 ):
     """Does a check on the tooltips (fields and aliases) and the popups (fields and aliases)"""
     ds = df.copy(deep=True)
-    if (type(ds) == gpd.GeoSeries or type(ds) == pd.Series) and 'geometry' in ds.index:
-        ds = ds.drop(index=['geometry'])
-    if (type(ds) == gpd.GeoDataFrame or type(ds) == pd.DataFrame) and 'geometry' in ds.columns:
-        ds = ds.drop(columns=['geometry'])
+    if (type(ds) == gpd.GeoSeries or type(ds) == pd.Series) and "geometry" in ds.index:
+        ds = ds.drop(index=["geometry"])
+    if (
+        type(ds) == gpd.GeoDataFrame or type(ds) == pd.DataFrame
+    ) and "geometry" in ds.columns:
+        ds = ds.drop(columns=["geometry"])
 
     table_classes = "table table-hover table-condensed table-responsive"
 
@@ -55,7 +65,7 @@ def check_fields_aliases(
     #
     def text_wrapper_50(x):
         if len(str(x)) > 50:
-            return '<br>'.join(textwrap.wrap(x, 50))
+            return "<br>".join(textwrap.wrap(x, 50))
         else:
             return x
 
@@ -68,14 +78,16 @@ def check_fields_aliases(
                 fields_x.index = aliases
             else:
                 aliases = None
-            fields_x = fields_x.to_html(classes=table_classes,
-                                        header=False,
-                                        border=0,
-                                        justify='left',
-                                        decimal='.',
-                                        max_rows=15)
+            fields_x = fields_x.to_html(
+                classes=table_classes,
+                header=False,
+                border=0,
+                justify="left",
+                decimal=".",
+                max_rows=15,
+            )
         else:
-            fields_x = [col for col in df.columns if col != 'geometry']
+            fields_x = [col for col in df.columns if col != "geometry"]
             if aliases is not None and len(aliases) != len(fields_x):
                 aliases = None
     elif isinstance(fields, list) or (isinstance(fields, str) and fields in ds):
@@ -87,13 +99,15 @@ def check_fields_aliases(
                 aliases = None
             # fields_x.index = fields_x.index.apply(text_wrapper_20)
             # fields_x = fields_x.apply(text_wrapper_50)
-            fields_x = fields_x.to_html(classes=table_classes,
-                                        header=False,
-                                        border=0,
-                                        justify='left',
-                                        decimal='.')
+            fields_x = fields_x.to_html(
+                classes=table_classes,
+                header=False,
+                border=0,
+                justify="left",
+                decimal=".",
+            )
         else:
-            fields_x = [tip for tip in fields if tip in ds.columns if tip != 'geometry']
+            fields_x = [tip for tip in fields if tip in ds.columns if tip != "geometry"]
             if aliases is not None and len(aliases) != len(fields_x):
                 aliases = None
     else:
@@ -102,16 +116,28 @@ def check_fields_aliases(
     return fields_x, aliases
 
 
-def add_categorized_color_to_gdf(gdf, color_column=None, colormap='RdBu', names=None,
-                                 thresholds=None, lower_limit=True, upper_limit=True,
-                                 colors=None, new_name_column=None, new_color_column=None,
-                                 label_unit='', label_decimals=2):
+def add_categorized_color_to_gdf(
+    gdf,
+    color_column=None,
+    colormap="RdBu",
+    names=None,
+    thresholds=None,
+    lower_limit=True,
+    upper_limit=True,
+    colors=None,
+    new_name_column=None,
+    new_color_column=None,
+    label_unit="",
+    label_decimals=2,
+):
     if color_column is None:
         raise ValueError("no color given via 'color_column'")
     if color_column not in gdf.columns:
-        if not matplotlib.colors.is_color_like('red'):
-            raise ValueError(f"no color given via 'color_column'. '{color_column}' is not a color")
-        gdf[new_name_column] = ''
+        if not matplotlib.colors.is_color_like("red"):
+            raise ValueError(
+                f"no color given via 'color_column'. '{color_column}' is not a color"
+            )
+        gdf[new_name_column] = ""
         gdf[new_color_column] = color_column
         return gdf, [], gdf[new_color_column].unique()
     # no colors, but
@@ -120,30 +146,43 @@ def add_categorized_color_to_gdf(gdf, color_column=None, colormap='RdBu', names=
             names = [name for name in gdf[color_column].unique() if name is not None]
         if colors is None or len(names) != len(colors):
             cmap = matplotlib.cm.get_cmap(colormap)
-            colors = [matplotlib.colors.rgb2hex(cmap(float(i) / float(len(names) - 1))) for i in range(len(names))]
-        gdf[new_name_column] = '-----------'
-        gdf[new_color_column] = 'rgba(0,0,0,0)'
+            colors = [
+                matplotlib.colors.rgb2hex(cmap(float(i) / float(len(names) - 1)))
+                for i in range(len(names))
+            ]
+        gdf[new_name_column] = "-----------"
+        gdf[new_color_column] = "rgba(0,0,0,0)"
         for name, color in zip(names, colors):
             gdf.loc[gdf[color_column] == name, new_name_column] = name
             gdf.loc[gdf[color_column] == name, new_color_column] = color
         gdf[new_name_column] = gdf[new_name_column].astype(str)
     else:
-        new_thresholds, names = create_categories_based_on_thresholds(thresholds=thresholds,
-                                                                      lower_limit=lower_limit,
-                                                                      upper_limit=upper_limit,
-                                                                      unit=label_unit,
-                                                                      decimals=label_decimals)
+        new_thresholds, names = create_categories_based_on_thresholds(
+            thresholds=thresholds,
+            lower_limit=lower_limit,
+            upper_limit=upper_limit,
+            unit=label_unit,
+            decimals=label_decimals,
+        )
         if colors is None or len(names) != len(colors):
             cmap = matplotlib.cm.get_cmap(colormap)
-            colors = [matplotlib.colors.rgb2hex(cmap(float(i) / float(len(names) - 1))) for i in range(len(names))]
-        gdf[new_name_column] = '-----------'
-        gdf[new_color_column] = 'rgba(0,0,0,0)'
+            colors = [
+                matplotlib.colors.rgb2hex(cmap(float(i) / float(len(names) - 1)))
+                for i in range(len(names))
+            ]
+        gdf[new_name_column] = "-----------"
+        gdf[new_color_column] = "rgba(0,0,0,0)"
         for ii, (name, color) in enumerate(zip(names, colors)):
-            gdf.loc[gdf[color_column].between(new_thresholds[ii], new_thresholds[ii + 1]), new_name_column] = name
-            gdf.loc[gdf[color_column].between(new_thresholds[ii], new_thresholds[ii + 1]), new_color_column] = color
+            gdf.loc[
+                gdf[color_column].between(new_thresholds[ii], new_thresholds[ii + 1]),
+                new_name_column,
+            ] = name
+            gdf.loc[
+                gdf[color_column].between(new_thresholds[ii], new_thresholds[ii + 1]),
+                new_color_column,
+            ] = color
 
     return gdf, names, colors
-
 
 
 def add_labels_to_points_lines_polygons(
@@ -281,13 +320,13 @@ def add_lines_to_map(
     feature_group: folium.FeatureGroup = None,
     control: bool = True,
     show: bool = True,
-    line_color: str = 'black',
-    line_color_name: str = 'XXXXXXXXXXXXXXXX',
+    line_color: str = "black",
+    line_color_name: str = "XXXXXXXXXXXXXXXX",
     line_weight: int = 2,
     line_opacity: float = 0,
     label: bool = False,
     label_column: str = None,
-    label_unit: str = '',
+    label_unit: str = "",
     label_decimals: int = 2,
     label_fontsize: int = 10,
     z_index: int = 1,
@@ -317,63 +356,91 @@ def add_lines_to_map(
             * popup_alisases: Geeft aliases voor de popup. Werking; zie tooltip_aliases
             * z_index: bij meerdere lagen; geef met een waarde aan welke laag op de voorgrond weergegeven wordt
     Output * feature_group"""
-    print(f' - line: add lines {layer_name}')
-    fg, fgs = check_map_exists_and_feature_group(m=m, feature_group=feature_group,
-                                                          layer_name=layer_name,
-                                                          show=show,
-                                                          control=control,
-                                                          z_index=z_index)
+    print(f" - line: add lines {layer_name}")
+    fg, fgs = check_map_exists_and_feature_group(
+        m=m,
+        feature_group=feature_group,
+        layer_name=layer_name,
+        show=show,
+        control=control,
+        z_index=z_index,
+    )
     lines_gdf_copy = lines_gdf.copy(deep=True)
-    lines_columns = [c for c in lines_gdf_copy.columns if c not in [line_color, line_color_name]]
+    lines_columns = [
+        c for c in lines_gdf_copy.columns if c not in [line_color, line_color_name]
+    ]
     lines_gdf_copy.geometry = lines_gdf.geometry.to_crs(4326)
 
-    if line_color == 'line_color':
+    if line_color == "line_color":
+
         def style_function(feature):
-            color = feature['properties']['line_color']
-            return {'color': color,
-                    'weight': line_weight,
-                    'line_opacity': line_opacity,
-                    'dashArray': dash_array}
+            color = feature["properties"]["line_color"]
+            return {
+                "color": color,
+                "weight": line_weight,
+                "line_opacity": line_opacity,
+                "dashArray": dash_array,
+            }
 
         def highlight_function(feature):
-            _line_color = feature['properties'].get(line_color, line_color)
-            return {'color': "yellow",
-                    'weight': max(line_weight * 2.0, 1.5),
-                    'lineOpacity': 1.0}
+            _line_color = feature["properties"].get(line_color, line_color)
+            return {
+                "color": "yellow",
+                "weight": max(line_weight * 2.0, 1.5),
+                "lineOpacity": 1.0,
+            }
     else:
+
         def style_function(feature):
-            return {'color': line_color,
-                    'weight': line_weight,
-                    'line_opacity': line_opacity,
-                    'dashArray': dash_array}
+            return {
+                "color": line_color,
+                "weight": line_weight,
+                "line_opacity": line_opacity,
+                "dashArray": dash_array,
+            }
 
         def highlight_function(feature):
-            _line_color = feature['properties'].get(line_color, line_color)
-            return {'color': "yellow",
-                    'weight': max(line_weight * 2.0, 1.5),
-                    'lineOpacity': 1.0}
+            _line_color = feature["properties"].get(line_color, line_color)
+            return {
+                "color": "yellow",
+                "weight": max(line_weight * 2.0, 1.5),
+                "lineOpacity": 1.0,
+            }
 
     if lines:
         _lines = folium.GeoJson(
             data=lines_gdf_copy.to_json(),
             style_function=style_function,
-            highlight_function=highlight_function
+            highlight_function=highlight_function,
         ).add_to(fg)
 
-        tooltip_fields, tooltip_aliases = check_fields_aliases(df=lines_gdf[lines_columns], fields=tooltip,
-                                                                aliases=tooltip_aliases)
-        popup_fields, popup_aliases = check_fields_aliases(df=lines_gdf[lines_columns], fields=popup,
-                                                            aliases=popup_aliases)
+        tooltip_fields, tooltip_aliases = check_fields_aliases(
+            df=lines_gdf[lines_columns], fields=tooltip, aliases=tooltip_aliases
+        )
+        popup_fields, popup_aliases = check_fields_aliases(
+            df=lines_gdf[lines_columns], fields=popup, aliases=popup_aliases
+        )
 
         if tooltip_fields is not None:
-            folium.GeoJsonTooltip(fields=tooltip_fields, aliases=tooltip_aliases, labels=True).add_to(_lines)
+            folium.GeoJsonTooltip(
+                fields=tooltip_fields, aliases=tooltip_aliases, labels=True
+            ).add_to(_lines)
         if popup_fields is not None:
-            folium.GeoJsonPopup(fields=popup_fields, aliases=popup_aliases, labels=True).add_to(_lines)
-        
+            folium.GeoJsonPopup(
+                fields=popup_fields, aliases=popup_aliases, labels=True
+            ).add_to(_lines)
+
     if label:
-        add_labels_to_points_lines_polygons(gdf=lines_gdf_copy, column=label_column,
-                                            label_fontsize=label_fontsize, label_unit=label_unit,
-                                            label_decimals=label_decimals, show=show, center=True, fg=fg)
+        add_labels_to_points_lines_polygons(
+            gdf=lines_gdf_copy,
+            column=label_column,
+            label_fontsize=label_fontsize,
+            label_unit=label_unit,
+            label_decimals=label_decimals,
+            show=show,
+            center=True,
+            fg=fg,
+        )
     if feature_group is None:
         m.add_child(fg)
         return m
@@ -381,78 +448,85 @@ def add_lines_to_map(
         return fg
 
 
-def add_categorized_lines_to_map(m: folium.Map, lines_gdf: gpd.GeoDataFrame,
-                                    feature_group: folium.FeatureGroup = None,
-                                    control: bool = True,
-                                    layer_name: str = "categorized lines",
-                                    lines: bool = True,
-                                    line_color_column: str = 'black',
-                                    line_color_category_names: list[str] = None,
-                                    line_color_category_thresholds: list[float] = None,
-                                    line_color_category_lower_limit: bool = True,
-                                    line_color_category_upper_limit: bool = True,
-                                    line_color_category_colors: list[str] = None,
-                                    line_color_cmap: str = None,
-                                    line_weight: int = 2,
-                                    label: bool = False,
-                                    label_column: str = None,
-                                    label_unit: str = '',
-                                    label_decimals: int = 2,
-                                    label_fontsize: int = 10,
-                                    z_index: int = 1,
-                                    dash_array: str = None,
-                                    legend: bool = False,
-                                    legend_name: str = None,
-                                    legend_location: str = 'top',
-                                    show: bool = True,
-                                    tooltip: [list[str], str, bool] = False,
-                                    tooltip_aliases: [list[str], str] = None,
-                                    popup: [list[str], str, bool] = False,
-                                    popup_aliases: [list[str], str] = None,
-                                    ):
+def add_categorized_lines_to_map(
+    m: folium.Map,
+    lines_gdf: gpd.GeoDataFrame,
+    feature_group: folium.FeatureGroup = None,
+    control: bool = True,
+    layer_name: str = "categorized lines",
+    lines: bool = True,
+    line_color_column: str = "black",
+    line_color_category_names: list[str] = None,
+    line_color_category_thresholds: list[float] = None,
+    line_color_category_lower_limit: bool = True,
+    line_color_category_upper_limit: bool = True,
+    line_color_category_colors: list[str] = None,
+    line_color_cmap: str = None,
+    line_weight: int = 2,
+    label: bool = False,
+    label_column: str = None,
+    label_unit: str = "",
+    label_decimals: int = 2,
+    label_fontsize: int = 10,
+    z_index: int = 1,
+    dash_array: str = None,
+    legend: bool = False,
+    legend_name: str = None,
+    legend_location: str = "top",
+    show: bool = True,
+    tooltip: [list[str], str, bool] = False,
+    tooltip_aliases: [list[str], str] = None,
+    popup: [list[str], str, bool] = False,
+    popup_aliases: [list[str], str] = None,
+):
     """Voegt lijnen toe aan de kaart met kleuren zoals gedefinieerd in de categorieen. Input zoals in add_lines_to_map met als toevoeging:
-            * color_column: de kolomnaam waar de kleur van de lijn op gebaseerd wordt
-            * color_category_names: lijst met de categorieën in woorden.
-            * color_category_thresholds: lijst met de waarden van de grenzen voor de categorieen
-            * color_category_lower_limit: True voor een extra categorie voor alle waarden lager dan je laagste categorie
-            * color_category_upper_limit: True voor een extra categorie voor alle waarden hoger dan je hoogste categorie
-            * color_category_colors: lijst met kleuren behorend bij de categorieen
-            * legend: bool = False voor weergeven van legenda, False voor geen legenda
-            * legend_name: Naam die boven de legenda wordt weergegeven,
-            * legend_location: locatie van de legenda, bottom of top
+    * color_column: de kolomnaam waar de kleur van de lijn op gebaseerd wordt
+    * color_category_names: lijst met de categorieën in woorden.
+    * color_category_thresholds: lijst met de waarden van de grenzen voor de categorieen
+    * color_category_lower_limit: True voor een extra categorie voor alle waarden lager dan je laagste categorie
+    * color_category_upper_limit: True voor een extra categorie voor alle waarden hoger dan je hoogste categorie
+    * color_category_colors: lijst met kleuren behorend bij de categorieen
+    * legend: bool = False voor weergeven van legenda, False voor geen legenda
+    * legend_name: Naam die boven de legenda wordt weergegeven,
+    * legend_location: locatie van de legenda, bottom of top
     """
     lines_gdf = lines_gdf.copy(deep=True).to_crs(4326)
     # add symbol_color to lines_gdf
-    lines_gdf, line_names, line_colors = add_categorized_color_to_gdf(gdf=lines_gdf,
-                                                                        color_column=line_color_column,
-                                                                        colormap=line_color_cmap,
-                                                                        names=line_color_category_names,
-                                                                        thresholds=line_color_category_thresholds,
-                                                                        lower_limit=line_color_category_lower_limit,
-                                                                        upper_limit=line_color_category_upper_limit,
-                                                                        colors=line_color_category_colors,
-                                                                        new_name_column='line_color_name',
-                                                                        new_color_column='line_color',
-                                                                        label_unit=label_unit,
-                                                                        label_decimals=label_decimals)
-    fg = add_lines_to_map(m=m, lines_gdf=lines_gdf,
-                                lines=lines,
-                                layer_name=layer_name,
-                                feature_group=feature_group,
-                                control=control,
-                                show=show,
-                                line_color='line_color',
-                                line_color_name='line_color_name',
-                                line_weight=line_weight,
-                                label=label,
-                                label_column=label_column,
-                                label_unit=label_unit,
-                                label_decimals=label_decimals,
-                                label_fontsize=label_fontsize,
-                                z_index=z_index,
-                                dash_array=dash_array,
-                                tooltip=tooltip,
-                                tooltip_aliases=tooltip_aliases,
-                                popup=popup,
-                                popup_aliases=popup_aliases)
+    lines_gdf, line_names, line_colors = add_categorized_color_to_gdf(
+        gdf=lines_gdf,
+        color_column=line_color_column,
+        colormap=line_color_cmap,
+        names=line_color_category_names,
+        thresholds=line_color_category_thresholds,
+        lower_limit=line_color_category_lower_limit,
+        upper_limit=line_color_category_upper_limit,
+        colors=line_color_category_colors,
+        new_name_column="line_color_name",
+        new_color_column="line_color",
+        label_unit=label_unit,
+        label_decimals=label_decimals,
+    )
+    fg = add_lines_to_map(
+        m=m,
+        lines_gdf=lines_gdf,
+        lines=lines,
+        layer_name=layer_name,
+        feature_group=feature_group,
+        control=control,
+        show=show,
+        line_color="line_color",
+        line_color_name="line_color_name",
+        line_weight=line_weight,
+        label=label,
+        label_column=label_column,
+        label_unit=label_unit,
+        label_decimals=label_decimals,
+        label_fontsize=label_fontsize,
+        z_index=z_index,
+        dash_array=dash_array,
+        tooltip=tooltip,
+        tooltip_aliases=tooltip_aliases,
+        popup=popup,
+        popup_aliases=popup_aliases,
+    )
     return fg

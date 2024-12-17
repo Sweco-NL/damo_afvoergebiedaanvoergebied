@@ -40,7 +40,6 @@ class GeneratorBasis(BaseModel):
             self.preprocess_hydroobjecten()
             self.use_processed_hydroobjecten()
 
-
     def check_case_path_directory(self, path: Path):
         """Checks if case directory exists and if required directory structure exists
 
@@ -64,8 +63,10 @@ class GeneratorBasis(BaseModel):
         if isinstance(self.dir_basisdata, str):
             self.dir_basisdata = Path(self.path, self.dir_basisdata)
         if not isinstance(self.dir_basisdata, Path) or not self.dir_basisdata.exists():
-            raise ValueError(f"provided [{self.dir_basisdata}] is not a path or does not exist")
-        
+            raise ValueError(
+                f"provided [{self.dir_basisdata}] is not a path or does not exist"
+            )
+
         if self.dir_inter_results is not None:
             if isinstance(self.dir_inter_results, str):
                 self.dir_inter_results = Path(self.path, self.dir_inter_results)
@@ -79,11 +80,10 @@ class GeneratorBasis(BaseModel):
             if isinstance(self.dir_results, Path):
                 if not self.dir_results.exists():
                     self.dir_results.mkdir(parents=True, exist_ok=True)
-        
+
         logging.debug(f"    - dir basisdata    = {self.dir_basisdata}")
         logging.debug(f"    - dir interresults = {self.dir_inter_results}")
         logging.debug(f"    - dir results      = {self.dir_results}")
-
 
     def read_data_from_case(self, path: Path = None, read_results: bool = None):
         """Read data from case: including basis data and intermediate results
@@ -99,7 +99,7 @@ class GeneratorBasis(BaseModel):
         """
         if path is not None and path.exists():
             self.check_case_path_directory(path=path)
-        
+
         def read_attributes_from_folder(path_dir: Path):
             for f in path_dir.glob("**/*"):
                 if hasattr(self, f.stem):
@@ -112,28 +112,24 @@ class GeneratorBasis(BaseModel):
         logging.info(f"   x read basisdata")
         if self.dir_basisdata is not None and self.dir_basisdata.exists():
             read_attributes_from_folder(self.dir_basisdata)
-        
-        if self.read_results: 
+
+        if self.read_results:
             logging.info(f"   x read results")
             if self.dir_inter_results is not None and self.dir_inter_results.exists():
                 read_attributes_from_folder(self.dir_inter_results)
             if self.dir_results is not None and self.dir_results.exists():
                 read_attributes_from_folder(self.dir_results)
 
-
     def preprocess_hydroobjecten(self, preprocessed_file="preprocessed"):
         hydroobjecten_preprocessed_file = None
-        for dir_results in [self.dir_inter_results, self.dir_results]:
-            if dir_results is None:
-                continue
-            files_in_dir = [f for f in dir_results.glob("**/*")]
-            for f in files_in_dir:
-                if f"hydroobjecten_{preprocessed_file}" == f.stem:
-                    hydroobjecten_preprocessed_file = f
+        files_in_dir = [f for f in self.dir_basisdata.glob("**/*")]
+        for f in files_in_dir:
+            if f"hydroobjecten_{preprocessed_file}" == f.stem:
+                hydroobjecten_preprocessed_file = f
 
         if hydroobjecten_preprocessed_file is None:
             logging.debug(
-                f"hydroobjecten_snap_split.gpkg not in directory, preprocessing hydroobjecten"
+                f"    - hydroobjecten_preprocessed.gpkg not in directory, preprocessing hydroobjecten"
             )
             self.hydroobjecten = preprocess_hydroobjecten(self.hydroobjecten)
             self.hydroobjecten.to_file(
@@ -141,14 +137,13 @@ class GeneratorBasis(BaseModel):
                 layer="hydroobjecten_preprocessed",
             )
         else:
-            logging.debug("get dataset preprocessed hydroobjecten")
+            logging.debug("    - get dataset preprocessed hydroobjecten")
             self.hydroobjecten = gpd.read_file(hydroobjecten_preprocessed_file)
-
 
     def use_processed_hydroobjecten(self, processed_file="processed"):
         for watergang in ["hydroobjecten", "overige_watergangen"]:
             if getattr(self, watergang, None) is None:
-                logging.debug(f"attribute {watergang} does not exist")
+                logging.debug(f"    - attribute {watergang} does not exist")
                 continue
 
             watergang_processed_file = None
@@ -161,6 +156,5 @@ class GeneratorBasis(BaseModel):
                         watergang_processed_file = f
 
             if watergang_processed_file is not None:
-                logging.debug(f"get dataset processed {watergang}")
+                logging.debug(f"    - get dataset processed {watergang}")
                 setattr(self, watergang, gpd.read_file(watergang_processed_file))
-

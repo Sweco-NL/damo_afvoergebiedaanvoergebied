@@ -37,11 +37,9 @@ def run_generator_culvert_locations(
     """
     start_time = time.time()
     culverts_generator = GeneratorCulvertLocations(
-        path=path,
-        read_results=read_results, 
-        write_results=write_results
+        path=path, read_results=read_results, write_results=write_results
     )
-    
+
     # generate all vertices every 10 meters
     culverts_generator.generate_vertices_along_waterlines(
         distance_vertices=distance_vertices, write_results=write_results
