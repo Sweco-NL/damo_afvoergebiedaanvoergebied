@@ -19,9 +19,6 @@
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
 
-  
-  
-
   </head><body>
   
 
@@ -32,14 +29,44 @@
 
           <div class="body" role="main">
             
-  <section id="drainageunits-documentation">
-<h1>DrainageUnits documentation<a class="headerlink" href="#drainageunits-documentation" title="Link to this heading">¶</a></h1>
-<p>Add your content using <code class="docutils literal notranslate"><span class="pre">reStructuredText</span></code> syntax. See the
-<a class="reference external" href="https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html">reStructuredText</a>
-documentation for details.</p>
-<div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+  <section id="Generator afwateringseenheden">
+<h1>Generator afwateringseenheden<a class="headerlink" href="#Generator afwateringseenheden" title="Link to this heading">¶</a></h1>
 <ul>
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Afwateringseenheden</title>
+</head>
+<body>
+    
+    <h2>Algemeen 2.0</h2>
+    <p>Deze python-toolbox is opgezet door Sweco Nederland in opdracht van waterschap Vallei & Veluwe met als doel om uit basisdata afwateringseenheden af te leiden. Op basis van een raster met een hoogtemodel (maaiveld of grondwaterstand) en een waternetwerk worden stroomgebieden afgeleid, ook wel afwateringseenheden of hydrologische eenheden. Middels een systematische codering van deze stroomgebieden kan men de stroomgebieden voor verschillende niveaus afleiden.</p>
+
+    <p>Er is voor gekozen om open-source te werken. Er wordt geprobeerd om gestructureerd deze python-toolbox op te zetten.</p>
+
+    <p>De toolbox bestaat uit een drietal onderdelen die samenwerken, maar ook onafhankelijk zijn te gebruiken:</p>
+    <ol>
+        <li>Generator locaties duikers: de overige watergangen (C-watergangen) moeten worden meegenomen, want die zijn (deels) bepalend in de afstroomrichting. Een sluitend netwerk is van belang en zeker op dat niveau zijn de duikers niet bekend (of niet compleet). Middels diverse algoritmes en regels worden de waterdelen en bestaande waternetwerk verbonden. Hierbij wordt de locatie van duikers ingeschat.</li>
+        <li>Generator orde-codering van het netwerk en daarmee voor de afwaterende eenheden (conform <a href="https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf">Leidraad Harmoniseren Afvoergebieden</a>).</li>
+        <li>Generator afwaterende eenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van o.a. <a href="https://gitlab.com/deltares/imod/respighi">RESPHIGI</a> en <a href="https://github.com/Deltares/pyflwdir">PyFlwDir van Deltares</a>.</li>
+    </ol>
+
+    <h2>Installatie environment</h2>
+    <p>We gebruiken pixi om de environment op orde te houden. Installatie van pixi (prefix.dev) kan via de Windows Powershell:</p>
+    <pre><code>iwr -useb https://pixi.sh/install.ps1 | iex</code></pre>
+    <p>Bouw de environment op conform pyproject.toml door vanuit de projectfolder in de command prompt/terminal het volgende te draaien:</p>
+    <pre><code>pixi install</code></pre>
+    <p>Om te voorkomen dat de output en metadata van de jupyter notebooks wordt gecommit, draai dit:</p>
+    <pre><code>git config filter.strip-notebook-output.clean 'jupyter nbconvert --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True --to=notebook --stdin --stdout --log-level=ERROR'</code></pre>
+    <p>We gebruiken ruff voor de code-formatting. Installatie ruff via:</p>
+    <pre><code>pixi global install ruff</code></pre>
+</body>
+<div class="toctree-wrapper compound">
+<h2 class="API" role="heading"><span class="caption-text">API:</span></h2>
+
+</html>
 <li class="toctree-l1"><a class="reference internal" href="generator_culverts_locations.html">generator_culverts_locations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="generator_network_lumping.html">generator_network_lumping</a></li>
 <li class="toctree-l1"><a class="reference internal" href="generator_order_levels.html">generator_order_levels</a></li>
