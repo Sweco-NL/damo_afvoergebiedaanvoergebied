@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel, ConfigDict
 from shapely.geometry import LineString, Point
-from ..utils.preprocess import preprocess_hydroobjecten
 
 
 class GeneratorBasis(BaseModel):
@@ -32,13 +31,14 @@ class GeneratorBasis(BaseModel):
 
     results: list = None
 
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if self.path is not None:
             self.check_case_path_directory(path=self.path)
             self.read_data_from_case()
-            self.preprocess_hydroobjecten()
             self.use_processed_hydroobjecten()
+
 
     def check_case_path_directory(self, path: Path):
         """Checks if case directory exists and if required directory structure exists
@@ -85,6 +85,7 @@ class GeneratorBasis(BaseModel):
         logging.debug(f"    - dir interresults = {self.dir_inter_results}")
         logging.debug(f"    - dir results      = {self.dir_results}")
 
+
     def read_data_from_case(self, path: Path = None, read_results: bool = None):
         """Read data from case: including basis data and intermediate results
 
@@ -120,26 +121,7 @@ class GeneratorBasis(BaseModel):
             if self.dir_results is not None and self.dir_results.exists():
                 read_attributes_from_folder(self.dir_results)
 
-    def preprocess_hydroobjecten(self, preprocessed_file="preprocessed"):
-        hydroobjecten_preprocessed_file = None
-        files_in_dir = [f for f in self.dir_basisdata.glob("**/*")]
-        for f in files_in_dir:
-            if f"hydroobjecten_{preprocessed_file}" == f.stem:
-                hydroobjecten_preprocessed_file = f
-
-        if hydroobjecten_preprocessed_file is None:
-            logging.debug(
-                f"    - hydroobjecten_preprocessed.gpkg not in directory, preprocessing hydroobjecten"
-            )
-            self.hydroobjecten = preprocess_hydroobjecten(self.hydroobjecten)
-            self.hydroobjecten.to_file(
-                Path(self.dir_basisdata, "hydroobjecten_preprocessed.gpkg"),
-                layer="hydroobjecten_preprocessed",
-            )
-        else:
-            logging.debug("    - get dataset preprocessed hydroobjecten")
-            self.hydroobjecten = gpd.read_file(hydroobjecten_preprocessed_file)
-
+    
     def use_processed_hydroobjecten(self, processed_file="processed"):
         for watergang in ["hydroobjecten", "overige_watergangen"]:
             if getattr(self, watergang, None) is None:

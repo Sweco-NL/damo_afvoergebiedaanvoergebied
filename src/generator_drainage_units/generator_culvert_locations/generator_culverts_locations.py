@@ -20,6 +20,7 @@ from ..utils.general_functions import (
     calculate_angle_reverse,
 )
 from ..utils.folium_utils import add_basemaps_to_folium_map
+from ..utils.preprocess import preprocess_hydroobjecten
 
 import warnings
 
@@ -47,6 +48,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
     snelwegen: gpd.GeoDataFrame = None
     spoorwegen: gpd.GeoDataFrame = None
 
+    preprocess_hydroobjecten: bool = True
     read_results: bool = False
     write_results: bool = False
 
@@ -69,8 +71,36 @@ class GeneratorCulvertLocations(GeneratorBasis):
 
     folium_map: folium.Map = None
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if self.path is not None:
+            self.generate_or_use_preprocessed_hydroobjecten()
+
+
     def use_processed_hydroobjecten(self):
-        logging.debug("culvert generator will generate processed hydroobjecten")
+        logging.debug("    - culvert generator will generate processed hydroobjecten")
+
+
+    def generate_or_use_preprocessed_hydroobjecten(self):
+        hydroobjecten_preprocessed_file = None
+        files_in_dir = [f for f in self.dir_basisdata.glob("**/*")]
+        for f in files_in_dir:
+            if "hydroobjecten_preprocessed" == f.stem:
+                hydroobjecten_preprocessed_file = f
+
+        if hydroobjecten_preprocessed_file is None or self.preprocess_hydroobjecten:
+            logging.debug(
+                f"    - hydroobjecten_preprocessed.gpkg not in directory, preprocessing hydroobjecten"
+            )
+            self.hydroobjecten = preprocess_hydroobjecten(self.hydroobjecten)
+            self.hydroobjecten.to_file(
+                Path(self.dir_basisdata, "hydroobjecten_preprocessed.gpkg"),
+                layer="hydroobjecten_preprocessed",
+            )
+        else:
+            logging.debug("    - get dataset preprocessed hydroobjecten")
+            self.hydroobjecten = gpd.read_file(hydroobjecten_preprocessed_file)
+
 
     def generate_vertices_along_waterlines(
         self,

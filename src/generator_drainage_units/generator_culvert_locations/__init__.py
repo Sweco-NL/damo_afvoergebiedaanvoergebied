@@ -9,6 +9,7 @@ def run_generator_culvert_locations(
     path: Path,
     distance_vertices: float = 10.0,
     max_culvert_length: float = 40.0,
+    preprocess_hydroobjecten: bool = True,
     read_results: bool = False,
     write_results: bool = False,
     create_html_map: bool = False,
@@ -38,11 +39,10 @@ def run_generator_culvert_locations(
     start_time = time.time()
     culverts_generator = GeneratorCulvertLocations(
         path=path, 
+        preprocess_hydroobjecten=preprocess_hydroobjecten,
         read_results=read_results, 
         write_results=write_results
     )
-
-    
 
     # generate all vertices every 10 meters
     culverts_generator.generate_vertices_along_waterlines(
