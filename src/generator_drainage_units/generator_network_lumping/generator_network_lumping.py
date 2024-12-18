@@ -519,7 +519,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
     def export_results_to_gpkg(self):
         """Export results to geopackages in folder 1_tussenresultaat"""
         results_dir = Path(self.path, self.dir_results)
-        logging.info(f"  x export results")
+        logging.info(f"   x export results")
         for layer in [
             "inflow_outflow_points",
             "inflow_outflow_edges",

@@ -7,8 +7,8 @@ from .generator_order_levels import GeneratorOrderLevels
 def run_generator_order_levels(
     path: Path,
     waterschap: str,
-    range_orde_code_min: int,
-    range_orde_code_max: int,
+    range_order_code_min: int,
+    range_order_code_max: int,
     water_lines: list[str] = None,
     read_results: bool = True,
     write_results: bool = True,
@@ -19,14 +19,14 @@ def run_generator_order_levels(
     order = GeneratorOrderLevels(
         path=path,
         waterschap=waterschap,
-        range_orde_code_min=range_orde_code_min,
-        range_orde_code_max=range_orde_code_max,
+        range_order_code_min=range_order_code_min,
+        range_order_code_max=range_order_code_max,
         read_results=read_results,
         write_results=write_results,
     )
 
     order.create_graph_from_network(water_lines=water_lines)
-    
+
     order.define_list_upstream_downstream_edges_ids()
     
     order.calculate_angles_of_edges_at_nodes()
@@ -36,8 +36,8 @@ def run_generator_order_levels(
     order.find_end_points_hydroobjects()
     
     order.generate_rws_code_for_all_outflow_points()
-    
-    # order.generate_order_levels_to_outflow_nodes_edges(max_order=None)
+
+    order.generate_orde_level_for_hydroobjects()
 
     if write_results:
         order.export_results_to_gpkg()

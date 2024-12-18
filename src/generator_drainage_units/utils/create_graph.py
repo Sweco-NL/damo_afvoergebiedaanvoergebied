@@ -16,6 +16,8 @@ def create_graph_from_edges(edges: gpd.GeoDataFrame):
         length="geom_length",
     )
     nodes, edges = momepy.nx_to_gdf(G)
+    nodes = nodes.drop_duplicates("geometry")
+    edges = edges.drop_duplicates("geometry")
     return nodes, edges, G
 
 
