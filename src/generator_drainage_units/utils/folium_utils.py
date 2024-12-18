@@ -336,7 +336,8 @@ def add_lines_to_map(
     popup: [list[str], str, bool] = False,
     popup_aliases: [list[str], str] = None,
 ):
-    """Voegt lijnen toe aan de kaart
+    """
+    Voegt lijnen toe aan de kaart
     Input:  * lines_gdf: Geodataframe with lines
             * layer_name: De naam van de laag zoals deze verschijnt in de lijst met lagen in de kaart
             * feature_group: Vul hier de featuregroup naam in indien je meerdere lagen in één groep plaatst
@@ -355,8 +356,8 @@ def add_lines_to_map(
             * popup: Geeft de informatie bij klikken op de fetaure in de kaart. Werking; zie tooltip.
             * popup_alisases: Geeft aliases voor de popup. Werking; zie tooltip_aliases
             * z_index: bij meerdere lagen; geef met een waarde aan welke laag op de voorgrond weergegeven wordt
-    Output * feature_group"""
-    print(f" - line: add lines {layer_name}")
+    Output * feature_group
+    """
     fg, fgs = check_map_exists_and_feature_group(
         m=m,
         feature_group=feature_group,

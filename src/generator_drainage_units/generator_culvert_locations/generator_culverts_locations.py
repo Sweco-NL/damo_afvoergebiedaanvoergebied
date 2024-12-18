@@ -11,13 +11,12 @@ from folium.features import DivIcon
 
 from ..generator_basis import GeneratorBasis
 from ..utils.general_functions import (
-    shorten_line_two_vertices,
     line_to_vertices,
     split_waterways_by_endpoints,
     check_and_flip,
     calculate_angle_start,
     calculate_angle_end,
-    angle_difference,
+    calculate_angle_difference,
     calculate_angle_reverse,
 )
 from ..utils.folium_utils import add_basemaps_to_folium_map
@@ -596,7 +595,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
                         else None, axis=1
         )
 
-        culverts['angle_difference'] = culverts.apply(lambda row: angle_difference(row['angle_culvert'], row['angle_waterline']), axis=1)
+        culverts['angle_difference'] = culverts.apply(lambda row: calculate_angle_difference(row['angle_culvert'], row['angle_waterline']), axis=1)
         
         def calculate_fictive_length(length, angle, increase_factor_90=increase_factor_90):
             # Calculate the factor based on the angle

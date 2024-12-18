@@ -72,16 +72,16 @@ class GeneratorDrainageUnits(GeneratorBasis):
             z_index=0,
         ).add_to(m)
 
-        if "orde_nr" in self.edges.columns:
+        if "order_no" in self.edges.columns:
             add_categorized_lines_to_map(
                 m=m,
-                lines_gdf=self.edges[self.edges["orde_nr"] > 1],
+                lines_gdf=self.edges[self.edges["order_no"] > 1],
                 layer_name="Orde watergangen",
                 control=True,
                 lines=True,
-                line_color_column="orde_nr",
+                line_color_column="order_no",
                 label=True,
-                label_column="orde_nr",
+                label_column="order_no",
                 label_decimals=0,
                 line_weight=5,
                 z_index=1,
@@ -127,7 +127,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
         ).add_to(fg)
 
         add_labels_to_points_lines_polygons(
-            gdf=self.outflow_nodes_all, column="orde_code", label_fontsize=8, fg=fg
+            gdf=self.outflow_nodes_all, column="order_code", label_fontsize=8, fg=fg
         )
         m = add_basemaps_to_folium_map(m=m, base_map=base_map)
 
