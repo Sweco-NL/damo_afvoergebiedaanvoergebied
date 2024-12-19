@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 import webbrowser
+import datetime
 
 import folium
 import geopandas as gpd
@@ -44,6 +45,10 @@ class GeneratorOrderLevels(GeneratorBasis):
 
     read_results: bool = False
     write_results: bool = False
+
+    dead_end_edges: gpd.GeoDataFrame = None
+    dead_start_edges: gpd.GeoDataFrame = None
+    outflow_edges: gpd.GeoDataFrame = None
 
     dead_end_nodes: gpd.GeoDataFrame = None
     dead_start_nodes: gpd.GeoDataFrame = None
@@ -104,19 +109,23 @@ class GeneratorOrderLevels(GeneratorBasis):
         # Copy hydroobject data to new variable 'hydroobjects' and make dataframes with start and end nodes
         logging.info("   x find start and end nodes hydrobojects")
 
-        dead_end_nodes = self.edges[~self.edges.node_end.isin(self.edges.node_start.values)].copy()
+        dead_end_edges = self.edges[~self.edges.node_end.isin(self.edges.node_start.values)].copy()
+        dead_end_edges["nodeID"] = dead_end_edges["node_end"]
+        dead_end_edges = dead_end_edges[["code", "nodeID", "geometry"]].rename(columns={"code": "edge_code"})
+        dead_end_nodes = dead_end_edges.copy()
         dead_end_nodes["geometry"] = dead_end_nodes["geometry"].apply(lambda x: Point(x.coords[-1]))
-        dead_end_nodes["nodeID"] = dead_end_nodes["node_end"]
-        dead_end_nodes = dead_end_nodes[["code", "nodeID", "geometry"]].rename(columns={"code": "hydroobject_code"})
-        dead_end_nodes = dead_end_nodes.drop_duplicates("nodeID", keep="first")
 
-        dead_start_nodes = self.edges[~self.edges.node_start.isin(self.edges.node_end.values)].copy()
-        dead_start_nodes["geometry"] = dead_start_nodes["geometry"].apply(lambda x: Point(x.coords[0]))
-        dead_start_nodes["nodeID"] = dead_start_nodes["node_start"]
-        dead_start_nodes = dead_start_nodes[["code", "nodeID", "geometry"]].rename(columns={"code": "hydroobject_code"})
-        dead_start_nodes = dead_start_nodes.drop_duplicates("nodeID", keep="first")
-        
+        dead_start_edges = self.edges[~self.edges.node_start.isin(self.edges.node_end.values)].copy()
+        dead_start_edges["nodeID"] = dead_start_edges["node_start"]
+        dead_start_edges = dead_start_edges[["code", "nodeID", "geometry"]].rename(columns={"code": "edge_code"})
+        dead_start_nodes = dead_start_edges.copy()
+        dead_start_nodes["geometry"] = dead_start_nodes["geometry"].apply(lambda x: Point(x.coords[-1]))
+
+        self.dead_end_edges = dead_end_edges.copy()
+
+
         self.dead_end_nodes = dead_end_nodes.copy()
+        self.dead_start_edges = dead_start_edges.copy()
         self.dead_start_nodes = dead_start_nodes.copy()
         return self.dead_end_nodes, self.dead_start_nodes
 
@@ -125,15 +134,18 @@ class GeneratorOrderLevels(GeneratorBasis):
         logging.info("   x generating order code for all outflow points")
         rws_wateren = self.rws_wateren.copy()
         rws_wateren.geometry = rws_wateren.geometry.buffer(buffer_rws)
-        outflow_nodes = (
-            self.dead_end_nodes.sjoin(rws_wateren[["geometry", "rws_code"]])
+
+        outflow_edges = (
+            self.dead_end_edges.sjoin(
+                rws_wateren[["geometry", "rws_code"]]
+            )
             .drop(columns="index_right")
             .reset_index(drop=True)
         )
 
-        outflow_nodes_all_waters = None
-        for rws_code in outflow_nodes.rws_code.unique():
-            outflows = outflow_nodes[outflow_nodes.rws_code == rws_code].reset_index(
+        outflow_edges_all_waters = None
+        for rws_code in outflow_edges.rws_code.unique():
+            outflows = outflow_edges[outflow_edges.rws_code == rws_code].reset_index(
                 drop=True
             )
             outflows["rws_code_no"] = self.range_order_code_min + outflows.index
@@ -144,48 +156,53 @@ class GeneratorOrderLevels(GeneratorBasis):
                 logging_message = f" XXX aantal uitstroompunten op RWS-water ({rws_code}) hoger dan range order_code waterschap"
                 logging.debug(logging_message)
 
-            if outflow_nodes_all_waters is None:
-                outflow_nodes_all_waters = outflows.copy()
+            if outflow_edges_all_waters is None:
+                outflow_edges_all_waters = outflows.copy()
             else:
-                outflow_nodes_all_waters = pd.concat([outflow_nodes_all_waters, outflows])
+                outflow_edges_all_waters = pd.concat([outflow_edges_all_waters, outflows])
             logging_message = f"    - RWS-water ({rws_code}): {len(outflows)} outflow_points"
             logging.debug(logging_message)
 
-        logging_message = f"    - total no. outflow_point on outside waters for {self.name}: {len(outflow_nodes_all_waters)}"
+        logging_message = f"    - total no. outflow_point on outside waters for {self.name}: {len(outflow_edges_all_waters)}"
         logging.debug(logging_message)
-        self.outflow_nodes = outflow_nodes_all_waters.reset_index(drop=True)
-        self.outflow_nodes["order_no"] = 2
 
-        return self.outflow_nodes
+        self.outflow_edges = outflow_edges_all_waters.rename(columns={"nodeID": "node_end"}).reset_index(drop=True)
+        self.outflow_edges["order_no"] = 2
+        self.outflow_nodes = self.outflow_edges.copy()
+        self.outflow_nodes["geometry"] = self.outflow_nodes["geometry"].apply(lambda x: Point(x.coords[-1]))
+
+        return self.outflow_edges
 
 
     def generate_orde_level_for_hydroobjects(self):
         logging.info(f"   x generate order levels for hydroobjects")
-        self.outflow_nodes = self.outflow_nodes[self.outflow_nodes["order_no"]==2].copy()
+        self.outflow_edges = self.outflow_edges[self.outflow_edges["order_no"]==2].copy()
 
         edges_left = self.edges.copy() #.drop(columns=["order_edge_no"]).copy()
         nodes_left = self.nodes.copy() #.drop(columns=["order_node_no"]).copy()
+
         order_no = 2
         
         edges_all_orders = None
         nodes_all_orders = None
-        outflow_nodes_orders = self.outflow_nodes[self.outflow_nodes["order_no"]==2].copy()
-        new_outflow_nodes_order = outflow_nodes_orders.copy()
-        
-        while not new_outflow_nodes_order.empty and order_no<100:
-            logging.debug(f"    - order {order_no}: {len(new_outflow_nodes_order)} outflow nodes")
-            outflow_nodes = new_outflow_nodes_order.copy()
-            new_outflow_nodes_order = None
-            outflow_nodes_edges = None
-            outflow_nodes_nodes = None
+        outflow_edges_orders = self.outflow_edges[self.outflow_edges["order_no"]==2].copy()
+        new_outflow_edges_order = outflow_edges_orders.copy()
+        new_outflow_edges_order = new_outflow_edges_order.rename(columns={"nodeID": "node_end"})
 
-            for i_node, outflow_node in outflow_nodes.reset_index(drop=True).iterrows():
-                # logging.debug(f"      * {i_node+1}/{len(outflow_nodes)}")
-                outflow_node_nodes_id, outflow_node_edges_code, new_outflow_nodes = find_node_edge_ids_in_directed_graph(
+        while not new_outflow_edges_order.empty and order_no<100:
+            logging.debug(f"    - order {order_no}: {len(new_outflow_edges_order)} outflow edges")
+            outflow_edges = new_outflow_edges_order.copy()
+            new_outflow_edges_order = None
+            outflow_edges_edges = None
+            outflow_edges_nodes = None
+
+            for i_edge, outflow_edge in outflow_edges.reset_index(drop=True).iterrows():
+                # logging.debug(f"      * {i_node+1}/{len(outflow_edges)}")
+                outflow_edge_nodes_id, outflow_edge_edges_code, new_outflow_edges = find_node_edge_ids_in_directed_graph(
                     from_node_ids=edges_left.node_start.to_numpy(),
                     to_node_ids=edges_left.node_end.to_numpy(),
                     edge_ids=edges_left.code.to_numpy(),
-                    node_ids=[outflow_node["nodeID"]],
+                    outflow_edge_ids=[outflow_edge["edge_code"]],
                     search_node_ids=nodes_left.nodeID.to_numpy(),
                     search_edge_ids=edges_left.code.to_numpy(),
                     border_node_ids=None,
@@ -193,67 +210,80 @@ class GeneratorOrderLevels(GeneratorBasis):
                     split_points=nodes_left,
                     order_first=True
                 )
-                outflow_node_edges = pd.DataFrame(data={
-                    "code": outflow_node_edges_code[0],
-                    "rws_code": outflow_node["rws_code"],
-                    "rws_code_no": outflow_node["rws_code_no"],
-                    "rws_order_code": outflow_node["order_code"],
+                
+                outflow_edge_edges = pd.DataFrame(data={
+                    "code": outflow_edge_edges_code[0],
+                    "rws_code": outflow_edge["rws_code"],
+                    "rws_code_no": outflow_edge["rws_code_no"],
+                    "rws_order_code": outflow_edge["order_code"],
                     "order_no": order_no,
-                    "outflow_node": outflow_node["nodeID"],
-                    "order_edge_no": range(len(outflow_node_edges_code[0])), 
+                    "outflow_node": outflow_edge["node_end"],
+                    "order_edge_no": range(len(outflow_edge_edges_code[0])), 
                 })
-                outflow_node_edges = edges_left.merge(
-                    outflow_node_edges, how="right", on="code"
+                outflow_edge_edges = edges_left.merge(
+                    outflow_edge_edges, how="right", on="code"
                 )
-                outflow_node_edges = (
-                    outflow_node_edges
+                outflow_edge_edges = (
+                    outflow_edge_edges
                     .sort_values("order_no")
                     .drop_duplicates(subset="code", keep=False)
                 )
 
-                outflow_node_nodes = pd.DataFrame(data={
-                    "nodeID": outflow_node_nodes_id[0],
-                    "rws_code": outflow_node["rws_code"],
-                    "rws_code_no": outflow_node["rws_code_no"],
-                    "rws_order_code": outflow_node["order_code"],
+                outflow_edge_nodes = pd.DataFrame(data={
+                    "nodeID": outflow_edge_nodes_id[0],
+                    "rws_code": outflow_edge["rws_code"],
+                    "rws_code_no": outflow_edge["rws_code_no"],
+                    "rws_order_code": outflow_edge["order_code"],
                     "order_no": order_no,
-                    "outflow_node": outflow_node["nodeID"],
-                    "order_node_no": range(len(outflow_node_nodes_id[0])), 
+                    "outflow_node": outflow_edge["node_end"],
+                    "order_node_no": range(len(outflow_edge_nodes_id[0])), 
                 })
-                outflow_node_nodes = self.nodes.merge(
-                    outflow_node_nodes, how="right", on="nodeID"
+                outflow_edge_nodes = self.nodes.merge(
+                    outflow_edge_nodes, how="right", on="nodeID"
                 )
-                outflow_node_nodes = (
-                    outflow_node_nodes
+                outflow_edge_nodes = (
+                    outflow_edge_nodes
                     .sort_values("order_no")
                     .drop_duplicates(subset="nodeID", keep=False)
                 )
 
-                if outflow_nodes_edges is None:
-                    outflow_nodes_edges = outflow_node_edges.copy()
+                if outflow_edges_edges is None:
+                    outflow_edges_edges = outflow_edge_edges.copy()
                 else:
-                    outflow_nodes_edges = pd.concat([outflow_nodes_edges, outflow_node_edges.copy()])
-                if outflow_nodes_nodes is None:
-                    outflow_nodes_nodes = outflow_node_nodes.copy()
+                    outflow_edges_edges = pd.concat([outflow_edges_edges, outflow_edge_edges.copy()])
+                if outflow_edges_nodes is None:
+                    outflow_edges_nodes = outflow_edge_nodes.copy()
                 else:
-                    outflow_nodes_nodes = pd.concat([outflow_nodes_nodes, outflow_node_nodes.copy()])
+                    outflow_edges_nodes = pd.concat([outflow_edges_nodes, outflow_edge_nodes.copy()])
                 
-                new_outflow_nodes = self.nodes[self.nodes["nodeID"].isin(new_outflow_nodes)][["nodeID", "geometry"]]
-                new_outflow_nodes["rws_code"] = outflow_node["rws_code"]
-                new_outflow_nodes["rws_code_no"] = outflow_node["rws_code_no"]
-                new_outflow_nodes["order_code"] = outflow_node["order_code"]
-                new_outflow_nodes["order_no"] = order_no + 1
+                new_outflow_edges = self.edges[self.edges["code"].isin(new_outflow_edges)][["code", "geometry", "node_end"]]
+                new_outflow_edges = new_outflow_edges.rename(columns={"code": "edge_code"})
+                new_outflow_edges["rws_code"] = outflow_edge["rws_code"]
+                new_outflow_edges["rws_code_no"] = outflow_edge["rws_code_no"]
+                new_outflow_edges["order_code"] = outflow_edge["order_code"]
+                new_outflow_edges["order_no"] = order_no + 1
 
-                if new_outflow_nodes_order is None:
-                    new_outflow_nodes_order = new_outflow_nodes.copy()
+                if new_outflow_edges_order is not None:
+                    new_outflow_edges = new_outflow_edges[
+                        ~new_outflow_edges.edge_code.isin(list(new_outflow_edges_order.edge_code.unique()))
+                    ]
+                if outflow_edges_orders is not None:
+                    new_outflow_edges = new_outflow_edges[
+                        ~new_outflow_edges.edge_code.isin(list(outflow_edges_orders.edge_code.unique()))
+                    ]
+
+                if new_outflow_edges_order is None:
+                    new_outflow_edges_order = new_outflow_edges.copy()
                 else:
-                    new_outflow_nodes_order = pd.concat([new_outflow_nodes_order, new_outflow_nodes])
+                    new_outflow_edges_order = pd.concat([new_outflow_edges_order, new_outflow_edges])
 
-            edges_order = outflow_nodes_edges[outflow_nodes_edges["outflow_node"] >= 0]
-            edges_left = edges_left[~edges_left.code.isin(edges_order.code)].copy()
+            edges_order = outflow_edges_edges[outflow_edges_edges["outflow_node"] >= 0]
+            edges_left = edges_left[~edges_left["code"].isin(edges_order.code)].copy()
 
-            nodes_order = outflow_nodes_nodes[outflow_nodes_nodes["outflow_node"] >= 0]
-            nodes_left = nodes_left[nodes_left.nodeID.isin(edges_left.node_start)].copy()
+            nodes_order = outflow_edges_nodes[outflow_edges_nodes["outflow_node"] >= 0]
+            nodes_left = nodes_left[
+                (nodes_left["nodeID"].isin(edges_left.node_start)) | (nodes_left["nodeID"].isin(edges_left.node_end))
+            ].copy()
 
             if edges_all_orders is None:
                 edges_all_orders = edges_order.copy()
@@ -264,10 +294,10 @@ class GeneratorOrderLevels(GeneratorBasis):
             else:
                 nodes_all_orders = pd.concat([nodes_all_orders, nodes_order])
             
-            if outflow_nodes_orders is None:
-                outflow_nodes_orders = new_outflow_nodes_order.copy()
+            if outflow_edges_orders is None:
+                outflow_edges_orders = new_outflow_edges_order.copy()
             else:
-                outflow_nodes_orders = pd.concat([outflow_nodes_orders, new_outflow_nodes_order])
+                outflow_edges_orders = pd.concat([outflow_edges_orders, new_outflow_edges_order])
             
             order_no = order_no + 1
         
@@ -285,25 +315,138 @@ class GeneratorOrderLevels(GeneratorBasis):
         
         edges_all_orders = edges_all_orders.sort_values("order_no").drop_duplicates(subset="code", keep="first")
         nodes_all_orders = nodes_all_orders.sort_values("order_no").drop_duplicates(subset="nodeID", keep="first")
-        outflow_nodes_orders = outflow_nodes_orders.sort_values("order_no").drop_duplicates(subset="nodeID", keep="first")
+        outflow_edges_orders = outflow_edges_orders.sort_values("order_no").drop_duplicates(subset="node_end", keep="first")
 
         self.edges = pd.concat([edges_all_orders, edges_left]).reset_index(drop=True)
         self.nodes = pd.concat([nodes_all_orders, nodes_left]).reset_index(drop=True)
-        self.outflow_nodes = outflow_nodes_orders.copy()
+        self.outflow_edges = outflow_edges_orders.copy()
+        self.outflow_nodes = self.outflow_edges.copy()
+        self.outflow_nodes["geometry"] = self.outflow_nodes["geometry"].apply(lambda x: Point(x.coords[-1]))
 
         len_edges_with_order = len(self.edges[self.edges.order_no > 0])
         len_edges_without_order = len(self.edges[self.edges.order_no < 0])
         logging.info(f"     - order levels generated for {len_edges_with_order} edges - {len_edges_without_order} left")
 
 
+    def generate_order_code_for_edges(self, order_for_each_edge=False):
+        logging.info(f"   x generate order code for edges")
+        edges = self.edges[["code", "node_end", "rws_code", "rws_code_no", "order_no", "outflow_node", "order_edge_no", "geometry"]].copy()
+        outflow_edges = self.outflow_edges.copy()
+
+        edges = edges.merge(
+            outflow_edges[["node_end", "edge_code"]].rename(columns={"edge_code": "edge_codes"}), 
+            how="left", 
+            on="node_end"
+        )
+        edges = edges.sort_values(["rws_code", "rws_code_no", "order_no", "outflow_node", "order_edge_no"])
+        edges["order_no"] = edges["order_no"].astype(int)
+
+        edges_orders = None
+        logging.info(f"     - generate order code: preparation")
+        for order_no in [order_no for order_no in edges.order_no.unique() if order_no > 0]:
+            edges_order = edges[edges.order_no==order_no].copy()
+            edges_next_order = edges[edges.order_no==order_no+1].copy()
+            edges_order = edges_order.merge(
+                edges_next_order[["code", "node_end"]].drop(columns={"code": "edge_codes"}), 
+                how='left',
+                on=["node_end"]
+            )
+            sort_columns = ["rws_code", "rws_code_no", "order_no", "outflow_node", "order_edge_no"]
+            edges_order = edges_order.sort_values(sort_columns).groupby("node_end").agg({
+                k: list if k == 'edge_codes' else "first" for k in edges_order.columns
+            }).reset_index(drop=True).sort_values(sort_columns)
+
+            if edges_orders is None:
+                edges_orders = edges_order.copy()
+            else:
+                edges_orders = pd.concat([edges_orders, edges_order]).copy()
+
+        edges_orders["edge_codes"] = edges_orders["edge_codes"].apply(lambda x: [s for s in x if isinstance(s, str)])
+        edges_orders["no_edge_codes"] = edges_orders["edge_codes"].apply(lambda x: len(x))
+
+        edges_orders = gpd.GeoDataFrame(
+            edges_orders,
+            geometry="geometry",
+            crs=28992
+        )
+
+        def generate_order_code_for_edge(x):
+            return f"{x["order_code"]}.{str(x["order_code_no"]).zfill(3)}"
+                
+        edges_outflow_edges_all = None
+
+        logging.info(f"     - generate order code: per order")
+        for order_no in [order_no for order_no in edges.order_no.unique() if order_no > 0]:
+            order_outflow_edges = self.outflow_edges[
+                (self.outflow_edges.order_no==order_no)
+            ]
+            logging.debug(f"    - order {order_no}: {len(order_outflow_edges)} outflow edges")
+            if edges_outflow_edges_all is not None:
+                new_outflow_edge = edges_outflow_edges_all[["edge_codes", "order_no", "no_edge_codes", "order_code_no"]].copy()
+                new_outflow_edge = new_outflow_edge.rename(columns={"edge_codes": "edge_code"})
+                new_outflow_edge = new_outflow_edge.explode(column="edge_code")
+                new_outflow_edge = new_outflow_edge.loc[
+                    (new_outflow_edge["no_edge_codes"]>0) & (new_outflow_edge["order_no"]>0)
+                ]
+                new_outflow_edge["order_code_no"] = new_outflow_edge["order_code_no"] - 1
+                order_outflow_edges = order_outflow_edges.merge(
+                    new_outflow_edge[["edge_code", "order_code_no"]],
+                    how="left",
+                    on="edge_code"
+                )
+                edges_duplicates = order_outflow_edges[["node_end", "order_code_no"]].duplicated()
+                if edges_duplicates.sum()>0:
+                    order_outflow_edges["order_code_no"] = order_outflow_edges["order_code_no"] - edges_duplicates.astype(int)
+                order_outflow_edges["order_code"] = order_outflow_edges["order_code"] + "." + order_outflow_edges["order_code_no"].astype(str).str.zfill(3)
+
+            edges_outflow_edges = None
+            for i_outflow_edge, outflow_edge in order_outflow_edges.iterrows():
+                edges_outflow_edge = edges_orders[edges_orders.outflow_node==outflow_edge.node_end].copy()
+
+                if edges_outflow_edge.empty:
+                    continue
+                edges_outflow_edge["order_code_no"] = edges_outflow_edge["no_edge_codes"]
+
+                if order_for_each_edge:
+                    edges_outflow_edge["order_code_no"] = edges_outflow_edge["order_code_no"] + 1
+                else:
+                    edges_outflow_edge.loc[edges_outflow_edge.order_code_no>0, "order_code_no"] = \
+                        edges_outflow_edge.loc[edges_outflow_edge.order_code_no>0, "order_code_no"] + 1
+                
+                edges_outflow_edge.loc[edges_outflow_edge.index[0], "order_code_no"] = 1
+                edges_outflow_edge["order_code_no"] = edges_outflow_edge["order_code_no"].cumsum()
+                edges_outflow_edge["order_code"] = outflow_edge["order_code"]
+
+                edges_outflow_edge["order_code"] = edges_outflow_edge["order_code"] + "." + edges_outflow_edge["order_code_no"].astype(str).str.zfill(3)
+                
+                if edges_outflow_edges is None:
+                    edges_outflow_edges = edges_outflow_edge.copy()
+                else:
+                    edges_outflow_edges = pd.concat([edges_outflow_edges, edges_outflow_edge]).copy()
+                    
+            if edges_outflow_edges_all is None:
+                edges_outflow_edges_all = edges_outflow_edges.copy()
+            else:
+                edges_outflow_edges_all = pd.concat([edges_outflow_edges_all, edges_outflow_edges]).copy()
+
+        edges_outflow_edges_all = gpd.GeoDataFrame(
+            edges_outflow_edges_all,
+            geometry="geometry",
+            crs=self.edges.crs
+        ).reset_index(drop=True).drop(columns=["edge_codes"])
+
+        self.edges = edges_outflow_edges_all.copy()
+        return self.edges
+        
+
     def export_results_to_gpkg(self):
         """Export results to geopackages in folder 1_tussenresultaat"""
         results_dir = Path(self.path, self.dir_inter_results)
         logging.info(f"   x export results")
         for layer in [
-            "dead_end_nodes",
-            "dead_start_nodes",
-            "outflow_nodes",
+            "dead_end_edges",
+            "dead_start_edges",
+            "outflow_edges",
             "edges",
             "nodes",
         ]:
