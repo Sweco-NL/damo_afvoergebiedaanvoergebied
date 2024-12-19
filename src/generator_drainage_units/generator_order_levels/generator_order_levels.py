@@ -370,9 +370,6 @@ class GeneratorOrderLevels(GeneratorBasis):
             crs=28992
         )
 
-        def generate_order_code_for_edge(x):
-            return f"{x["order_code"]}.{str(x["order_code_no"]).zfill(3)}"
-                
         edges_outflow_edges_all = None
 
         logging.info(f"     - generate order code: per order")
@@ -381,49 +378,48 @@ class GeneratorOrderLevels(GeneratorBasis):
                 (self.outflow_edges.order_no==order_no)
             ]
             logging.debug(f"    - order {order_no}: {len(order_outflow_edges)} outflow edges")
+            
             if edges_outflow_edges_all is not None:
-                new_outflow_edge = edges_outflow_edges_all[["edge_codes", "order_no", "no_edge_codes", "order_code_no"]].copy()
+                new_outflow_edge = edges_outflow_edges_all[["edge_codes", "order_no", "no_edge_codes", "order_code"]].copy()
                 new_outflow_edge = new_outflow_edge.rename(columns={"edge_codes": "edge_code"})
                 new_outflow_edge = new_outflow_edge.explode(column="edge_code")
                 new_outflow_edge = new_outflow_edge.loc[
                     (new_outflow_edge["no_edge_codes"]>0) & (new_outflow_edge["order_no"]>0)
                 ]
-                new_outflow_edge["order_code_no"] = new_outflow_edge["order_code_no"] - 1
-                order_outflow_edges = order_outflow_edges.merge(
-                    new_outflow_edge[["edge_code", "order_code_no"]],
+                order_outflow_edges = order_outflow_edges.drop(columns="order_code").merge(
+                    new_outflow_edge[["edge_code", "order_code"]],
                     how="left",
                     on="edge_code"
                 )
+                order_outflow_edges["order_code_no"] = order_outflow_edges["order_code"].str[-3:].astype(int)
+                order_outflow_edges["order_code_no"] = order_outflow_edges["order_code_no"] - 1
+                order_outflow_edges["order_code"] = order_outflow_edges["order_code"].str[:-4]
+
                 edges_duplicates = order_outflow_edges[["node_end", "order_code_no"]].duplicated()
                 if edges_duplicates.sum()>0:
                     order_outflow_edges["order_code_no"] = order_outflow_edges["order_code_no"] - edges_duplicates.astype(int)
                 order_outflow_edges["order_code"] = order_outflow_edges["order_code"] + "." + order_outflow_edges["order_code_no"].astype(str).str.zfill(3)
 
-            edges_outflow_edges = None
+            edges_outflow_edges = edges_orders.copy()
+            edges_outflow_edges["order_code_no"] = edges_outflow_edges["no_edge_codes"]
+            if order_for_each_edge:
+                edges_outflow_edges["order_code_no"] = edges_outflow_edges["order_code_no"] + 1
+            else:
+                edges_outflow_edges.loc[edges_outflow_edges["order_code_no"]>0, "order_code_no"] = \
+                    edges_outflow_edges.loc[edges_outflow_edges.order_code_no>0, "order_code_no"] + 1
+            
+            edges_outflow_edges.loc[edges_outflow_edges["code"].isin(order_outflow_edges["edge_code"]), "order_code_no"] = 1
+
             for i_outflow_edge, outflow_edge in order_outflow_edges.iterrows():
-                edges_outflow_edge = edges_orders[edges_orders.outflow_node==outflow_edge.node_end].copy()
+                print(f"{i_outflow_edge} / {len(order_outflow_edges)}", end="\r")
+                loc_edges_outflow_edge = edges_outflow_edges.outflow_node==outflow_edge.node_end
+                edges_outflow_edges.loc[loc_edges_outflow_edge, "order_code_no"] = \
+                    edges_outflow_edges.loc[loc_edges_outflow_edge, "order_code_no"].cumsum()
 
-                if edges_outflow_edge.empty:
-                    continue
-                edges_outflow_edge["order_code_no"] = edges_outflow_edge["no_edge_codes"]
-
-                if order_for_each_edge:
-                    edges_outflow_edge["order_code_no"] = edges_outflow_edge["order_code_no"] + 1
-                else:
-                    edges_outflow_edge.loc[edges_outflow_edge.order_code_no>0, "order_code_no"] = \
-                        edges_outflow_edge.loc[edges_outflow_edge.order_code_no>0, "order_code_no"] + 1
-                
-                edges_outflow_edge.loc[edges_outflow_edge.index[0], "order_code_no"] = 1
-                edges_outflow_edge["order_code_no"] = edges_outflow_edge["order_code_no"].cumsum()
-                edges_outflow_edge["order_code"] = outflow_edge["order_code"]
-
-                edges_outflow_edge["order_code"] = edges_outflow_edge["order_code"] + "." + edges_outflow_edge["order_code_no"].astype(str).str.zfill(3)
-                
-                if edges_outflow_edges is None:
-                    edges_outflow_edges = edges_outflow_edge.copy()
-                else:
-                    edges_outflow_edges = pd.concat([edges_outflow_edges, edges_outflow_edge]).copy()
-                    
+            edges_outflow_edges["order_code"] = outflow_edges["order_code"]
+            edges_outflow_edges["order_code"] = edges_outflow_edges["order_code"] + "." + \
+                edges_outflow_edges["order_code_no"].astype(str).str.zfill(3)
+                                
             if edges_outflow_edges_all is None:
                 edges_outflow_edges_all = edges_outflow_edges.copy()
             else:
@@ -447,6 +443,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             "dead_end_edges",
             "dead_start_edges",
             "outflow_edges",
+            "outflow_nodes",
             "edges",
             "nodes",
         ]:
@@ -502,7 +499,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                 z_index=1,
             )
 
-            if order_labels:
+            if order_labels and "order_no" in self.edges.columns:
                 fg = folium.FeatureGroup(
                     name=f"Orde-nummer watergangen (labels)", 
                     control=True,
@@ -516,6 +513,22 @@ class GeneratorOrderLevels(GeneratorBasis):
                     column="order_no", 
                     label_fontsize=8, 
                     label_decimals=0,
+                    fg=fg
+                )
+
+            if order_labels and "order_code" in self.edges.columns:
+                fg = folium.FeatureGroup(
+                    name=f"Orde-code watergangen (labels)", 
+                    control=True,
+                    show=False,
+                ).add_to(m)
+
+                add_labels_to_points_lines_polygons(
+                    gdf=self.edges[self.edges["order_no"] > 1][
+                        ["code", "order_code", "geometry"]
+                    ], 
+                    column="order_code", 
+                    label_fontsize=8, 
                     fg=fg
                 )
         
