@@ -25,8 +25,10 @@ def preprocess_hydroobjecten(hydroobjecten):
     hydroobjecten = snap_unconnected_endpoints_to_endpoint_or_line(
         hydroobjecten, snapping_distance=0.05
     )
+    
+    hydroobjecten_snapped = hydroobjecten.copy()
 
     # Split_hydroobjecten
     hydroobjecten = split_waterways_by_endpoints(hydroobjecten, hydroobjecten)
 
-    return hydroobjecten
+    return hydroobjecten, hydroobjecten_snapped

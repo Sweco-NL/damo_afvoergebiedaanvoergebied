@@ -135,7 +135,11 @@ class GeneratorBasis(BaseModel):
             logging.debug(
                 f"hydroobjecten_snap_split.gpkg not in directory, preprocessing hydroobjecten"
             )
-            self.hydroobjecten = preprocess_hydroobjecten(self.hydroobjecten)
+            self.hydroobjecten, hydroobjecten_snapped = preprocess_hydroobjecten(self.hydroobjecten)
+            hydroobjecten_snapped.to_file(
+                Path(self.dir_basisdata, "hydroobjecten_snapped.gpkg"),
+                layer="hydroobjecten_snapped",
+            )
             self.hydroobjecten.to_file(
                 Path(self.dir_basisdata, "hydroobjecten_preprocessed.gpkg"),
                 layer="hydroobjecten_preprocessed",
