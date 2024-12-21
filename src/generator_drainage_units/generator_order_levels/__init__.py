@@ -19,7 +19,6 @@ def run_generator_order_levels(
     create_html_map: bool = False,
     open_html: bool = False,
 ) -> GeneratorOrderLevels:
-
     order = GeneratorOrderLevels(
         path=path,
         waterschap=waterschap,
@@ -33,15 +32,13 @@ def run_generator_order_levels(
         order.create_graph_from_network(water_lines=water_lines)
 
         order.define_list_upstream_downstream_edges_ids()
-        
+
         order.calculate_angles_of_edges_at_nodes()
-        
-        order.select_downstream_upstream_edges(
-            min_difference_angle=20.0
-        )
+
+        order.select_downstream_upstream_edges(min_difference_angle=20.0)
 
         order.find_end_points_hydroobjects()
-        
+
         order.generate_rws_code_for_all_outflow_points(buffer_rws=buffer_rws)
 
         order.generate_orde_level_for_hydroobjects()
@@ -51,7 +48,7 @@ def run_generator_order_levels(
 
     if write_results:
         order.export_results_to_gpkg()
-    
+
     if create_html_map:
         order.generate_folium_map(open_html=open_html)
     return order

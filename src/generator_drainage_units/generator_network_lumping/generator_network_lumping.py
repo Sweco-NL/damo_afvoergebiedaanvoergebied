@@ -22,9 +22,9 @@ from ..utils.general_functions import (
     remove_holes_from_polygons,
 )
 from ..utils.network_functions import (
-    find_nodes_edges_for_direction, 
+    find_nodes_edges_for_direction,
     define_list_upstream_downstream_edges_ids,
-    calculate_angles_of_edges_at_nodes
+    calculate_angles_of_edges_at_nodes,
 )
 
 
@@ -88,9 +88,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
         self.network_positions = {n: [n[0], n[1]] for n in list(self.graph.nodes)}
 
     def find_upstream_downstream_nodes_edges(
-        self, 
-        direction: str = "upstream", 
-        no_inflow_outflow_points: int = None
+        self, direction: str = "upstream", no_inflow_outflow_points: int = None
     ):
         if direction not in ["upstream", "downstream"]:
             raise ValueError(f" x direction needs to be 'upstream' or 'downstream'")
@@ -305,8 +303,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
         logging.info("   x calculate angles of edges to nodes")
         self.inflow_outflow_nodes, self.inflow_outflow_edges = (
             calculate_angles_of_edges_at_nodes(
-                nodes=self.inflow_outflow_nodes, 
-                edges=self.inflow_outflow_edges
+                nodes=self.inflow_outflow_nodes, edges=self.inflow_outflow_edges
             )
         )
         return self.inflow_outflow_nodes
@@ -515,7 +512,6 @@ class GeneratorNetworkLumping(GeneratorBasis):
             opacity_edges=opacity_edges,
         )
 
-
     def export_results_to_gpkg(self):
         """Export results to geopackages in folder 1_tussenresultaat"""
         results_dir = Path(self.path, self.dir_results)
@@ -532,7 +528,6 @@ class GeneratorNetworkLumping(GeneratorBasis):
             else:
                 logging.debug(f"    - {layer} ({len(result)})")
                 result.to_file(Path(results_dir, f"{layer}.gpkg"))
-    
 
     def generate_folium_map(
         self,
@@ -610,7 +605,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             show=True,
             z_index=0,
         ).add_to(m)
-        
+
         for i, node_selection in enumerate(nodes_selection):
             inflow_outflow = (
                 "instroom" if self.direction == "downstream" else "uitstroom"
