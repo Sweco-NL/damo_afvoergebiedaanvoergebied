@@ -424,27 +424,28 @@ def define_list_upstream_downstream_edges_ids(
 ):
     logging.info("   x find connected edges for nodes")
     nodes_sel = nodes[nodes.nodeID.isin(node_ids)].copy()
+    nodes_sel.index = nodes_sel[nodes_id_column].values
     for direction in ["upstream", "downstream"]:
         node_end = "node_end" if direction == "upstream" else "node_start"
+        direction_edges = nodes_sel.merge(
+            edges[[node_end, "code"]],
+            how="left",
+            left_on=nodes_id_column,
+            right_on=node_end,
+        )
         nodes_sel[f"{direction}_edges"] = (
-            nodes_sel.merge(
-                edges[[node_end, "code"]],
-                how="left",
-                left_on=nodes_id_column,
-                right_on=node_end,
-            )
+            direction_edges
             .groupby(nodes_id_column)
             .agg({edges_id_column: list})
         )
-        nodes_sel[f"no_{direction}_edges"] = nodes_sel.apply(
-            lambda x: len(x[f"{direction}_edges"])
-            if x[f"{direction}_edges"] != [np.nan]
-            else 0,
-            axis=1,
+        nodes_sel[f"no_{direction}_edges"] = nodes_sel[f"{direction}_edges"].apply(
+            lambda x: len(x)
+            if ~(isinstance(x[0], float) and np.isnan(x[0]))
+            else 0
         )
         nodes_sel[f"{direction}_edges"] = nodes_sel[f"{direction}_edges"].apply(
             lambda x: ",".join(x)
-            if ~(type(x[0]) is float and np.isnan(x[0]))
+            if ~(isinstance(x[0], float) and np.isnan(x[0]))
             else ",".join([])
         )
     nodes_sel = nodes_sel.reset_index(drop=True)

@@ -34,8 +34,8 @@ class GeneratorNetworkLumping(GeneratorBasis):
     path: Path = None
     name: str = None
     dir_basis_data: str = "0_basisdata"
-    dir_inter_results: str = "1_tussenresultaat"
-    dir_results: str = "2_resultaat"
+    dir_inter_results: str | None = "1_tussenresultaat"
+    dir_results: str | None = "2_resultaat"
 
     direction: str = "upstream"
     read_results: bool = False
@@ -65,6 +65,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
     folium_map: folium.Map = None
     folium_html_path: str = None
 
+
     def create_graph_from_network(
         self, water_lines=["rivieren", "hydroobjecten", "hydroobjecten_extra"]
     ):
@@ -87,6 +88,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
         )
         self.network_positions = {n: [n[0], n[1]] for n in list(self.graph.nodes)}
 
+
     def find_upstream_downstream_nodes_edges(
         self, direction: str = "upstream", no_inflow_outflow_points: int = None
     ):
@@ -108,6 +110,15 @@ class GeneratorNetworkLumping(GeneratorBasis):
             self.inflow_outflow_points.geometry.apply(
                 lambda x: self.nodes.geometry.distance(x).idxmin()
             )
+        )
+        node_end = "node_end" if direction=="upstream" else "node_start"
+        self.inflow_outflow_points = self.inflow_outflow_points.merge(
+            self.edges[[node_end, "code"]].rename(
+                columns={"code": "edge_code"}
+            ),
+            how="left",
+            left_on="representative_node",
+            right_on=node_end
         )
 
         # split_points for inflow_outflow. check if which version 2, 1 or 0 needs to be used.
@@ -133,11 +144,11 @@ class GeneratorNetworkLumping(GeneratorBasis):
                 inflow_outflow_splits = splits
             break
 
-        self.inflow_outflow_nodes, self.inflow_outflow_edges = (
+        self.inflow_outflow_nodes, self.inflow_outflow_edges, _ = (
             find_nodes_edges_for_direction(
                 nodes=self.nodes,
                 edges=self.edges,
-                node_ids=self.inflow_outflow_points["representative_node"].to_numpy(),
+                outflow_edge_ids=self.inflow_outflow_points["edge_code"].to_numpy(),
                 border_node_ids=self.inflow_outflow_points[
                     "representative_node"
                 ].to_numpy(),
@@ -145,12 +156,20 @@ class GeneratorNetworkLumping(GeneratorBasis):
                 split_points=inflow_outflow_splits,
             )
         )
+        for i, point in self.inflow_outflow_points.iterrows():
+            self.inflow_outflow_nodes[f"{self.direction}_node_{point["representative_node"]}"] = \
+                self.inflow_outflow_nodes[f"{self.direction}_edge_{point["edge_code"]}"]
+            self.inflow_outflow_edges[f"{self.direction}_node_{point["representative_node"]}"] = \
+                self.inflow_outflow_edges[f"{self.direction}_edge_{point["edge_code"]}"]
+
+
         self.inflow_outflow_nodes = define_list_upstream_downstream_edges_ids(
             self.inflow_outflow_nodes.nodeID.unique(),
             self.inflow_outflow_nodes,
             self.inflow_outflow_edges,
         )
         return self.inflow_outflow_nodes
+
 
     def detect_split_points(self):
         """Detect all split points where the basins of two or more outflow/inflow points are connecting
@@ -182,8 +201,13 @@ class GeneratorNetworkLumping(GeneratorBasis):
             self.inflow_outflow_nodes,
             self.inflow_outflow_edges,
         )
+
         inflow_outflow_nodes = inflow_outflow_nodes[
             inflow_outflow_nodes.no_downstream_edges > 1
+        ]
+        inflow_outflow_points_columns = [
+            f"{self.direction}_node_{n}"
+            for n in self.inflow_outflow_points.representative_node.values
         ]
 
         for i_node, node in enumerate(inflow_outflow_nodes.nodeID.values):
@@ -194,11 +218,6 @@ class GeneratorNetworkLumping(GeneratorBasis):
             upstream_edges = self.inflow_outflow_edges[
                 self.inflow_outflow_edges[node_search] == node
             ].copy()
-
-            inflow_outflow_points_columns = [
-                f"{self.direction}_node_{n}"
-                for n in self.inflow_outflow_points.representative_node.values
-            ]
 
             for col in inflow_outflow_points_columns:
                 upstream_edges[col] = upstream_edges[col].replace(False, np.nan).copy()
@@ -216,9 +235,10 @@ class GeneratorNetworkLumping(GeneratorBasis):
                     inflow_outflow_edges = pd.concat([inflow_outflow_edges, edges])
 
         for col in inflow_outflow_points_columns:
-            inflow_outflow_edges[col] = (
-                inflow_outflow_edges[col].replace(np.nan, False).copy()
-            )
+            if inflow_outflow_edges is not None and col in inflow_outflow_edges.columns:
+                inflow_outflow_edges[col] = (
+                    inflow_outflow_edges[col].replace(np.nan, False).copy()
+                )
 
         self.inflow_outflow_splits_0 = define_list_upstream_downstream_edges_ids(
             inflow_outflow_edges[node_search].unique(),
@@ -269,6 +289,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
 
         return self.inflow_outflow_splits_1
 
+
     def export_detected_split_points(self):
         if self.inflow_outflow_splits_1 is None:
             logging.info(
@@ -299,6 +320,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
                 Path(results_dir, file_detected_points)
             )
 
+
     def calculate_angles_of_edges_at_nodes(self):
         logging.info("   x calculate angles of edges to nodes")
         self.inflow_outflow_nodes, self.inflow_outflow_edges = (
@@ -307,6 +329,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             )
         )
         return self.inflow_outflow_nodes
+
 
     def select_directions_for_splits_based_on_angle(self):
         self.inflow_outflow_splits_1 = self.inflow_outflow_splits_0.copy()
@@ -358,6 +381,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
 
         return self.inflow_outflow_splits_1
 
+
     def select_directions_for_splits(self, fillna_with_random=False):
         # check whether to use inflow_outflow_splits_1 or inflow_outflow_splits_0
         if (
@@ -381,9 +405,9 @@ class GeneratorNetworkLumping(GeneratorBasis):
                     ~self.inflow_outflow_splits_2[f"{search_direction}_edge"].isna()
                 ]
             )
-            logging.debug(
-                f"    - known {search_direction} direction at splits: {no_splits_known}/{len(self.inflow_outflow_splits_2)}"
-            )
+            logging_message = f"    - known {search_direction} direction at splits: {no_splits_known}/{len(self.inflow_outflow_splits_2)}"
+            logging.debug(logging_message)
+
             self.inflow_outflow_splits_2[f"selected_{search_direction}_edge"] = (
                 self.inflow_outflow_splits_2.apply(
                     lambda x: random.choice(x[f"{search_direction}_edges"].split(","))
@@ -392,12 +416,12 @@ class GeneratorNetworkLumping(GeneratorBasis):
                     axis=1,
                 )
             )
-            logging.debug(
-                f"     - randomly choosen {search_direction} direction at splits: {
-                    len(self.inflow_outflow_splits_2) - no_splits_known}/{len(self.inflow_outflow_splits_2)
-                }"
-            )
+            logging_message = f"     - randomly choosen {search_direction} direction at splits: {
+                len(self.inflow_outflow_splits_2) - no_splits_known}/{len(self.inflow_outflow_splits_2)
+            }"
+            logging.debug(logging_message)
         return self.inflow_outflow_splits_2
+
 
     def assign_drainage_units_to_outflow_points_based_on_id(self):
         self.inflow_outflow_edges["code"] = self.inflow_outflow_edges["code"].astype(
@@ -421,6 +445,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             self.inflow_outflow_areas[upstream_downstream_columns].fillna(False)
         )
 
+
     def assign_drainage_units_to_outflow_points_based_on_length_hydroobject(self):
         if self.afwateringseenheden is None:
             return None
@@ -428,7 +453,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
         self.afwateringseenheden["savedgeom"] = self.afwateringseenheden.geometry
 
         joined = gpd.sjoin(
-            self.inflow_outflow_edges.rename(columns={"code": "code_hydroobject"}),
+            self.inflow_outflow_edges.rename(columns={"code": "edge_code"}),
             self.afwateringseenheden,
             how="inner",
             predicate="intersects",
@@ -437,7 +462,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             lambda row: row.geometry.intersection(row.savedgeom).length, axis=1
         )
         merged = self.afwateringseenheden.merge(
-            joined[["unique_id", "code_hydroobject", "intersection_length"]],
+            joined[["unique_id", "edge_code", "intersection_length"]],
             on="unique_id",
             how="inner",
         )
@@ -456,7 +481,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
                 ["code"] + [f"{column}" for column in upstream_columns]
             ],
             how="left",
-            left_on="code_hydroobject",
+            left_on="edge_code",
             right_on="code",
         ).reset_index(drop=True)
         self.inflow_outflow_areas = self.inflow_outflow_areas.loc[
@@ -468,6 +493,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
                 False
             )
         return self.inflow_outflow_areas
+
 
     def dissolve_assigned_drainage_units(self):
         if self.inflow_outflow_areas is None:
@@ -498,6 +524,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
         ).buffer(-0.1)
         return self.inflow_outflow_areas
 
+
     def export_results_all(
         self,
         html_file_name: str = None,
@@ -512,6 +539,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             opacity_edges=opacity_edges,
         )
 
+    
     def export_results_to_gpkg(self):
         """Export results to geopackages in folder 1_tussenresultaat"""
         results_dir = Path(self.path, self.dir_results)
