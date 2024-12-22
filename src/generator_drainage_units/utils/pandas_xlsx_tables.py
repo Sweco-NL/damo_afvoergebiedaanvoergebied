@@ -1,3 +1,6 @@
+# THIS CODE IS FROM https://github.com/VanOord/pandas-xlsx-tables (VAN OORD)
+# THE CODE IS UPDATED BECAUSE OF THE CHANES IN NUMPY
+
 from itertools import chain, cycle
 from typing import BinaryIO, Iterable, Literal, Optional, Union
 

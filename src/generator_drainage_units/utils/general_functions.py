@@ -250,10 +250,7 @@ def split_waterways_by_endpoints(hydroobjects, relevant_culverts):
         )
 
         # Remove segments with a length of 0 (created points that are already between 2 linestrings of gdf_lines)
-        gdf_segments["geometry_len"] = gdf_segments.apply(
-            lambda x: sum([y.length for y in x["geometry"]]), axis=1
-        )
-        gdf_segments = gdf_segments[gdf_segments["geometry_len"] > 0.0]
+        gdf_segments = gdf_segments[gdf_segments.geometry.length > 0.0]
 
         # Merge the geometries of the segments that are listed in geometry
         gdf_segments["geometry"] = gdf_segments.apply(
@@ -353,15 +350,17 @@ def calculate_angle(line, direction):
     angle_degrees = np.degrees(angle)
     return angle_degrees
 
+
 def calculate_angle_reverse(line):
     coords = list(line.coords)
     p1, p2 = coords[1], coords[0]
 
     angle = np.arctan2(p2[1] - p1[1], p2[0] - p1[0])  # Angle in radians
     angle_degrees = np.degrees(angle)
-    angle_degrees = angle_degrees % 360 
-        
+    angle_degrees = angle_degrees % 360
+
     return angle_degrees
+
 
 def calculate_angle_start(line):
     coords = list(line.coords)
@@ -369,19 +368,21 @@ def calculate_angle_start(line):
 
     angle = np.arctan2(p2[1] - p1[1], p2[0] - p1[0])  # Angle in radians
     angle_degrees = np.degrees(angle)
-    angle_degrees = angle_degrees % 360 
-        
+    angle_degrees = angle_degrees % 360
+
     return angle_degrees
+
 
 def calculate_angle_end(line):
     coords = list(line.coords)
-    p1, p2 = coords[-2], coords[-1] 
+    p1, p2 = coords[-2], coords[-1]
 
     angle = np.arctan2(p2[1] - p1[1], p2[0] - p1[0])  # Angle in radians
     angle_degrees = np.degrees(angle)
     angle_degrees = angle_degrees % 360
 
     return angle_degrees
+
 
 def calculate_angle_difference(angle1, angle2):
     diff = abs(angle1 % 360 - angle2 % 360)

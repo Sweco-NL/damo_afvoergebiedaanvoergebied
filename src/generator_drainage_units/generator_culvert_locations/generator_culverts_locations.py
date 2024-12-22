@@ -137,7 +137,9 @@ class GeneratorCulvertLocations(GeneratorBasis):
 
             # Identify duplicates among the "dangling" points
             start_end_points = self.water_line_pnts[
-                self.water_line_pnts["line_type"].isin(["dangling_start", "dangling_end"])
+                self.water_line_pnts["line_type"].isin(
+                    ["dangling_start", "dangling_end"]
+                )
             ]
 
             # Find duplicate indices based on geometry
@@ -244,7 +246,11 @@ class GeneratorCulvertLocations(GeneratorBasis):
         ]
         end_pnts = end_pnts.drop_duplicates(subset="geometry", keep=False)
         end_pnts = end_pnts.rename(
-            columns={"code": "dangling_code", "unique_id": "dangling_id", 'line_type' :'line_type_start_end'}
+            columns={
+                "code": "dangling_code",
+                "unique_id": "dangling_id",
+                "line_type": "line_type_start_end",
+            }
         )
         end_pnts_orig_geometry = end_pnts.geometry
 
@@ -270,7 +276,15 @@ class GeneratorCulvertLocations(GeneratorBasis):
 
         end_pnts = pd.merge(
             self.water_line_pnts,
-            end_pnts[["unique_id", "dangling_id", "dangling_code", "geometry2", 'line_type_start_end']],
+            end_pnts[
+                [
+                    "unique_id",
+                    "dangling_id",
+                    "dangling_code",
+                    "geometry2",
+                    "line_type_start_end",
+                ]
+            ],
             on="unique_id",
             how="inner",
         )
@@ -591,7 +605,8 @@ class GeneratorCulvertLocations(GeneratorBasis):
         return self.potential_culverts_2
 
     def select_correct_score_based_on_score_and_length(
-        self, read_results=None,
+        self,
+        read_results=None,
         increase_factor_90=3,
     ) -> gpd.GeoDataFrame:
         if isinstance(read_results, bool):
@@ -606,39 +621,64 @@ class GeneratorCulvertLocations(GeneratorBasis):
         culverts = self.potential_culverts_2.copy()
         culverts["length"] = culverts.geometry.length
         culverts["angle_culvert"] = culverts.apply(
-            lambda row: calculate_angle_reverse(row['geometry']) if row['line_type_start_end'] == 'dangling_start' else calculate_angle_start(row['geometry']), 
-            axis=1
+            lambda row: calculate_angle_reverse(row["geometry"])
+            if row["line_type_start_end"] == "dangling_start"
+            else calculate_angle_start(row["geometry"]),
+            axis=1,
         )
-        culverts['angle_waterline'] = None
+        culverts["angle_waterline"] = None
 
         self.overige_watergangen = self.overige_watergangen.explode()
 
-        self.overige_watergangen['angle_start'] = self.overige_watergangen['geometry'].apply(calculate_angle_start)
-        self.overige_watergangen['angle_end'] = self.overige_watergangen['geometry'].apply(calculate_angle_end)
+        self.overige_watergangen["angle_start"] = self.overige_watergangen[
+            "geometry"
+        ].apply(calculate_angle_start)
+        self.overige_watergangen["angle_end"] = self.overige_watergangen[
+            "geometry"
+        ].apply(calculate_angle_end)
 
-        code_to_angle_start = self.overige_watergangen.set_index('code')['angle_start'].to_dict()
-        code_to_angle_end = self.overige_watergangen.set_index('code')['angle_end'].to_dict()
+        code_to_angle_start = self.overige_watergangen.set_index("code")[
+            "angle_start"
+        ].to_dict()
+        code_to_angle_end = self.overige_watergangen.set_index("code")[
+            "angle_end"
+        ].to_dict()
 
-        culverts['angle_waterline'] = culverts.apply(
-            lambda row: code_to_angle_start.get(row['dangling_code']) if row['line_type_start_end'] == 'dangling_start' 
-                        else code_to_angle_end.get(row['dangling_code']) if row['line_type_start_end'] == 'dangling_end' 
-                        else None, axis=1
+        culverts["angle_waterline"] = culverts.apply(
+            lambda row: code_to_angle_start.get(row["dangling_code"])
+            if row["line_type_start_end"] == "dangling_start"
+            else code_to_angle_end.get(row["dangling_code"])
+            if row["line_type_start_end"] == "dangling_end"
+            else None,
+            axis=1,
         )
 
-        culverts['angle_difference'] = culverts.apply(lambda row: calculate_angle_difference(row['angle_culvert'], row['angle_waterline']), axis=1)
-        
-        def calculate_fictive_length(length, angle, increase_factor_90=increase_factor_90):
+        culverts["angle_difference"] = culverts.apply(
+            lambda row: calculate_angle_difference(
+                row["angle_culvert"], row["angle_waterline"]
+            ),
+            axis=1,
+        )
+
+        def calculate_fictive_length(
+            length, angle, increase_factor_90=increase_factor_90
+        ):
             # Calculate the factor based on the angle
             factor = 1 + (increase_factor_90 - 1) * abs(angle) / 90
             # Calculate the fictive length
             fictive_length = length * factor
             return fictive_length
-        
-        #Calculate fictive length
-        culverts['fictive_length'] = culverts.apply(lambda row: calculate_fictive_length(row['length'], row['angle_difference']), axis=1)
-        
-        #Drop features with a fictive length larger than 40
-        culverts = culverts[culverts['fictive_length'] <= 40]
+
+        # Calculate fictive length
+        culverts["fictive_length"] = culverts.apply(
+            lambda row: calculate_fictive_length(
+                row["length"], row["angle_difference"]
+            ),
+            axis=1,
+        )
+
+        # Drop features with a fictive length larger than 40
+        culverts = culverts[culverts["fictive_length"] <= 40]
 
         # Keep only shortest potential culverts when the score is equal
         culverts = culverts.sort_values(by=["dangling_id", "score", "fictive_length"])
@@ -728,7 +768,8 @@ class GeneratorCulvertLocations(GeneratorBasis):
 
                     if not line_b.empty and (
                         selected_length is None
-                        or line_b["fictive_length"].values[0] <= offset_1_2 * selected_length
+                        or line_b["fictive_length"].values[0]
+                        <= offset_1_2 * selected_length
                     ):
                         selected_length = line_b["fictive_length"].values[0]
                         selected_score = score_b
@@ -742,7 +783,8 @@ class GeneratorCulvertLocations(GeneratorBasis):
                         not line_c.empty
                         and (selected_score in [score_a, score_b])
                         and (
-                            line_c["fictive_length"].values[0] <= offset_12_34 * selected_length
+                            line_c["fictive_length"].values[0]
+                            <= offset_12_34 * selected_length
                         )
                     ):
                         selected_length = line_c["fictive_length"].values[0]
@@ -751,12 +793,14 @@ class GeneratorCulvertLocations(GeneratorBasis):
                     # Check conditions for selecting score_d
                     if not line_d.empty:
                         if selected_score == score_c and (
-                            line_d["fictive_length"].values[0] <= offset_3_4 * selected_length
+                            line_d["fictive_length"].values[0]
+                            <= offset_3_4 * selected_length
                         ):
                             selected_length = line_d["fictive_length"].values[0]
                             selected_score = score_d
                         elif selected_score in [score_a, score_b] and (
-                            line_d["fictive_length"].values[0] <= offset_12_34 * selected_length
+                            line_d["fictive_length"].values[0]
+                            <= offset_12_34 * selected_length
                         ):
                             if line_c.empty or (
                                 line_d["fictive_length"].values[0]

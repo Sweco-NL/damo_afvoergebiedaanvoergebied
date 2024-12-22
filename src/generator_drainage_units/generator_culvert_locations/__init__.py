@@ -38,6 +38,7 @@ def run_generator_culvert_locations(
     """
     start_time = time.time()
     culverts_generator = GeneratorCulvertLocations(
+        path=path, read_results=read_results, write_results=write_results
         path=path, 
         preprocess_hydroobjecten=preprocess_hydroobjecten,
         read_results=read_results, 
@@ -46,14 +47,12 @@ def run_generator_culvert_locations(
 
     # generate all vertices every 10 meters
     culverts_generator.generate_vertices_along_waterlines(
-        distance_vertices=distance_vertices, 
-        write_results=write_results
+        distance_vertices=distance_vertices, write_results=write_results
     )
 
     # generate all potential culverts with max lenght = 40
     culverts_generator.find_potential_culvert_locations(
-        max_culvert_length=max_culvert_length, 
-        write_results=write_results
+        max_culvert_length=max_culvert_length, write_results=write_results
     )
 
     # check intersections culvert with objects and first filter

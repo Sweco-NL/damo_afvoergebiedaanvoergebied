@@ -8,7 +8,6 @@ import logging
 
 
 def create_graph_from_edges(edges: gpd.GeoDataFrame):
-    edges["geom_length"] = edges.geometry.length
     G = momepy.gdf_to_nx(
         edges,
         approach="primal",
@@ -111,7 +110,7 @@ def add_basin_code_from_network_to_nodes_and_edges(
             "basin",
         ] = i + 1
         nodes.loc[nodes["node_no"].isin(list(subgraph)), "basin"] = i + 1
-    loggin.info(
+    logging.debug(
         f" - define numbers Ribasim-Basins ({len(subgraphs)}x) and join edges/nodes"
     )
     return nodes, edges
