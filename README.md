@@ -1,4 +1,4 @@
-## Netwerk-analyses op basis van hydrologische basis data: o.a. afwateringseenheden, stroomgebieden, locaties duikers, orde-codering
+## Workflows hydrologische basis data waterschappen: o.a. voorbewerking, locaties duikers, afwateringseenheden, stroomgebieden, orde-codering
 
 [Bekijk de uitgebreide documentatie via de read-the-docs](https://sweco-nl.github.io/generator_drainage_units/)
 
