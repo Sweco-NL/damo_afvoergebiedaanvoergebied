@@ -92,38 +92,14 @@ def split_waterways_by_endpoints(hydroobjects, relevant_culverts):
     end_points = relevant_culverts["geometry"].apply(
         lambda line: Point(line.coords[-1])
     )
-    end_points_gdf = (
-        relevant_culverts.copy()
-    )  # Make a copy to retain all the other data
-
-    # Replace the geometry column with the new end_points
+    end_points_gdf = relevant_culverts.copy()
     end_points_gdf.set_geometry(end_points, inplace=True)
-
-    # Example of how to ensure your points are 2D
-    end_points_gdf["geometry"] = end_points_gdf["geometry"].apply(
-        lambda geom: Point(geom.x, geom.y)
-        if geom.geom_type == "Point" and geom.has_z
-        else geom
-    )
+    end_points_gdf = remove_z_dims(end_points_gdf)
 
     # Step 1: Convert MultiLineStrings to LineStrings
-    hydroobjects["geometry"] = hydroobjects["geometry"].apply(
-        lambda geom: [LineString(part.coords) for part in geom.geoms]
-        if isinstance(geom, MultiLineString)
-        else geom
-    )
-
-    # Since the previous step might convert some geometries to lists, we need to flatten them
     hydroobjects = hydroobjects.explode("geometry").reset_index(drop=True)
-
-    # Step 2: Ensure that all LineStrings are 2D
-    hydroobjects["geometry"] = hydroobjects["geometry"].apply(
-        lambda geom: LineString([(x, y) for x, y, *_ in geom.coords])
-        if geom.has_z
-        else geom
-    )
-
-    hydroobjects = gpd.GeoDataFrame(hydroobjects, geometry="geometry", crs=28992)
+    hydroobjects = remove_z_dims(hydroobjects)
+    # hydroobjects = gpd.GeoDataFrame(hydroobjects, geometry="geometry", crs=28992)
 
     # Create 'NAAM' and 'status' if not present
     if "status" not in hydroobjects.columns:
@@ -250,7 +226,10 @@ def split_waterways_by_endpoints(hydroobjects, relevant_culverts):
         )
 
         # Remove segments with a length of 0 (created points that are already between 2 linestrings of gdf_lines)
-        gdf_segments = gdf_segments[gdf_segments.geometry.length > 0.0]
+        gdf_segments["geometry_len"] = gdf_segments.apply(
+            lambda x: sum([y.length for y in x["geometry"]]), axis=1
+        )
+        gdf_segments = gdf_segments[gdf_segments["geometry_len"] > 0.0]
 
         # Merge the geometries of the segments that are listed in geometry
         gdf_segments["geometry"] = gdf_segments.apply(
