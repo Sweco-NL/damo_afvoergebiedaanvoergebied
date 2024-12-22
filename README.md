@@ -3,7 +3,7 @@
 [Bekijk de uitgebreide documentatie via de read-the-docs](https://sweco-nl.github.io/generator_drainage_units/)
 
 ### Algemeen
-Deze python-toolbox is opgezet door Sweco Nederland binnen twee opdrachten met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren.
+Deze python-toolbox is opgezet door Sweco Nederland binnen twee opdrachten met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. Er is voor gekozen om open-source te werken. Er is geprobeerd om gestructureerd deze python-toolbox op te zetten en testdata en documentatie toe te voegen.
 
 ### Waterschap Vallei & Veluwe
 Op basis van een raster met een hoogtemodel (maaiveld of grondwaterstand) en een waternetwerk worden stroomgebiedjes afgeleid, ook wel afwateringseenheden of hydrologische eenheden genoemd.
@@ -14,8 +14,6 @@ Op basis van een raster met een hoogtemodel (maaiveld of grondwaterstand) en een
 ### Waterschap Aa en Maas
 Vraag om op basis van uitstroompunten (deel)stroomgebieden te genereren.
 - generator_network_lumping: Toolbox om voor gegeven uitstroompunten het bovenstroomse netwerk te lumpen en afvoergebieden of (deel)stroomgebieden te genereren.
-
-Er is voor gekozen om open-source te werken. Er wordt geprobeerd om gestructureerd deze python-toolbox op te zetten.
 
 ### Installatie environment
 We gebruiken pixi om de environment op orde te houden. Installatie van pixi (prefix.dev) kan via de Windows Powershell:
