@@ -29,3 +29,4 @@ We gebruiken ruff voor de code-formatting. Installatie ruff via:
 ```
 pixi global install ruff
 ```
+[Bekijk de documentatie](index.html)

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>DrainageUnits documentation &#8212; DrainageUnits 18/12 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=c058f7c8" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=ce19c7dc"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="generator_culverts_locations" href="generator_culverts_locations.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="Generator afwateringseenheden">
+<h1>Generator afwateringseenheden<a class="headerlink" href="#Generator afwateringseenheden" title="Link to this heading">¶</a></h1>
+<ul>
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Afwateringseenheden</title>
+</head>
+<body>
+    
+    <h2>Algemeen 2.0</h2>
+    <p>Deze python-toolbox is opgezet door Sweco Nederland in opdracht van waterschap Vallei & Veluwe met als doel om uit basisdata afwateringseenheden af te leiden. Op basis van een raster met een hoogtemodel (maaiveld of grondwaterstand) en een waternetwerk worden stroomgebieden afgeleid, ook wel afwateringseenheden of hydrologische eenheden. Middels een systematische codering van deze stroomgebieden kan men de stroomgebieden voor verschillende niveaus afleiden.</p>
+
+    <p>Er is voor gekozen om open-source te werken. Er wordt geprobeerd om gestructureerd deze python-toolbox op te zetten.</p>
+
+    <p>De toolbox bestaat uit een drietal onderdelen die samenwerken, maar ook onafhankelijk zijn te gebruiken:</p>
+    <ol>
+        <li>Generator locaties duikers: de overige watergangen (C-watergangen) moeten worden meegenomen, want die zijn (deels) bepalend in de afstroomrichting. Een sluitend netwerk is van belang en zeker op dat niveau zijn de duikers niet bekend (of niet compleet). Middels diverse algoritmes en regels worden de waterdelen en bestaande waternetwerk verbonden. Hierbij wordt de locatie van duikers ingeschat.</li>
+        <li>Generator orde-codering van het netwerk en daarmee voor de afwaterende eenheden (conform <a href="https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf">Leidraad Harmoniseren Afvoergebieden</a>).</li>
+        <li>Generator afwaterende eenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van o.a. <a href="https://gitlab.com/deltares/imod/respighi">RESPHIGI</a> en <a href="https://github.com/Deltares/pyflwdir">PyFlwDir van Deltares</a>.</li>
+    </ol>
+
+    <h2>Installatie environment</h2>
+    <p>We gebruiken pixi om de environment op orde te houden. Installatie van pixi (prefix.dev) kan via de Windows Powershell:</p>
+    <pre><code>iwr -useb https://pixi.sh/install.ps1 | iex</code></pre>
+    <p>Bouw de environment op conform pyproject.toml door vanuit de projectfolder in de command prompt/terminal het volgende te draaien:</p>
+    <pre><code>pixi install</code></pre>
+    <p>Om te voorkomen dat de output en metadata van de jupyter notebooks wordt gecommit, draai dit:</p>
+    <pre><code>git config filter.strip-notebook-output.clean 'jupyter nbconvert --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True --to=notebook --stdin --stdout --log-level=ERROR'</code></pre>
+    <p>We gebruiken ruff voor de code-formatting. Installatie ruff via:</p>
+    <pre><code>pixi global install ruff</code></pre>
+</body>
+<div class="toctree-wrapper compound">
+<h2 class="API" role="heading"><span class="caption-text">API:</span></h2>
+
+</html>
+<li class="toctree-l1"><a class="reference internal" href="generator_culverts_locations.html">generator_culverts_locations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generator_network_lumping.html">generator_network_lumping</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generator_order_levels.html">generator_order_levels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generator_drainage_units.html">generator_drainage_units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="preprocess.html">preprocess</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general_functions.html">general_functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.calculate_angle"><code class="docutils literal notranslate"><span class="pre">calculate_angle()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.calculate_angle_difference"><code class="docutils literal notranslate"><span class="pre">calculate_angle_difference()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.calculate_angle_end"><code class="docutils literal notranslate"><span class="pre">calculate_angle_end()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.calculate_angle_reverse"><code class="docutils literal notranslate"><span class="pre">calculate_angle_reverse()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.calculate_angle_start"><code class="docutils literal notranslate"><span class="pre">calculate_angle_start()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.check_and_flip"><code class="docutils literal notranslate"><span class="pre">check_and_flip()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.check_duplicate_codes"><code class="docutils literal notranslate"><span class="pre">check_duplicate_codes()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.find_edge_smallest_angle_difference"><code class="docutils literal notranslate"><span class="pre">find_edge_smallest_angle_difference()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.get_endpoints_from_lines"><code class="docutils literal notranslate"><span class="pre">get_endpoints_from_lines()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.line_to_vertices"><code class="docutils literal notranslate"><span class="pre">line_to_vertices()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.remove_holes_from_basin_areas"><code class="docutils literal notranslate"><span class="pre">remove_holes_from_basin_areas()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.remove_holes_from_polygons"><code class="docutils literal notranslate"><span class="pre">remove_holes_from_polygons()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.remove_z_dims"><code class="docutils literal notranslate"><span class="pre">remove_z_dims()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.shorten_line_two_vertices"><code class="docutils literal notranslate"><span class="pre">shorten_line_two_vertices()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.snap_unconnected_endpoints_to_endpoint_or_line"><code class="docutils literal notranslate"><span class="pre">snap_unconnected_endpoints_to_endpoint_or_line()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="general_functions.html#general_functions.split_waterways_by_endpoints"><code class="docutils literal notranslate"><span class="pre">split_waterways_by_endpoints()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="create_graph.html">Create Graph</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="create_graph.html#create_graph.add_basin_code_from_network_to_nodes_and_edges"><code class="docutils literal notranslate"><span class="pre">add_basin_code_from_network_to_nodes_and_edges()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="create_graph.html#create_graph.create_graph_based_on_nodes_edges"><code class="docutils literal notranslate"><span class="pre">create_graph_based_on_nodes_edges()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="create_graph.html#create_graph.create_graph_from_edges"><code class="docutils literal notranslate"><span class="pre">create_graph_from_edges()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="create_graph.html#create_graph.generate_nodes_from_edges"><code class="docutils literal notranslate"><span class="pre">generate_nodes_from_edges()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="network_functions.html">network_functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="folium_utils.html">folium_utils</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="folium_utils.html#folium_utils.add_basemaps_to_folium_map"><code class="docutils literal notranslate"><span class="pre">add_basemaps_to_folium_map()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="folium_utils.html#folium_utils.add_categorized_color_to_gdf"><code class="docutils literal notranslate"><span class="pre">add_categorized_color_to_gdf()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="folium_utils.html#folium_utils.add_categorized_lines_to_map"><code class="docutils literal notranslate"><span class="pre">add_categorized_lines_to_map()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="folium_utils.html#folium_utils.add_labels_to_points_lines_polygons"><code class="docutils literal notranslate"><span class="pre">add_labels_to_points_lines_polygons()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="folium_utils.html#folium_utils.add_lines_to_map"><code class="docutils literal notranslate"><span class="pre">add_lines_to_map()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="folium_utils.html#folium_utils.check_fields_aliases"><code class="docutils literal notranslate"><span class="pre">check_fields_aliases()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="folium_utils.html#folium_utils.check_map_exists_and_feature_group"><code class="docutils literal notranslate"><span class="pre">check_map_exists_and_feature_group()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pandas_xlsx_tables.html">pandas_xlsx_tables</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pandas_xlsx_tables.html#pandas_xlsx_tables.TableNotFound"><code class="docutils literal notranslate"><span class="pre">TableNotFound</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pandas_xlsx_tables.html#pandas_xlsx_tables.create_format_mapping"><code class="docutils literal notranslate"><span class="pre">create_format_mapping()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pandas_xlsx_tables.html#pandas_xlsx_tables.df_to_xlsx_table"><code class="docutils literal notranslate"><span class="pre">df_to_xlsx_table()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pandas_xlsx_tables.html#pandas_xlsx_tables.dfs_to_xlsx_tables"><code class="docutils literal notranslate"><span class="pre">dfs_to_xlsx_tables()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pandas_xlsx_tables.html#pandas_xlsx_tables.format_for_col"><code class="docutils literal notranslate"><span class="pre">format_for_col()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pandas_xlsx_tables.html#pandas_xlsx_tables.table_to_df"><code class="docutils literal notranslate"><span class="pre">table_to_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pandas_xlsx_tables.html#pandas_xlsx_tables.xlsx_table_to_df"><code class="docutils literal notranslate"><span class="pre">xlsx_table_to_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pandas_xlsx_tables.html#pandas_xlsx_tables.xlsx_tables_to_dfs"><code class="docutils literal notranslate"><span class="pre">xlsx_tables_to_dfs()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">DrainageUnits</a></h1>
+
+<search id="searchbox" style="display: block" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>     
+      document.getElementById('searchbox').style.display = "block";
+</script>
+        <h3>Navigation</h3>
+        <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+        <ul>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="generator_culverts_locations.html">generator_culverts_locations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generator_network_lumping.html">generator_network_lumping</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generator_order_levels.html">generator_order_levels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generator_drainage_units.html">generator_drainage_units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="preprocess.html">preprocess</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general_functions.html">general_functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="create_graph.html">Create Graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network_functions.html">network_functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="folium_utils.html">folium_utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pandas_xlsx_tables.html">pandas_xlsx_tables</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="generator_culverts_locations.html" title="next chapter">generator_culverts_locations</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, AnaisWens.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.0.2</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
