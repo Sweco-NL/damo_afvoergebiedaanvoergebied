@@ -44,6 +44,9 @@ class GeneratorNetworkLumping(GeneratorBasis):
     hydroobjecten: gpd.GeoDataFrame = None
     hydroobjecten_extra: gpd.GeoDataFrame = None
     rivieren: gpd.GeoDataFrame = None
+
+    hydroobjecten_processed: gpd.GeoDataFrame = None
+
     afwateringseenheden: gpd.GeoDataFrame = None
 
     inflow_outflow_points: gpd.GeoDataFrame = None

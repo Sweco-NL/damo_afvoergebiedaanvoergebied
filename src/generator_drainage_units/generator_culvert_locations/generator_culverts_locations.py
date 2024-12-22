@@ -70,6 +70,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
     outflow_points_overig_to_hydro: gpd.GeoDataFrame = None
 
     folium_map: folium.Map = None
+    folium_html_path: Path = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1075,7 +1076,13 @@ class GeneratorCulvertLocations(GeneratorBasis):
 
         return self.overige_watergangen_processed, self.combined_hydroobjecten
 
-    def generate_folium_map(self, base_map="OpenStreetMap"):
+    def generate_folium_map(
+        self, 
+        html_file_name=None, 
+        base_map="OpenStreetMap", 
+        open_html=False,
+        zoom_start=12
+    ):
         # Make figure
 
         hydro_4326 = self.hydroobjecten_processed.to_crs(4326)
@@ -1086,7 +1093,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
         center = [(bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2]
         m = folium.Map(
             location=center,
-            zoom_start=14,
+            zoom_start=zoom_start,
             tiles=None,
         )
 
@@ -1096,25 +1103,35 @@ class GeneratorCulvertLocations(GeneratorBasis):
             color="blue",
             fill_color="blue",
             zoom_on_click=True,
+            z_index=2,
+        ).add_to(m)
+
+        folium.GeoJson(
+            self.overige_watergangen.geometry,
+            name="C-Watergangen (zonder duikers)",
+            color="lightblue",
+            fill_color="blue",
+            zoom_on_click=True,
+            z_index=0,
+        ).add_to(m)
+
+        folium.GeoJson(
+            self.potential_culverts_4.geometry,
+            name="Gevonden Duikers",
+            color="red",
+            fill_color="blue",
+            zoom_on_click=True,
             z_index=1,
         ).add_to(m)
 
         folium.GeoJson(
             self.overige_watergangen_processed.geometry,
-            name="C-Watergangen",
-            color="cadetblue",
+            name="C-Watergangen (met verwerkte duikers)",
+            color="lightblue",
             fill_color="blue",
+            show=False,
             zoom_on_click=True,
-            z_index=1,
-        ).add_to(m)
-
-        folium.GeoJson(
-            self.potential_culverts_4.geometry,
-            name="Duikers",
-            color="red",
-            fill_color="blue",
-            zoom_on_click=True,
-            z_index=1,
+            z_index=0,
         ).add_to(m)
 
         m = add_basemaps_to_folium_map(m=m, base_map=base_map)
@@ -1122,4 +1139,14 @@ class GeneratorCulvertLocations(GeneratorBasis):
         folium.LayerControl(collapsed=False).add_to(m)
 
         self.folium_map = m
+        if html_file_name is None:
+            html_file_name = self.name
+
+        self.folium_html_path = Path(self.path, f"{html_file_name}.html")
+        m.save(self.folium_html_path)
+
+        logging.info(f"   x html file saved: {html_file_name}.html")
+
+        if open_html:
+            webbrowser.open(Path(self.path, f"{html_file_name}.html"))
         return m

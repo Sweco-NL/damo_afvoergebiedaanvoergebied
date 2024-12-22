@@ -13,17 +13,18 @@ def run_generator_network_lumping(
     include_areas: bool = True,
     no_inflow_outflow_points: int = None,
     detect_split_points: bool = False,
+    read_results: bool = True,
     write_results: bool = False,
     html_file_name: str = None,
     width_edges: float = 10.0,
     opacity_edges: float = 0.5,
 ):
     network = GeneratorNetworkLumping(
+        path=path,
         dir_basis_data=dir_basis_data,
         dir_inter_results=dir_inter_results,
         dir_results=dir_results
     )
-    network.read_data_from_case(path=path)
     network.create_graph_from_network(water_lines=water_lines)
 
     network.find_upstream_downstream_nodes_edges(
