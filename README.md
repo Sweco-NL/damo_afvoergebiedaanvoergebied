@@ -1,6 +1,6 @@
 ## Netwerk analyses op basis van hydrologische basis data: o.a. afwateringseenheden, stroomgebieden, locaties duikers, orde-codering
 
-[Bekijk de uitgebreide documentatie via de read-the-docs](index.html)
+[Bekijk de uitgebreide documentatie via de read-the-docs]([index.html](https://sweco-nl.github.io/generator_drainage_units/))
 
 ### Algemeen
 Deze python-toolbox is opgezet door Sweco Nederland binnen twee opdrachten met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren.
