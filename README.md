@@ -1,23 +1,23 @@
-# Netwerk analyses op basis van hydrologische basis data: o.a. afwateringseenheden, stroomgebieden, locaties duikers, orde-codering
+## Netwerk analyses op basis van hydrologische basis data: o.a. afwateringseenheden, stroomgebieden, locaties duikers, orde-codering
 
 [Bekijk de uitgebreide documentatie via de read-the-docs](index.html)
 
-## Algemeen
-Deze python-toolbox is opgezet door Sweco Nederland binnen twee opdrachten met als doel om uit basisdata netwerk analyses uit te voeren.
+### Algemeen
+Deze python-toolbox is opgezet door Sweco Nederland binnen twee opdrachten met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren.
 
-1. Waterschap Vallei & Veluwe: Op basis van een raster met een hoogtemodel (maaiveld of grondwaterstand) en een waternetwerk worden stroomgebiedjes afgeleid, ook wel afwateringseenheden of hydrologische eenheden genoemd.
-    a. generator_culvert_locations: 
-        - Voortbouwend op een al bestaande 'duikergenerator' worden de locaties van duikers bepaald. Dit gebeurd op basis van (configureerbare) regels, die rekening houden met kruizingen van wegen en peilgebiedsgrenzen, de lengte van de duiker (hoe lager, hoe beter) en de richting van de duiker ten opzichte van de watergang (zelfde hoek heeft voorkeur). 
-    b. generator_order_levels: orde-codering van het netwerk en daarmee voor de afwaterende eenheden (conform [Leidraad Harmoniseren Afvoergebieden](https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf))
-    c. generator_drainage_units: Generator afwaterende eenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van o.a. [RESPHIGI](https://gitlab.com/deltares/imod/respighi) en [PyFlwDir van Deltares](https://github.com/Deltares/pyflwdir)
+### Waterschap Vallei & Veluwe
+Op basis van een raster met een hoogtemodel (maaiveld of grondwaterstand) en een waternetwerk worden stroomgebiedjes afgeleid, ook wel afwateringseenheden of hydrologische eenheden genoemd.
+1. generator_culvert_locations: Voortbouwend op een al bestaande 'duikergenerator' worden de locaties van duikers bepaald. Dit gebeurd op basis van (configureerbare) regels, die rekening houden met kruizingen van wegen en peilgebiedsgrenzen, de lengte van de duiker (hoe lager, hoe beter) en de richting van de duiker ten opzichte van de watergang (zelfde hoek heeft voorkeur). 
+2. generator_order_levels: orde-codering van het netwerk en daarmee voor de afwaterende eenheden (conform [Leidraad Harmoniseren Afvoergebieden](https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf))
+3. generator_drainage_units: Generator afwaterende eenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van o.a. [RESPHIGI](https://gitlab.com/deltares/imod/respighi) en [PyFlwDir van Deltares](https://github.com/Deltares/pyflwdir)
 
-2. Waterschap Aa en Maas: Vraag om op basis van uitstroompunten (deel)stroomgebieden te genereren.
-    a. generator_network_lumping: Toolbox om netwerk te lumpen en afvoergebieden of (deel)stroomgebieden te genereren voor bepaalde uitstroompunten.
-
+### Waterschap Aa en Maas
+Vraag om op basis van uitstroompunten (deel)stroomgebieden te genereren.
+1. generator_network_lumping: Toolbox om netwerk te lumpen en afvoergebieden of (deel)stroomgebieden te genereren voor bepaalde uitstroompunten.
 
 Er is voor gekozen om open-source te werken. Er wordt geprobeerd om gestructureerd deze python-toolbox op te zetten.
 
-## Installatie environment
+### Installatie environment
 We gebruiken pixi om de environment op orde te houden. Installatie van pixi (prefix.dev) kan via de Windows Powershell:
 ```
 iwr -useb https://pixi.sh/install.ps1 | iex
