@@ -388,6 +388,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         logging_message = f"     - order levels generated: {len_edges_with_order} edges - {len_edges_without_order} left"
         logging.info(logging_message)
 
+
     def generate_order_code_for_edges(self, order_for_each_edge=False):
         logging.info(f"   x generate order code for edges")
         edges = (
@@ -609,8 +610,10 @@ class GeneratorOrderLevels(GeneratorBasis):
             .reset_index(drop=True)
             .drop(columns=["edge_codes"])
         )
-
-        self.edges = self.edges.merge(
+        self.edges = self.edges.drop(
+            columns=["no_edge_codes", "order_code_no", "order_code"],
+            errors="ignore"
+        ).merge(
             edges_outflow_edges_all[
                 ["code", "no_edge_codes", "order_code_no", "order_code"]
             ],

@@ -38,7 +38,6 @@ def run_generator_culvert_locations(
     """
     start_time = time.time()
     culverts_generator = GeneratorCulvertLocations(
-        path=path, read_results=read_results, write_results=write_results
         path=path, 
         preprocess_hydroobjecten=preprocess_hydroobjecten,
         read_results=read_results, 
