@@ -1,4 +1,4 @@
-# Generatoren netwerk analyses: o.a. afwateringseenheden, stroomgebieden, locaties duikers, orde-codering
+# Netwerk analyses op basis van hydrologische basis data: o.a. afwateringseenheden, stroomgebieden, locaties duikers, orde-codering
 
 [Bekijk de uitgebreide documentatie via de read-the-docs](index.html)
 
