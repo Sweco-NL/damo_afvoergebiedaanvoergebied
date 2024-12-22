@@ -71,49 +71,53 @@ def find_predecessors_graph_with_splits(
         p = pred_node[i]
         e = pred_edge[i]
 
+        # if edge_id in ["WL_88", "WL_86", "WL_284"]: #"WL_269", "WL_106618-0", "WL_271-8"]:
+        #     logging.debug("xxxxxxxxxxxx")
+        #     logging.debug(edge_id)
+        #     logging.debug(from_node)
+        #     logging.debug(pred_node)
+        #     logging.debug(pred_edge)
+        #     logging.debug(split_node_edge_ids2)
+        #     logging.debug(split_node_edge_ids2[from_node])
+        #     logging.debug("xxxxxxxxxxxx")
+
         if (
             split_node_edge_ids2 is not None
             and from_node in split_node_edge_ids2
             and split_node_edge_ids2[from_node] != e
         ):
+            # logging.debug(e)
             new_outflow_edges = new_outflow_edges + [e]
             continue
 
-        if p in [448, 440]:
-            logging.debug(from_node)
-            logging.debug(pred_node)
-            logging.debug(pred_edge)
-            logging.debug(p)
-            logging.debug(e)
-            logging.debug(split_node_edge_ids2)
-            logging.debug(split_node_edge_ids2[from_node])
-            logging.debug(border_node_ids)
+        if e in pred_edges:
+            continue
 
-        if e not in pred_edges:
-            pred_edges = pred_edges + [e]
+        pred_edges = pred_edges + [e]
+        pred_nodes = pred_nodes + [int(p)]
 
-        if p not in pred_nodes:
-            pred_nodes = pred_nodes + [int(p)]
-            if border_node_ids is None or p not in border_node_ids:
-                if (
-                    split_node_edge_ids is None
-                    or p not in split_node_edge_ids
-                    or split_node_edge_ids[p] == e
-                ):
-                    pred_nodes, pred_edges, new_outflow_edges = (
-                        find_predecessors_graph_with_splits(
-                            from_node_ids,
-                            to_node_ids,
-                            edge_ids,
-                            e,
-                            border_node_ids,
-                            split_node_edge_ids,
-                            split_node_edge_ids2,
-                            pred_nodes,
-                            pred_edges,
-                            new_outflow_edges,
-                        )
-                    )
+        if border_node_ids is not None and p in border_node_ids:
+            continue
+
+        if (
+            split_node_edge_ids is None
+            or p not in split_node_edge_ids
+            or split_node_edge_ids[p] == e
+        ):
+            pred_nodes, pred_edges, new_outflow_edges = (
+                find_predecessors_graph_with_splits(
+                    from_node_ids,
+                    to_node_ids,
+                    edge_ids,
+                    e,
+                    border_node_ids,
+                    split_node_edge_ids,
+                    split_node_edge_ids2,
+                    pred_nodes,
+                    pred_edges,
+                    new_outflow_edges,
+                )
+            )
     return pred_nodes, pred_edges, new_outflow_edges
 
 
@@ -222,16 +226,6 @@ def find_node_edge_ids_in_directed_graph(
                 p for p in pred_edges if p in search_edge_ids
             ]
     else:
-        # border_node_ids2 = split_points.loc[
-        #     (split_points[f"no_{search_direction}_edges"]>1) &
-        #     split_points[f"selected_{search_direction}_edge"].isna(),
-        #     "nodeID"
-        # ].values.tolist()
-        # if border_node_ids is None:
-        #     border_node_ids = border_node_ids2
-        # else:
-        #     border_node_ids = border_node_ids + border_node_ids2
-
         split_node_edge_ids = split_points.set_index("nodeID")[
             f"selected_{search_direction}_edge"
         ].to_dict()
