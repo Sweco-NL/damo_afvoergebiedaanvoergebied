@@ -121,7 +121,35 @@ class GeneratorBasis(BaseModel):
             if self.dir_results is not None and self.dir_results.exists():
                 read_attributes_from_folder(self.dir_results)
 
-    
+
+    def preprocess_hydroobjecten(self, preprocessed_file="preprocessed"):
+        hydroobjecten_preprocessed_file = None
+        for dir_results in [self.dir_inter_results, self.dir_results]:
+            if dir_results is None:
+                continue
+            files_in_dir = [f for f in dir_results.glob("**/*")]
+            for f in files_in_dir:
+                if f"hydroobjecten_{preprocessed_file}" == f.stem:
+                    hydroobjecten_preprocessed_file = f
+
+        if hydroobjecten_preprocessed_file is None:
+            logging.debug(
+                f"hydroobjecten_snap_split.gpkg not in directory, preprocessing hydroobjecten"
+            )
+            self.hydroobjecten, hydroobjecten_snapped = preprocess_hydroobjecten(self.hydroobjecten)
+            hydroobjecten_snapped.to_file(
+                Path(self.dir_basisdata, "hydroobjecten_snapped.gpkg"),
+                layer="hydroobjecten_snapped",
+            )
+            self.hydroobjecten.to_file(
+                Path(self.dir_basisdata, "hydroobjecten_preprocessed.gpkg"),
+                layer="hydroobjecten_preprocessed",
+            )
+        else:
+            logging.debug("get dataset preprocessed hydroobjecten")
+            self.hydroobjecten = gpd.read_file(hydroobjecten_preprocessed_file)
+
+
     def use_processed_hydroobjecten(self, processed_file="processed"):
         for watergang in ["hydroobjecten", "overige_watergangen"]:
             if getattr(self, watergang, None) is None:
