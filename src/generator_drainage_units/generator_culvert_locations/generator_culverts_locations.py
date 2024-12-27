@@ -103,7 +103,11 @@ class GeneratorCulvertLocations(GeneratorBasis):
             logging.debug(
                 f"    - hydroobjecten_preprocessed.gpkg not in directory, preprocessing hydroobjecten"
             )
-            self.hydroobjecten = preprocess_hydroobjecten(self.hydroobjecten)
+            self.hydroobjecten, hydroobjecten_snapped = preprocess_hydroobjecten(self.hydroobjecten)
+            hydroobjecten_snapped.to_file(
+                Path(self.dir_basisdata, "hydroobjecten_snapped.gpkg"),
+                layer="hydroobjecten_snapped",
+            )
             self.hydroobjecten.to_file(
                 Path(self.dir_basisdata, "hydroobjecten_preprocessed.gpkg"),
                 layer="hydroobjecten_preprocessed",
@@ -234,7 +238,9 @@ class GeneratorCulvertLocations(GeneratorBasis):
         if isinstance(write_results, bool):
             self.write_results = write_results
 
-        if not isinstance(max_culvert_length) or max_culvert_length >= 0.0:
+        if not (isinstance(max_culvert_length, int) \
+            or isinstance(max_culvert_length, float)) \
+            or max_culvert_length <= 0.0:
             raise ValueError(" x max_culvert_length is not a correct value")
         else:
             self.max_culvert_length = max_culvert_length
