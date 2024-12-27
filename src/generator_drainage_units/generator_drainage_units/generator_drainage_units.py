@@ -17,7 +17,7 @@ from pydantic import BaseModel, ConfigDict
 
 from ..generator_basis import GeneratorBasis
 from ..utils.create_graph import create_graph_from_edges
-from ..utils.folium_utils import add_basemaps_to_folium_map
+from ..utils.folium_utils import add_basemaps_to_folium_map, add_categorized_lines_to_map, add_labels_to_points_lines_polygons
 from ..utils.network_functions import find_nodes_edges_for_direction
 
 
@@ -44,6 +44,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
 
     ghg: xarray.Dataset = None
     afwateringseenheden: gpd.GeoDataFrame = None
+    outflow_nodes: gpd.GeoDataFrame = None
 
     edges: gpd.GeoDataFrame = None
     nodes: gpd.GeoDataFrame = None
@@ -53,9 +54,15 @@ class GeneratorDrainageUnits(GeneratorBasis):
     folium_map: folium.Map = None
     folium_html_path: str = None
 
-    def generate_folium_map(self, base_map="OpenStreetMap"):
+    def generate_folium_map(
+        self, 
+        base_map="Light Mode", 
+        html_file_name=None, 
+        open_html=False, 
+        order_labels=False
+    ):
         # Make figure
-        outflow_nodes_4326 = self.outflow_nodes_all.to_crs(4326)
+        outflow_nodes_4326 = self.outflow_nodes.to_crs(4326)
 
         m = folium.Map(
             location=[
@@ -66,57 +73,74 @@ class GeneratorDrainageUnits(GeneratorBasis):
             tiles=None,
         )
 
-        folium.GeoJson(
-            self.rws_wateren.geometry,
-            name="RWS_Wateren",
-            z_index=0,
-        ).add_to(m)
-
         if "order_no" in self.edges.columns:
             add_categorized_lines_to_map(
                 m=m,
-                lines_gdf=self.edges[self.edges["order_no"] > 1],
-                layer_name="Orde watergangen",
+                # feature_group=fg,
+                lines_gdf=self.edges[self.edges["order_no"] > 1][
+                    ["code", "order_no", "geometry"]
+                ],
+                layer_name="Orde-nummer watergangen",
                 control=True,
                 lines=True,
                 line_color_column="order_no",
-                label=True,
-                label_column="order_no",
-                label_decimals=0,
+                line_color_cmap="hsv",
+                label=False,
                 line_weight=5,
                 z_index=1,
             )
-        folium.GeoJson(
-            self.hydroobjecten.geometry,  # .buffer(10),
-            name="Watergangen",
-            color="blue",
-            fill_color="blue",
-            zoom_on_click=True,
-            show=False,
-            z_index=1,
-        ).add_to(m)
 
-        folium.GeoJson(
-            self.dead_end_nodes,
-            name="Outflow points",
-            marker=folium.Circle(
-                radius=10,
-                fill_color="orange",
-                fill_opacity=0.4,
-                color="orange",
-                weight=3,
-            ),
-            highlight_function=lambda x: {"fillOpacity": 0.8},
-            zoom_on_click=True,
-            z_index=2,
-        ).add_to(m)
+            if order_labels and "order_no" in self.edges.columns:
+                fg = folium.FeatureGroup(
+                    name=f"Orde-nummer watergangen (labels)",
+                    control=True,
+                    show=False,
+                ).add_to(m)
+
+                add_labels_to_points_lines_polygons(
+                    gdf=self.edges[self.edges["order_no"] > 1][
+                        ["code", "order_no", "geometry"]
+                    ],
+                    column="order_no",
+                    label_fontsize=8,
+                    label_decimals=0,
+                    fg=fg,
+                )
+
+            if order_labels and "order_code" in self.edges.columns:
+                fg = folium.FeatureGroup(
+                    name=f"Orde-code watergangen (labels)",
+                    control=True,
+                    show=False,
+                ).add_to(m)
+
+                self.edges["order_code"].fill = ""
+
+                add_labels_to_points_lines_polygons(
+                    gdf=self.edges[self.edges["order_no"] > 1][
+                        ["code", "order_code", "geometry"]
+                    ],
+                    column="order_code",
+                    label_fontsize=8,
+                    fg=fg,
+                )
+        else:
+            folium.GeoJson(
+                self.hydroobjecten.geometry,
+                name="Watergangen",
+                color="blue",
+                fill_color="blue",
+                zoom_on_click=True,
+                show=False,
+                z_index=2,
+            ).add_to(m)
 
         fg = folium.FeatureGroup(
             name=f"Uitstroompunten RWS-water", control=True
         ).add_to(m)
 
         folium.GeoJson(
-            self.outflow_nodes_all,
+            self.outflow_nodes[self.outflow_nodes["order_no"]==2],
             name="Uitstroompunten RWS-wateren",
             marker=folium.Circle(
                 radius=25, fill_color="red", fill_opacity=0.4, color="red", weight=3
@@ -127,11 +151,24 @@ class GeneratorDrainageUnits(GeneratorBasis):
         ).add_to(fg)
 
         add_labels_to_points_lines_polygons(
-            gdf=self.outflow_nodes_all, column="order_code", label_fontsize=8, fg=fg
+            gdf=self.outflow_nodes[self.outflow_nodes["order_no"]==2],
+            column="order_code", 
+            label_fontsize=8, 
+            fg=fg
         )
         m = add_basemaps_to_folium_map(m=m, base_map=base_map)
 
         folium.LayerControl(collapsed=False).add_to(m)
 
         self.folium_map = m
+        if html_file_name is None:
+            html_file_name = self.name
+
+        self.folium_html_path = Path(self.path, f"{html_file_name}.html")
+        m.save(self.folium_html_path)
+
+        logging.info(f"   x html file saved: {html_file_name}.html")
+
+        if open_html:
+            webbrowser.open(Path(self.path, f"{html_file_name}.html"))
         return m

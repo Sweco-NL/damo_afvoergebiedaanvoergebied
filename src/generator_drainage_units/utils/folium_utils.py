@@ -248,7 +248,7 @@ def add_labels_to_points_lines_polygons(
             _label.add_to(fg)
 
 
-def add_basemaps_to_folium_map(m: folium.Map, base_map="OpenStreetMap"):
+def add_basemaps_to_folium_map(m: folium.Map, base_map="Light Mode"):
     m.tiles = None
     basemaps = ["ESRI Luchtfoto", "Dark Mode", "Light Mode", "OpenStreetMap"]
     basemap_types = [

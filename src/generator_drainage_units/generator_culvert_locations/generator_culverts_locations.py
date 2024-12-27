@@ -19,7 +19,7 @@ from ..utils.general_functions import (
     calculate_angle_difference,
     calculate_angle_reverse,
 )
-from ..utils.folium_utils import add_basemaps_to_folium_map
+from ..utils.folium_utils import add_basemaps_to_folium_map, add_categorized_lines_to_map
 from ..utils.preprocess import preprocess_hydroobjecten
 
 import warnings
@@ -1079,7 +1079,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
     def generate_folium_map(
         self, 
         html_file_name=None, 
-        base_map="OpenStreetMap", 
+        base_map="Light Mode", 
         open_html=False,
         zoom_start=12
     ):
