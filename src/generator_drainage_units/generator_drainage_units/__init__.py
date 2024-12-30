@@ -1,4 +1,3 @@
-
 import logging
 import time
 from pathlib import Path
@@ -16,7 +15,7 @@ def run_generator_drainage_units(
     read_results: bool = False,
     write_results: bool = False,
     create_html_map: bool = False,
-    water_lines: list[str] = ["hydroobjecten"]
+    water_lines: list[str] = ["hydroobjecten"],
 ) -> GeneratorDrainageUnits:
     """Run Generator Culvert Locations (Duikergenerator)
 
@@ -38,11 +37,11 @@ def run_generator_drainage_units(
     """
     start_time = time.time()
     gdu = GeneratorDrainageUnits(
-        path=path, 
-        read_results=read_results, 
-        write_results=write_results
+        path=path, read_results=read_results, write_results=write_results
     )
-    gdu.ghg = xr.open_dataset(Path(gdu.path, gdu.dir_basis_data, ghg_file_name))["__xarray_dataarray_variable__"][0]
+    gdu.ghg = xr.open_dataset(Path(gdu.path, gdu.dir_basis_data, ghg_file_name))[
+        "__xarray_dataarray_variable__"
+    ][0]
     gdu.ghg.name = "GHG_2000-2010_L1"
 
     # create map

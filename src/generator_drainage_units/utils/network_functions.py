@@ -433,15 +433,11 @@ def define_list_upstream_downstream_edges_ids(
             left_on=nodes_id_column,
             right_on=node_end,
         )
-        nodes_sel[f"{direction}_edges"] = (
-            direction_edges
-            .groupby(nodes_id_column)
-            .agg({edges_id_column: list})
+        nodes_sel[f"{direction}_edges"] = direction_edges.groupby(nodes_id_column).agg(
+            {edges_id_column: list}
         )
         nodes_sel[f"no_{direction}_edges"] = nodes_sel[f"{direction}_edges"].apply(
-            lambda x: len(x)
-            if ~(isinstance(x[0], float) and np.isnan(x[0]))
-            else 0
+            lambda x: len(x) if ~(isinstance(x[0], float) and np.isnan(x[0])) else 0
         )
         nodes_sel[f"{direction}_edges"] = nodes_sel[f"{direction}_edges"].apply(
             lambda x: ",".join(x)

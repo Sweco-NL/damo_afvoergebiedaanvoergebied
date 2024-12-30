@@ -23,7 +23,7 @@ def run_generator_network_lumping(
         path=path,
         dir_basis_data=dir_basis_data,
         dir_inter_results=dir_inter_results,
-        dir_results=dir_results
+        dir_results=dir_results,
     )
     network.create_graph_from_network(water_lines=water_lines)
 

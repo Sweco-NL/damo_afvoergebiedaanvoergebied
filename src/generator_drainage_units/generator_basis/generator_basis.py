@@ -31,14 +31,12 @@ class GeneratorBasis(BaseModel):
 
     results: list = None
 
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if self.path is not None:
             self.check_case_path_directory(path=self.path)
             self.read_data_from_case()
             self.use_processed_hydroobjecten()
-
 
     def check_case_path_directory(self, path: Path):
         """Checks if case directory exists and if required directory structure exists
@@ -85,7 +83,6 @@ class GeneratorBasis(BaseModel):
         logging.debug(f"    - dir interresults = {self.dir_inter_results}")
         logging.debug(f"    - dir results      = {self.dir_results}")
 
-
     def read_data_from_case(self, path: Path = None, read_results: bool = None):
         """Read data from case: including basis data and intermediate results
 
@@ -121,7 +118,6 @@ class GeneratorBasis(BaseModel):
             if self.dir_results is not None and self.dir_results.exists():
                 read_attributes_from_folder(self.dir_results)
 
-    
     def use_processed_hydroobjecten(self, processed_file="processed"):
         for watergang in ["hydroobjecten", "overige_watergangen"]:
             if getattr(self, watergang, None) is None:

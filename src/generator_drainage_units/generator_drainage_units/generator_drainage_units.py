@@ -17,7 +17,11 @@ from pydantic import BaseModel, ConfigDict
 
 from ..generator_basis import GeneratorBasis
 from ..utils.create_graph import create_graph_from_edges
-from ..utils.folium_utils import add_basemaps_to_folium_map, add_categorized_lines_to_map, add_labels_to_points_lines_polygons
+from ..utils.folium_utils import (
+    add_basemaps_to_folium_map,
+    add_categorized_lines_to_map,
+    add_labels_to_points_lines_polygons,
+)
 from ..utils.network_functions import find_nodes_edges_for_direction
 
 
@@ -55,11 +59,11 @@ class GeneratorDrainageUnits(GeneratorBasis):
     folium_html_path: str = None
 
     def generate_folium_map(
-        self, 
-        base_map="Light Mode", 
-        html_file_name=None, 
-        open_html=False, 
-        order_labels=False
+        self,
+        base_map="Light Mode",
+        html_file_name=None,
+        open_html=False,
+        order_labels=False,
     ):
         # Make figure
         outflow_nodes_4326 = self.outflow_nodes.to_crs(4326)
@@ -140,7 +144,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
         ).add_to(m)
 
         folium.GeoJson(
-            self.outflow_nodes[self.outflow_nodes["order_no"]==2],
+            self.outflow_nodes[self.outflow_nodes["order_no"] == 2],
             name="Uitstroompunten RWS-wateren",
             marker=folium.Circle(
                 radius=25, fill_color="red", fill_opacity=0.4, color="red", weight=3
@@ -151,10 +155,10 @@ class GeneratorDrainageUnits(GeneratorBasis):
         ).add_to(fg)
 
         add_labels_to_points_lines_polygons(
-            gdf=self.outflow_nodes[self.outflow_nodes["order_no"]==2],
-            column="order_code", 
-            label_fontsize=8, 
-            fg=fg
+            gdf=self.outflow_nodes[self.outflow_nodes["order_no"] == 2],
+            column="order_code",
+            label_fontsize=8,
+            fg=fg,
         )
         m = add_basemaps_to_folium_map(m=m, base_map=base_map)
 

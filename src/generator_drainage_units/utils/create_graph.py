@@ -7,12 +7,14 @@ import logging
 import logging
 
 
-def create_graph_from_edges(edges: gpd.GeoDataFrame, directed=True):
+def create_graph_from_edges(
+    edges: gpd.GeoDataFrame, directed=True, integer_labels=True
+):
     G = momepy.gdf_to_nx(
         edges,
         approach="primal",
         directed=directed,
-        integer_labels=True,
+        integer_labels=integer_labels,
         length="geom_length",
     )
     nodes, edges = momepy.nx_to_gdf(G)
