@@ -1,6 +1,6 @@
-## Workflows hydrologische basis data waterschappen: o.a. voorbewerking, locaties duikers, afwateringseenheden, stroomgebieden, orde-codering
+## Workflows hydrologische basis data waterschappen: o.a. voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afwateringseenheden, stroomgebieden afleiden, automatische orde-codering.
 
-[Bekijk de uitgebreide documentatie via de read-the-docs](https://sweco-nl.github.io/generator_drainage_units/)
+Bekijk de uitgebreide documentatie via de [read-the-docs](https://sweco-nl.github.io/generator_drainage_units/)
 
 ### Algemeen
 Deze python-toolbox is opgezet door Sweco Nederland binnen twee opdrachten met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. Er is voor gekozen om open-source te werken. Er is geprobeerd om gestructureerd deze python-toolbox op te zetten en testdata en documentatie toe te voegen.
