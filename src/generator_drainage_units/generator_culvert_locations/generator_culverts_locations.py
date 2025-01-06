@@ -16,6 +16,7 @@ from ..utils.create_graph import create_graph_from_edges
 from ..utils.folium_utils import (
     add_basemaps_to_folium_map,
     add_categorized_lines_to_map,
+    add_labels_to_points_lines_polygons,
 )
 from ..utils.general_functions import (
     calculate_angle_difference,
@@ -1100,7 +1101,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
         return self.overige_watergangen_processed_2
 
     def get_shortest_path_from_overige_watergangen_to_hydroobjects(
-        self, write_results=True
+        self, write_results=False
     ):
         logging.info(f"   x redirect 'overige watergangen' based on shortest path")
         # create networkx graph
@@ -1259,15 +1260,53 @@ class GeneratorCulvertLocations(GeneratorBasis):
             z_index=1,
         ).add_to(m)
 
-        folium.GeoJson(
-            self.overige_watergangen_processed.geometry,
-            name="C-Watergangen (met verwerkte duikers)",
-            color="lightblue",
-            fill_color="blue",
-            show=False,
-            zoom_on_click=True,
-            z_index=0,
-        ).add_to(m)
+        if self.overige_watergangen_processed_3 is not None:
+            add_categorized_lines_to_map(
+                m=m,
+                lines_gdf=self.overige_watergangen_processed_3,
+                layer_name=f"C-Watergangen (met verwerkte duikers)",
+                control=True,
+                lines=True,
+                line_color_column="outflow_node",
+                line_color_cmap=None,
+                show=False,
+                z_index=1,
+            )
+
+            if "outflow_node" in self.overige_watergangen_processed_3.columns:
+                fg = folium.FeatureGroup(
+                    name=f"C-Watergangen uitstroompunten",
+                    control=True,
+                    show=False,
+                ).add_to(m)
+
+                add_labels_to_points_lines_polygons(
+                    gdf=self.overige_watergangen_processed_3,
+                    column="outflow_node",
+                    label_fontsize=6,
+                    label_decimals=0,
+                    fg=fg,
+                )
+
+                folium.GeoJson(
+                    self.outflow_nodes_overige_watergangen.geometry,
+                    marker=folium.Circle(
+                        radius=5,
+                        fill_color="darkgrey",
+                        fill_opacity=0.5,
+                        color="darkgrey",
+                        weight=1,
+                        z_index=1,
+                    ),
+                ).add_to(fg)
+
+                add_labels_to_points_lines_polygons(
+                    gdf=self.outflow_nodes_overige_watergangen,
+                    column="nodeID",
+                    label_fontsize=8,
+                    label_decimals=0,
+                    fg=fg,
+                )
 
         m = add_basemaps_to_folium_map(m=m, base_map=base_map)
 
@@ -1282,7 +1321,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
         )
         m.save(self.folium_html_path)
 
-        logging.info(f"   x html file saved: {html_file_name}.html")
+        logging.info(f"   x html file saved: {html_file_name}_culvert_locations.html")
 
         if open_html:
             webbrowser.open(Path(self.path, f"{html_file_name}.html"))

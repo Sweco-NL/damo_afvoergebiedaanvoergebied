@@ -1,15 +1,16 @@
 import folium
 import geopandas as gpd
+import matplotlib
 import numpy as np
 import pandas as pd
-from shapely.geometry import LineString, Point, Polygon
-import matplotlib
+import random
 from folium.plugins import (
     FeatureGroupSubGroup,
-    MeasureControl,
     FloatImage,
     MarkerCluster,
+    MeasureControl,
 )
+from shapely.geometry import LineString, Point, Polygon
 
 
 def check_map_exists_and_feature_group(
@@ -145,11 +146,19 @@ def add_categorized_color_to_gdf(
         if names is None:
             names = [name for name in gdf[color_column].unique() if name is not None]
         if colors is None or len(names) != len(colors):
-            cmap = matplotlib.cm.get_cmap(colormap)
-            colors = [
-                matplotlib.colors.rgb2hex(cmap(float(i) / float(len(names) - 1)))
-                for i in range(len(names))
-            ]
+            if colormap is not None:
+                cmap = matplotlib.cm.get_cmap(colormap)
+                colors = [
+                    matplotlib.colors.rgb2hex(cmap(float(i) / float(len(names) - 1)))
+                    for i in range(len(names))
+                ]
+            else:
+                cmap = matplotlib.cm.get_cmap("hsv")
+                colors = [
+                    matplotlib.colors.rgb2hex(cmap(float(i) / float(len(names) - 1)))
+                    for i in range(len(names))
+                ]
+                random.shuffle(colors)
         gdf[new_name_column] = "-----------"
         gdf[new_color_column] = "rgba(0,0,0,0)"
         for name, color in zip(names, colors):
