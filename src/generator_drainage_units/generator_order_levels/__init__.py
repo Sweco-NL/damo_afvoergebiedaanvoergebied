@@ -37,14 +37,12 @@ def run_generator_order_levels(
 
         order.select_downstream_upstream_edges(min_difference_angle=20.0)
 
-        order.find_end_points_hydroobjects()
-
         order.generate_rws_code_for_all_outflow_points(buffer_rws=buffer_rws)
 
         order.generate_orde_level_for_hydroobjects()
 
     if generate_order_code:
-        order.generate_order_code_for_edges(order_for_each_edge=order_for_each_edge)
+        order.generate_order_code_for_hydroobjects(order_for_each_edge=order_for_each_edge)
 
     if write_results:
         order.export_results_to_gpkg()

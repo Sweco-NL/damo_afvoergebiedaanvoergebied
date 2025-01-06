@@ -130,7 +130,7 @@ class GeneratorBasis(BaseModel):
                     continue
                 files_in_dir = [f for f in dir_results.glob("**/*")]
                 for f in files_in_dir:
-                    if f.stem == f"{watergang}_{processed_file}":
+                    if f"{watergang}_{processed_file}" in f.stem:
                         watergang_processed_file = f
 
             if watergang_processed_file is not None:

@@ -70,17 +70,20 @@ class GeneratorCulvertLocations(GeneratorBasis):
     potential_culverts_5: gpd.GeoDataFrame = None  # resultaat met flips
 
     # hydroobjecten including splits by culverts
-    hydroobjecten_processed: gpd.GeoDataFrame = None
+    hydroobjecten_processed_0: gpd.GeoDataFrame = None
     # overige_watergangen including splits by culverts
-    overige_watergangen_processed: gpd.GeoDataFrame = None
+    overige_watergangen_processed_0: gpd.GeoDataFrame = None
     # overige_watergangen including splits by culverts and post process
     overige_watergangen_processed_1: gpd.GeoDataFrame = None
     # overige_watergangen including splits by culverts
     overige_watergangen_processed_2: gpd.GeoDataFrame = None
-    # outflow points from overige watergangen to hydroobjecten
-    outflow_nodes_overige_watergangen: gpd.GeoDataFrame = None
+
     # overige_watergangen including outflow_node to hydroobjects and redirected
     overige_watergangen_processed_3: gpd.GeoDataFrame = None
+    overige_watergangen_processed_3_nodes: gpd.GeoDataFrame = None
+
+    # outflow points from overige watergangen to hydroobjecten
+    outflow_nodes_overige_watergangen: gpd.GeoDataFrame = None
 
     folium_map: folium.Map = None
     folium_html_path: Path = None
@@ -90,8 +93,10 @@ class GeneratorCulvertLocations(GeneratorBasis):
         if self.path is not None:
             self.generate_or_use_preprocessed_hydroobjecten()
 
+
     def use_processed_hydroobjecten(self):
         logging.debug("    - culvert generator will generate processed hydroobjecten")
+
 
     def generate_or_use_preprocessed_hydroobjecten(
         self, preprocessed_file="preprocessed"
@@ -107,7 +112,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
 
         if hydroobjecten_preprocessed_file is None:
             logging.debug(
-                f"hydroobjecten_snap_split.gpkg not in directory, preprocessing hydroobjecten"
+                "    - hydroobjecten_snap_split.gpkg not in directory, preprocessing hydroobjecten"
             )
             dir_results = (
                 self.dir_results
@@ -118,16 +123,15 @@ class GeneratorCulvertLocations(GeneratorBasis):
                 self.hydroobjecten
             )
             hydroobjecten_snapped.to_file(
-                Path(dir_results, "hydroobjecten_snapped.gpkg"),
-                layer="hydroobjecten_snapped",
+                Path(dir_results, "hydroobjecten_snapped.gpkg")
             )
             self.hydroobjecten.to_file(
-                Path(dir_results, "hydroobjecten_preprocessed.gpkg"),
-                layer="hydroobjecten_preprocessed",
+                Path(dir_results, "hydroobjecten_preprocessed.gpkg")
             )
         else:
-            logging.debug("get dataset preprocessed hydroobjecten")
+            logging.debug("    - get dataset preprocessed hydroobjecten")
             self.hydroobjecten = gpd.read_file(hydroobjecten_preprocessed_file)
+
 
     def generate_vertices_along_waterlines(
         self,
@@ -212,10 +216,9 @@ class GeneratorCulvertLocations(GeneratorBasis):
 
         if self.write_results:
             dir_results = Path(self.dir_inter_results)
-            self.water_line_pnts.to_file(
-                Path(dir_results, "water_line_pnts.gpkg"), layer="water_line_pnts"
-            )
+            self.water_line_pnts.to_file(Path(dir_results, "water_line_pnts.gpkg"))
         return self.water_line_pnts, self.duplicates
+
 
     def find_potential_culvert_locations(
         self,
@@ -275,7 +278,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
             )
             return self.potential_culverts_0
 
-        logging.info("  x find potential culvert locations")
+        logging.info("   x find potential culvert locations")
 
         # Filter for end points (only overige watergangen and not when connected)
         end_pnts = self.water_line_pnts[
@@ -337,15 +340,13 @@ class GeneratorCulvertLocations(GeneratorBasis):
 
         if write_results:
             dir_results = Path(self.dir_inter_results)
-            self.potential_culverts_0.to_file(
-                Path(dir_results, "potential_culverts_0.gpkg"),
-                layer="potential_culverts_0",
-            )
+            self.potential_culverts_0.to_file(Path(dir_results, "potential_culverts_0.gpkg"))
 
         logging.debug(
             f"    - {len(self.potential_culverts_0)} potential culverts generated"
         )
         return self.potential_culverts_0
+
 
     def check_intersections_potential_culverts(
         self,
@@ -454,14 +455,12 @@ class GeneratorCulvertLocations(GeneratorBasis):
 
         # Write data
         self.potential_culverts_1 = culverts.copy()
-        self.potential_culverts_1.to_file(
-            Path(self.dir_inter_results, "potential_culverts_1.gpkg"),
-            layer="potential_culverts_1",
-        )
+        self.potential_culverts_1.to_file(Path(self.dir_inter_results, "potential_culverts_1.gpkg"))
         logging.debug(
             f"    - {len(self.potential_culverts_1)} potential culverts remaining"
         )
         return self.potential_culverts_1
+
 
     def assign_scores_to_potential_culverts(
         self, read_results=None
@@ -634,8 +633,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
         # Set copy and save data
         self.potential_culverts_2 = culverts.copy()
         self.potential_culverts_2.to_file(
-            Path(self.dir_inter_results, "potential_culverts_2.gpkg"),
-            layer="potential_culverts_2",
+            Path(self.dir_inter_results, "potential_culverts_2.gpkg")
         )
         logging.debug(
             f"    - {len(self.potential_culverts_2)} potential culverts remaining"
@@ -872,12 +870,9 @@ class GeneratorCulvertLocations(GeneratorBasis):
             f"    - {len(self.potential_culverts_3)} potential culverts remaining"
         )
         self.potential_culverts_3.to_file(
-            Path(self.dir_inter_results, "potential_culverts_3.gpkg"),
-            layer="potential_culverts_3",
-        )
+            Path(self.dir_inter_results, "potential_culverts_3.gpkg"))
         self.potential_culverts_pre_filter.to_file(
             Path(self.dir_inter_results, "potential_culverts_pre_filter.gpkg"),
-            layer="potential_culverts_pre_filter",
         )
 
         return self.potential_culverts_3, self.potential_culverts_pre_filter
@@ -923,7 +918,6 @@ class GeneratorCulvertLocations(GeneratorBasis):
         )
         self.potential_culverts_4.to_file(
             Path(self.dir_inter_results, "potential_culverts_4.gpkg"),
-            layer="potential_culverts_4",
         )
         return self.potential_culverts_4
 
@@ -937,24 +931,22 @@ class GeneratorCulvertLocations(GeneratorBasis):
             & (self.potential_culverts_4["WaterLineType"] == "overige_watergangen")
         ].copy()
 
-        self.hydroobjecten_processed = split_waterways_by_endpoints(
+        self.hydroobjecten_processed_0 = split_waterways_by_endpoints(
             self.hydroobjecten, other_culverts_hydro
         )
-        logging.debug("hydroobjecten gesplit")
-        self.overige_watergangen_processed = split_waterways_by_endpoints(
+        logging.debug("    - hydroobjecten gesplit")
+        self.overige_watergangen_processed_0 = split_waterways_by_endpoints(
             self.overige_watergangen, other_culverts_other
         )
 
-        logging.debug("overige watergangen gesplit")
+        logging.debug("    - overige watergangen gesplit")
 
-        self.hydroobjecten_processed.to_file(
-            Path(self.dir_inter_results, "hydroobjecten_processed.gpkg"),
-            layer="hydroobjecten_processed",
+        self.hydroobjecten_processed_0.to_file(
+            Path(self.dir_inter_results, "hydroobjecten_processed_0.gpkg")
         )
 
-        self.overige_watergangen_processed.to_file(
-            Path(self.dir_inter_results, "overige_watergangen_processed.gpkg"),
-            layer="overige_watergangen_processed",
+        self.overige_watergangen_processed_0.to_file(
+            Path(self.dir_inter_results, "overige_watergangen_processed_0.gpkg")
         )
 
         culverts_hydro = self.potential_culverts_4[
@@ -981,25 +973,25 @@ class GeneratorCulvertLocations(GeneratorBasis):
         end_points_gdf = end_points_gdf.rename(
             columns={"end_point": "geometry"}
         ).set_geometry("geometry")
-
+        
         self.outflow_nodes_overige_watergangen = end_points_gdf.copy()
 
         # Save to file
         self.outflow_nodes_overige_watergangen.to_file(
-            Path(self.dir_inter_results, "outflow_nodes_overige_watergangen.gpkg"),
-            layer="outflow_nodes_overige_watergangen",
+            Path(self.dir_inter_results, "outflow_nodes_overige_watergangen.gpkg")
         )
 
         return (
-            self.overige_watergangen_processed,
-            self.hydroobjecten_processed,
+            self.overige_watergangen_processed_0,
+            self.hydroobjecten_processed_0,
             self.outflow_nodes_overige_watergangen,
         )
+
 
     def check_culverts_direction(self):
         culvert = self.potential_culverts_4.copy()
         lines = pd.concat(
-            [self.hydroobjecten_processed, self.overige_watergangen_processed],
+            [self.hydroobjecten_processed_0, self.overige_watergangen_processed_0],
             ignore_index=True,
         )
 
@@ -1021,22 +1013,22 @@ class GeneratorCulvertLocations(GeneratorBasis):
         # Update the geometry and flipped columns
         culvert["geometry"] = results.apply(lambda x: x[0])
         culvert["flipped"] += results.apply(lambda x: 1 if x[1] else 0)
-        logging.debug("culvert direction checked")
+        logging.debug("    - culvert direction checked")
 
         self.potential_culverts_5 = culvert.copy()
 
         self.potential_culverts_5.to_file(
-            Path(self.dir_inter_results, "potential_culverts_5.gpkg"),
-            layer="potential_culverts_5",
+            Path(self.dir_inter_results, "potential_culverts_5.gpkg")
         )
         return self.potential_culverts_5
+
 
     def combine_culvert_with_line(self):
         culvert = self.potential_culverts_5.copy()
         culvert_dict = (
             culvert.groupby("dangling_code")["geometry"].apply(list).to_dict()
         )
-        lines = self.overige_watergangen_processed.copy()
+        lines = self.overige_watergangen_processed_0.copy()
 
         def get_base_code(code):
             return code.split("-")[0]
@@ -1070,15 +1062,15 @@ class GeneratorCulvertLocations(GeneratorBasis):
             lambda line: combine_lines(line, culvert_dict), axis=1
         )
 
-        logging.debug("culverts combined with watergangen")
+        logging.debug("    - culverts combined with watergangen")
 
         self.overige_watergangen_processed_1 = lines.copy()
 
         self.overige_watergangen_processed_1.to_file(
-            Path(self.dir_inter_results, "overige_watergangen_processed_1.gpkg"),
-            layer="overige_watergangen_processed_1",
+            Path(self.dir_inter_results, "overige_watergangen_processed_1.gpkg")
         )
         return self.overige_watergangen_processed_1
+
 
     def splits_hydroobjecten_by_endpoind_of_culverts_and_combine_2(
         self, write_results=True
@@ -1088,17 +1080,17 @@ class GeneratorCulvertLocations(GeneratorBasis):
         overige_watergangen = split_waterways_by_endpoints(
             overige_watergangen, overige_watergangen
         )
-        logging.debug("overige watergangen weer gesplit")
+        logging.debug("    - overige watergangen weer gesplit")
 
         self.overige_watergangen_processed_2 = overige_watergangen.copy()
 
         if write_results:
             self.overige_watergangen_processed_2.to_file(
                 Path(self.dir_inter_results, "overige_watergangen_processed_2.gpkg"),
-                layer="overige_watergangen_processed_2",
             )
 
         return self.overige_watergangen_processed_2
+
 
     def get_shortest_path_from_overige_watergangen_to_hydroobjects(
         self, write_results=False
@@ -1122,6 +1114,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
             .reset_index(drop=True)
             .drop(columns=["index_right"], errors="ignore")
         )
+        self.outflow_nodes_overige_watergangen = outflow_nodes.copy()
 
         # get shortest path including length from all nodes to outflow points
         logging.debug(f"    - find shortest path")
@@ -1201,14 +1194,15 @@ class GeneratorCulvertLocations(GeneratorBasis):
             edges_cleaned.loc[edges_cleaned["reversed_direction"], "geometry"].reverse()
         )
 
+        self.overige_watergangen_processed_3_nodes = overige_watergangen_nodes.copy()
         self.overige_watergangen_processed_3 = edges_cleaned.copy()
 
         if write_results:
             outflow_nodes.to_file(
                 Path(self.dir_inter_results, "outflow_nodes_overige_watergangen.gpkg")
             )
-            overige_watergangen_nodes.to_file(
-                Path(self.dir_inter_results, "overige_watergangen_nodes.gpkg")
+            self.overige_watergangen_processed_3_nodes.to_file(
+                Path(self.dir_inter_results, "overige_watergangen_processed_3_nodes.gpkg")
             )
             self.overige_watergangen_processed_3.to_file(
                 Path(self.dir_inter_results, "overige_watergangen_processed_3.gpkg")
@@ -1221,7 +1215,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
     ):
         # Make figure
 
-        hydro_4326 = self.hydroobjecten_processed.to_crs(4326)
+        hydro_4326 = self.hydroobjecten_processed_0.to_crs(4326)
         # Calculate the extent (bounding box) of your GeoDataFrame
         bounds = hydro_4326.total_bounds  # returns (minx, miny, maxx, maxy)
 
@@ -1234,7 +1228,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
         )
 
         folium.GeoJson(
-            self.hydroobjecten_processed.geometry,
+            self.hydroobjecten_processed_0.geometry,
             name="A/B-Watergangen",
             color="blue",
             fill_color="blue",
@@ -1291,12 +1285,12 @@ class GeneratorCulvertLocations(GeneratorBasis):
                 folium.GeoJson(
                     self.outflow_nodes_overige_watergangen.geometry,
                     marker=folium.Circle(
-                        radius=5,
-                        fill_color="darkgrey",
-                        fill_opacity=0.5,
-                        color="darkgrey",
+                        radius=3,
+                        fill_color="orange",
+                        fill_opacity=1.0,
+                        color="orange",
                         weight=1,
-                        z_index=1,
+                        z_index=2,
                     ),
                 ).add_to(fg)
 

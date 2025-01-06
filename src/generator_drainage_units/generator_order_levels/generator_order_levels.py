@@ -39,36 +39,27 @@ class GeneratorOrderLevels(GeneratorBasis):
     hydroobjecten: gpd.GeoDataFrame = None
     hydroobjecten_processed: gpd.GeoDataFrame = None
 
-    # overige_watergangen: gpd.GeoDataFrame = None
-    # overige_watergangen_processed: gpd.GeoDataFrame = None
-
     rws_wateren: gpd.GeoDataFrame = None
 
     read_results: bool = False
     write_results: bool = False
 
-    dead_end_edges: gpd.GeoDataFrame = None
-    dead_start_edges: gpd.GeoDataFrame = None
     outflow_edges: gpd.GeoDataFrame = None
-
-    dead_end_nodes: gpd.GeoDataFrame = None
-    dead_start_nodes: gpd.GeoDataFrame = None
-
     outflow_nodes: gpd.GeoDataFrame = None
+    
+    overige_watergangen: gpd.GeoDataFrame = None
+    overige_watergangen_processed_3: gpd.GeoDataFrame = None
+    outflow_nodes_overige_watergangen: gpd.GeoDataFrame = None
 
     edges: gpd.GeoDataFrame = None
     nodes: gpd.GeoDataFrame = None
     graph: nx.DiGraph = None
-    network_positions: dict = None
 
     folium_map: folium.Map = None
     folium_html_path: Path = None
 
-    def create_graph_from_network(
-        self, water_lines=["rivieren", "hydroobjecten", "hydroobjecten_extra"]
-    ):
-        if water_lines is None:
-            water_lines = ["hydroobjecten"]
+
+    def create_graph_from_network(self, water_lines=["hydroobjecten"]):
         edges = None
         for water_line in water_lines:
             gdf_water_line = getattr(self, water_line)
@@ -79,30 +70,39 @@ class GeneratorOrderLevels(GeneratorBasis):
             else:
                 edges = pd.concat([edges, gdf_water_line.explode()])
         self.nodes, self.edges, self.graph = create_graph_from_edges(edges)
-        self.network_positions = {n: [n[0], n[1]] for n in list(self.graph.nodes)}
         logging.info(
             f"   x create network graph ({len(self.edges)} edges, {len(self.nodes)} nodes)"
         )
         return self.nodes, self.edges, self.graph
 
+
     def define_list_upstream_downstream_edges_ids(self):
         self.nodes = define_list_upstream_downstream_edges_ids(
-            node_ids=self.nodes.nodeID.values, nodes=self.nodes, edges=self.edges
+            node_ids=self.nodes.nodeID.values, 
+            nodes=self.nodes, 
+            edges=self.edges
         )
+
 
     def calculate_angles_of_edges_at_nodes(self):
         logging.info("   x calculate angles of edges to nodes")
         self.nodes, self.edges = calculate_angles_of_edges_at_nodes(
-            nodes=self.nodes, edges=self.edges
+            nodes=self.nodes, 
+            edges=self.edges
         )
         return self.nodes
 
+
     def select_downstream_upstream_edges(self, min_difference_angle: str = 20.0):
         logging.info("   x find downstream upstream edges")
-        self.nodes = select_downstream_upstream_edges(self.nodes, min_difference_angle)
+        self.nodes = select_downstream_upstream_edges(
+            self.nodes, 
+            min_difference_angle=min_difference_angle
+        )
         return self.nodes
 
-    def find_end_points_hydroobjects(self, buffer_width=0.5, direction="upstream"):
+
+    def generate_rws_code_for_all_outflow_points(self, buffer_rws=10.0):
         # Copy hydroobject data to new variable 'hydroobjects' and make dataframes with start and end nodes
         logging.info("   x find start and end nodes hydrobojects")
 
@@ -113,37 +113,13 @@ class GeneratorOrderLevels(GeneratorBasis):
         dead_end_edges = dead_end_edges[["code", "nodeID", "geometry"]].rename(
             columns={"code": "edge_code"}
         )
-        dead_end_nodes = dead_end_edges.copy()
-        dead_end_nodes["geometry"] = dead_end_nodes["geometry"].apply(
-            lambda x: Point(x.coords[-1])
-        )
 
-        dead_start_edges = self.edges[
-            ~self.edges.node_start.isin(self.edges.node_end.values)
-        ].copy()
-        dead_start_edges["nodeID"] = dead_start_edges["node_start"]
-        dead_start_edges = dead_start_edges[["code", "nodeID", "geometry"]].rename(
-            columns={"code": "edge_code"}
-        )
-        dead_start_nodes = dead_start_edges.copy()
-        dead_start_nodes["geometry"] = dead_start_nodes["geometry"].apply(
-            lambda x: Point(x.coords[-1])
-        )
-
-        self.dead_end_edges = dead_end_edges.copy()
-
-        self.dead_end_nodes = dead_end_nodes.copy()
-        self.dead_start_edges = dead_start_edges.copy()
-        self.dead_start_nodes = dead_start_nodes.copy()
-        return self.dead_end_nodes, self.dead_start_nodes
-
-    def generate_rws_code_for_all_outflow_points(self, buffer_rws=10.0):
         logging.info("   x generating order code for all outflow points")
         rws_wateren = self.rws_wateren.copy()
         rws_wateren.geometry = rws_wateren.geometry.buffer(buffer_rws)
 
         outflow_edges = (
-            self.dead_end_edges.sjoin(rws_wateren[["geometry", "rws_code"]])
+            dead_end_edges.sjoin(rws_wateren[["geometry", "rws_code"]])
             .drop(columns="index_right")
             .reset_index(drop=True)
         )
@@ -185,6 +161,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
 
         return self.outflow_edges
+
 
     def generate_orde_level_for_hydroobjects(self):
         logging.info(f"   x generate order levels for hydroobjects")
@@ -388,7 +365,8 @@ class GeneratorOrderLevels(GeneratorBasis):
         logging_message = f"     - order levels generated: {len_edges_with_order} edges - {len_edges_without_order} left"
         logging.info(logging_message)
 
-    def generate_order_code_for_edges(self, order_for_each_edge=False):
+
+    def generate_order_code_for_hydroobjects(self, order_for_each_edge=False):
         logging.info(f"   x generate order code for edges")
         edges = (
             self.edges[
@@ -409,8 +387,6 @@ class GeneratorOrderLevels(GeneratorBasis):
                 ["rws_code", "rws_code_no", "order_no", "outflow_edge", "order_edge_no"]
             )
         )
-
-        # edges = edges[edges["rws_code_no"]==728]
 
         logging.info(f"     - generate order code: preparation")
         edges_orders = None
@@ -623,13 +599,12 @@ class GeneratorOrderLevels(GeneratorBasis):
         self.edges["order_code"] = self.edges["order_code"].fillna("")
         return self.edges
 
+
     def export_results_to_gpkg(self):
         """Export results to geopackages in folder 1_tussenresultaat"""
         results_dir = Path(self.path, self.dir_inter_results)
         logging.info(f"   x export results")
         for layer in [
-            "dead_end_edges",
-            "dead_start_edges",
             "outflow_edges",
             "outflow_nodes",
             "edges",
@@ -642,6 +617,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                 logging.debug(f"    - {layer} ({len(result)})")
                 result.to_file(Path(results_dir, f"{layer}.gpkg"))
 
+
     def generate_folium_map(
         self,
         html_file_name: str = None,
@@ -649,8 +625,8 @@ class GeneratorOrderLevels(GeneratorBasis):
         width_edges: float = 10.0,
         opacity_edges: float = 0.5,
         open_html: bool = False,
-        base_map: str = "OpenStreetMap",
-        order_labels: bool = False,
+        base_map: str = "Light Mode",
+        order_labels: bool = True,
     ):
         # Make figure
         outflow_nodes_4326 = self.outflow_nodes.to_crs(4326)

@@ -69,26 +69,22 @@ class GeneratorNetworkLumping(GeneratorBasis):
     folium_html_path: str = None
 
     def create_graph_from_network(
-        self, water_lines=["rivieren", "hydroobjecten", "hydroobjecten_extra"]
+        self, water_lines=["hydroobjecten"]
     ):
-        if water_lines is None:
-            water_lines = ["hydroobjecten"]
-        logging.info("   x create network graph")
-        self.inflow_outflow_edges = None
+        edges = None
         for water_line in water_lines:
             gdf_water_line = getattr(self, water_line)
             if gdf_water_line is None:
                 continue
-            if self.inflow_outflow_edges is None:
-                self.inflow_outflow_edges = gdf_water_line.explode()
+            if edges is None:
+                edges = gdf_water_line.explode()
             else:
-                self.inflow_outflow_edges = pd.concat(
-                    [self.inflow_outflow_edges, gdf_water_line.explode()]
-                )
-        self.nodes, self.edges, self.graph = create_graph_from_edges(
-            self.inflow_outflow_edges
+                edges = pd.concat([edges, gdf_water_line.explode()])
+        self.nodes, self.edges, self.graph = create_graph_from_edges(edges)
+        logging.info(
+            f"   x create network graph ({len(self.edges)} edges, {len(self.nodes)} nodes)"
         )
-        self.network_positions = {n: [n[0], n[1]] for n in list(self.graph.nodes)}
+        return self.nodes, self.edges, self.graph
 
     def find_upstream_downstream_nodes_edges(
         self, direction: str = "upstream", no_inflow_outflow_points: int = None
@@ -390,7 +386,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
         ):
             self.inflow_outflow_splits_2 = self.inflow_outflow_splits_0.copy()
         else:
-            logging.debug(" x no splits found: no direction for splits selected")
+            logging.debug("    - no splits found: no direction for splits selected")
             return None
 
         logging.info("   x search for direction in splits")
