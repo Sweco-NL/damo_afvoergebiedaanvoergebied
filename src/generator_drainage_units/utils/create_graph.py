@@ -7,12 +7,15 @@ import logging
 import logging
 
 
-def create_graph_from_edges(edges: gpd.GeoDataFrame):
+def create_graph_from_edges(
+    edges: gpd.GeoDataFrame, directed=True, integer_labels=True
+):
     G = momepy.gdf_to_nx(
         edges,
         approach="primal",
-        directed=True,
-        length="geom_length",
+        directed=directed,
+        integer_labels=integer_labels,
+        length="geometry_len",
     )
     nodes, edges = momepy.nx_to_gdf(G)
     nodes = nodes.drop_duplicates("geometry")

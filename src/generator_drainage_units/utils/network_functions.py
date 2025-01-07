@@ -194,7 +194,11 @@ def find_node_edge_ids_in_directed_graph(
 ):
     len_outflow_edge_ids = np.shape(outflow_edge_ids)[0]
     results_nodes = [
-        [int(to_node_ids[np.where(edge_ids == e)][0])] for e in outflow_edge_ids
+        [
+            int(to_node_ids[np.where(edge_ids == e)][0]),
+            int(from_node_ids[np.where(edge_ids == e)][0]),
+        ]
+        for e in outflow_edge_ids
     ]
     results_edges = [[e] if e in search_edge_ids else [] for e in outflow_edge_ids]
     if set_logging:
@@ -433,15 +437,11 @@ def define_list_upstream_downstream_edges_ids(
             left_on=nodes_id_column,
             right_on=node_end,
         )
-        nodes_sel[f"{direction}_edges"] = (
-            direction_edges
-            .groupby(nodes_id_column)
-            .agg({edges_id_column: list})
+        nodes_sel[f"{direction}_edges"] = direction_edges.groupby(nodes_id_column).agg(
+            {edges_id_column: list}
         )
         nodes_sel[f"no_{direction}_edges"] = nodes_sel[f"{direction}_edges"].apply(
-            lambda x: len(x)
-            if ~(isinstance(x[0], float) and np.isnan(x[0]))
-            else 0
+            lambda x: len(x) if ~(isinstance(x[0], float) and np.isnan(x[0])) else 0
         )
         nodes_sel[f"{direction}_edges"] = nodes_sel[f"{direction}_edges"].apply(
             lambda x: ",".join(x)
