@@ -1309,9 +1309,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
         if html_file_name is None:
             html_file_name = self.name + "_culvert_locations"
 
-        self.folium_html_path = Path(
-            self.path, f"{html_file_name}.html"
-        )
+        self.folium_html_path = Path(self.path, f"{html_file_name}.html")
         m.save(self.folium_html_path)
 
         logging.info(f"   x html file saved: {html_file_name}.html")

@@ -213,13 +213,16 @@ class GeneratorOrderLevels(GeneratorBasis):
                     }
                 )
                 outflow_edge_edges = edges_left.drop(
-                    columns=["rws_code", "rws_code_no", "rws_order_code", "order_no", "outflow_edge", "order_edge_no"],
-                    errors="ignore"
-                ).merge(
-                    outflow_edge_edges, 
-                    how="right", 
-                    on="code"
-                )
+                    columns=[
+                        "rws_code",
+                        "rws_code_no",
+                        "rws_order_code",
+                        "order_no",
+                        "outflow_edge",
+                        "order_edge_no",
+                    ],
+                    errors="ignore",
+                ).merge(outflow_edge_edges, how="right", on="code")
                 outflow_edge_edges = outflow_edge_edges.sort_values(
                     "order_no"
                 ).drop_duplicates(subset="code", keep=False)
