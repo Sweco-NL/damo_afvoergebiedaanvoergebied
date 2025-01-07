@@ -15,7 +15,7 @@ def create_graph_from_edges(
         approach="primal",
         directed=directed,
         integer_labels=integer_labels,
-        length="geom_length",
+        length="geometry_len",
     )
     nodes, edges = momepy.nx_to_gdf(G)
     nodes = nodes.drop_duplicates("geometry")

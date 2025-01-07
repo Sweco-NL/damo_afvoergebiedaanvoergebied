@@ -194,7 +194,11 @@ def find_node_edge_ids_in_directed_graph(
 ):
     len_outflow_edge_ids = np.shape(outflow_edge_ids)[0]
     results_nodes = [
-        [int(to_node_ids[np.where(edge_ids == e)][0])] for e in outflow_edge_ids
+        [
+            int(to_node_ids[np.where(edge_ids == e)][0]),
+            int(from_node_ids[np.where(edge_ids == e)][0]),
+        ]
+        for e in outflow_edge_ids
     ]
     results_edges = [[e] if e in search_edge_ids else [] for e in outflow_edge_ids]
     if set_logging:

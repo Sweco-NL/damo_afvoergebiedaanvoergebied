@@ -130,9 +130,14 @@ class GeneratorBasis(BaseModel):
                     continue
                 files_in_dir = [f for f in dir_results.glob("**/*")]
                 for f in files_in_dir:
-                    if f"{watergang}_{processed_file}" in f.stem:
+                    if (
+                        f"{watergang}_{processed_file}" in f.stem
+                        and "nodes" not in f.stem
+                    ):
                         watergang_processed_file = f
 
             if watergang_processed_file is not None:
-                logging.debug(f"    - get dataset processed {watergang}")
+                logging.debug(
+                    f"    - use dataset processed {watergang}: {watergang_processed_file.name}"
+                )
                 setattr(self, watergang, gpd.read_file(watergang_processed_file))

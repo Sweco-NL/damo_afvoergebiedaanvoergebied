@@ -37,7 +37,7 @@ class GeneratorOrderLevels(GeneratorBasis):
     range_order_code_max: int = None
 
     hydroobjecten: gpd.GeoDataFrame = None
-    hydroobjecten_processed: gpd.GeoDataFrame = None
+    hydroobjecten_processed_0: gpd.GeoDataFrame = None
 
     rws_wateren: gpd.GeoDataFrame = None
 
@@ -46,9 +46,10 @@ class GeneratorOrderLevels(GeneratorBasis):
 
     outflow_edges: gpd.GeoDataFrame = None
     outflow_nodes: gpd.GeoDataFrame = None
-    
+
     overige_watergangen: gpd.GeoDataFrame = None
     overige_watergangen_processed_3: gpd.GeoDataFrame = None
+    overige_watergangen_processed_4: gpd.GeoDataFrame = None
     outflow_nodes_overige_watergangen: gpd.GeoDataFrame = None
 
     edges: gpd.GeoDataFrame = None
@@ -57,7 +58,6 @@ class GeneratorOrderLevels(GeneratorBasis):
 
     folium_map: folium.Map = None
     folium_html_path: Path = None
-
 
     def create_graph_from_network(self, water_lines=["hydroobjecten"]):
         edges = None
@@ -75,32 +75,25 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
         return self.nodes, self.edges, self.graph
 
-
     def define_list_upstream_downstream_edges_ids(self):
         self.nodes = define_list_upstream_downstream_edges_ids(
-            node_ids=self.nodes.nodeID.values, 
-            nodes=self.nodes, 
-            edges=self.edges
+            node_ids=self.nodes.nodeID.values, nodes=self.nodes, edges=self.edges
         )
-
+        return self.nodes
 
     def calculate_angles_of_edges_at_nodes(self):
         logging.info("   x calculate angles of edges to nodes")
         self.nodes, self.edges = calculate_angles_of_edges_at_nodes(
-            nodes=self.nodes, 
-            edges=self.edges
+            nodes=self.nodes, edges=self.edges
         )
         return self.nodes
-
 
     def select_downstream_upstream_edges(self, min_difference_angle: str = 20.0):
         logging.info("   x find downstream upstream edges")
         self.nodes = select_downstream_upstream_edges(
-            self.nodes, 
-            min_difference_angle=min_difference_angle
+            self.nodes, min_difference_angle=min_difference_angle
         )
         return self.nodes
-
 
     def generate_rws_code_for_all_outflow_points(self, buffer_rws=10.0):
         # Copy hydroobject data to new variable 'hydroobjects' and make dataframes with start and end nodes
@@ -159,11 +152,9 @@ class GeneratorOrderLevels(GeneratorBasis):
         self.outflow_nodes["geometry"] = self.outflow_nodes["geometry"].apply(
             lambda x: Point(x.coords[-1])
         )
-
         return self.outflow_edges
 
-
-    def generate_orde_level_for_hydroobjects(self):
+    def generate_order_level_for_hydroobjects(self):
         logging.info(f"   x generate order levels for hydroobjects")
         # self.outflow_edges = self.outflow_edges[self.outflow_edges["order_no"]==2].copy()
 
@@ -341,6 +332,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         self.edges = pd.concat([edges_all_orders, edges_left]).reset_index(drop=True)
         self.nodes = pd.concat([nodes_all_orders, nodes_left]).reset_index(drop=True)
+
         self.outflow_edges = outflow_edges_orders.copy()
         self.outflow_nodes = self.outflow_edges.copy()
         self.outflow_nodes["geometry"] = self.outflow_nodes["geometry"].apply(
@@ -364,7 +356,6 @@ class GeneratorOrderLevels(GeneratorBasis):
         len_edges_without_order = len(self.edges[self.edges.order_no < 0])
         logging_message = f"     - order levels generated: {len_edges_with_order} edges - {len_edges_without_order} left"
         logging.info(logging_message)
-
 
     def generate_order_code_for_hydroobjects(self, order_for_each_edge=False):
         logging.info(f"   x generate order code for edges")
@@ -585,6 +576,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             .reset_index(drop=True)
             .drop(columns=["edge_codes"])
         )
+
         self.edges = self.edges.drop(
             columns=["no_edge_codes", "order_code_no", "order_code"], errors="ignore"
         ).merge(
@@ -597,8 +589,98 @@ class GeneratorOrderLevels(GeneratorBasis):
         self.edges["no_edge_codes"] = self.edges["no_edge_codes"].fillna(-999)
         self.edges["order_code_no"] = self.edges["order_code_no"].fillna(-999)
         self.edges["order_code"] = self.edges["order_code"].fillna("")
+
+        for direction in ["upstream", "downstream"]:
+            self.nodes[f"{direction}_order_no"] = self.nodes.apply(
+                lambda x: list(
+                    self.edges.loc[
+                        self.edges["code"].isin(x[f"{direction}_edges"]), "order_no"
+                    ].values
+                ),
+                axis=1,
+            )
+            self.nodes[f"{direction}_order_code"] = self.nodes.apply(
+                lambda x: list(
+                    self.edges.loc[
+                        self.edges["code"].isin(x[f"{direction}_edges"]), "order_code"
+                    ].values
+                ),
+                axis=1,
+            )
         return self.edges
 
+    def generate_order_no_order_code_for_other_waterlines(self):
+        logging.info(f"   x generate order code for overige watergangen")
+        outflow_nodes_overige_watergangen = self.outflow_nodes_overige_watergangen[
+            ["nodeID", "geometry"]
+        ].sjoin(
+            self.nodes[
+                [
+                    "downstream_edges",
+                    "selected_downstream_edge",
+                    "downstream_order_no",
+                    "downstream_order_code",
+                    "geometry",
+                ]
+            ],
+            how="left",
+        )
+        outflow_nodes = outflow_nodes_overige_watergangen[
+            [
+                "nodeID",
+                "downstream_edges",
+                "selected_downstream_edge",
+                "downstream_order_no",
+                "downstream_order_code",
+            ]
+        ].copy()
+
+        outflow_nodes = (
+            outflow_nodes.explode(
+                ["downstream_edges", "downstream_order_no", "downstream_order_code"]
+            )
+            .sort_values(["nodeID", "downstream_order_no"])
+            .drop_duplicates()
+        )
+        outflow_nodes = outflow_nodes.groupby("nodeID").first().reset_index()
+
+        self.outflow_nodes_overige_watergangen = (
+            self.outflow_nodes_overige_watergangen.drop(
+                columns=["downstream_order_no", "downstream_order_code"],
+                errors="ignore",
+            ).merge(
+                outflow_nodes[
+                    ["nodeID", "downstream_order_no", "downstream_order_code"]
+                ],
+                how="left",
+                on="nodeID",
+            )
+        )
+
+        edges = self.overige_watergangen_processed_3.merge(
+            self.outflow_nodes_overige_watergangen[
+                ["nodeID", "downstream_order_no", "downstream_order_code"]
+            ],
+            how="left",
+            left_on="outflow_node",
+            right_on="nodeID",
+        )
+        edges["order_no"] = edges["downstream_order_no"] + 1
+        edges["order_code_no"] = (
+            edges.groupby("downstream_order_code").cumcount().fillna(-1000).astype(int)
+            + 1
+        )
+        edges["order_code"] = (
+            edges["downstream_order_code"]
+            + "-X"
+            + edges["order_code_no"].astype(str).str.zfill(4)
+        )
+
+        self.overige_watergangen_processed_4 = edges.copy()
+        return (
+            self.outflow_nodes_overige_watergangen,
+            self.overige_watergangen_processed_4,
+        )
 
     def export_results_to_gpkg(self):
         """Export results to geopackages in folder 1_tussenresultaat"""
@@ -607,6 +689,8 @@ class GeneratorOrderLevels(GeneratorBasis):
         for layer in [
             "outflow_edges",
             "outflow_nodes",
+            "outflow_nodes_overige_watergangen",
+            "overige_watergangen_processed_4",
             "edges",
             "nodes",
         ]:
@@ -616,7 +700,6 @@ class GeneratorOrderLevels(GeneratorBasis):
             else:
                 logging.debug(f"    - {layer} ({len(result)})")
                 result.to_file(Path(results_dir, f"{layer}.gpkg"))
-
 
     def generate_folium_map(
         self,
@@ -694,6 +777,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                     ],
                     column="order_code",
                     label_fontsize=8,
+                    center=True,
                     fg=fg,
                 )
 
@@ -733,7 +817,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             self.outflow_nodes[self.outflow_nodes["order_no"] > 2],
             name="Overige uitstroompunten",
             marker=folium.Circle(
-                radius=15,
+                radius=10,
                 fill_color="orange",
                 fill_opacity=0.8,
                 color="orange",
@@ -744,6 +828,62 @@ class GeneratorOrderLevels(GeneratorBasis):
             z_index=2,
         ).add_to(m)
 
+        if self.outflow_nodes_overige_watergangen is not None:
+            outflow_nodes_overige_watergangen = (
+                self.outflow_nodes_overige_watergangen.sjoin(
+                    self.nodes.drop(columns=["x", "y", "nodeID"]), how="left"
+                )
+            )
+            folium.GeoJson(
+                outflow_nodes_overige_watergangen.geometry,
+                name="C-watergangen - uitstroompunten",
+                marker=folium.Circle(
+                    radius=3,
+                    fill_color="orange",
+                    fill_opacity=0.8,
+                    color="black",
+                    weight=3,
+                ),
+                highlight_function=lambda x: {"fillOpacity": 0.8},
+                zoom_on_click=True,
+                z_index=2,
+            ).add_to(m)
+
+        if (
+            self.overige_watergangen_processed_4 is not None
+            and "outflow_node" in self.overige_watergangen_processed_4.columns
+        ):
+            add_categorized_lines_to_map(
+                m=m,
+                lines_gdf=self.overige_watergangen_processed_4[
+                    ["outflow_node", "geometry"]
+                ],
+                layer_name=f"C-Watergangen - gegroepeerd per uitstroompunt",
+                control=True,
+                lines=True,
+                line_color_column="outflow_node",
+                line_color_cmap=None,
+                show=False,
+                z_index=1,
+            )
+
+            if order_labels and "order_code" in self.overige_watergangen_processed_4:
+                fg = folium.FeatureGroup(
+                    name=f"C-Watergangen - orde-codering",
+                    control=True,
+                    show=False,
+                    z_index=2,
+                ).add_to(m)
+
+                add_labels_to_points_lines_polygons(
+                    gdf=self.overige_watergangen_processed_4,
+                    column="order_code",
+                    label_fontsize=7,
+                    label_decimals=0,
+                    center=True,
+                    fg=fg,
+                )
+
         m = add_basemaps_to_folium_map(m=m, base_map=base_map)
 
         folium.LayerControl(collapsed=False).add_to(m)
@@ -751,7 +891,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         self.folium_map = m
 
         if html_file_name is None:
-            html_file_name = self.name
+            html_file_name = self.name + "_order_code"
 
         self.folium_html_path = Path(self.path, f"{html_file_name}.html")
         m.save(self.folium_html_path)

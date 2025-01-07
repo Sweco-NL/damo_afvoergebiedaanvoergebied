@@ -68,9 +68,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
     folium_map: folium.Map = None
     folium_html_path: str = None
 
-    def create_graph_from_network(
-        self, water_lines=["hydroobjecten"]
-    ):
+    def create_graph_from_network(self, water_lines=["hydroobjecten"]):
         edges = None
         for water_line in water_lines:
             gdf_water_line = getattr(self, water_line)
