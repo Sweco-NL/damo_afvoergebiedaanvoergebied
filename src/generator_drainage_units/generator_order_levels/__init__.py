@@ -10,8 +10,9 @@ def run_generator_order_levels(
     range_order_code_min: int,
     range_order_code_max: int,
     buffer_rws: float = 10.0,
-    generate_order_no: float = True,
-    generate_order_code: float = True,
+    generate_order_no: bool = True,
+    generate_order_code: bool = True,
+    generate_order_code_sub_waterlines: bool = False,
     order_for_each_edge: bool = True,
     water_lines: list[str] = None,
     read_results: bool = True,
@@ -45,6 +46,8 @@ def run_generator_order_levels(
         order.generate_order_code_for_hydroobjects(
             order_for_each_edge=order_for_each_edge
         )
+
+    if generate_order_code_sub_waterlines:
         order.generate_order_no_order_code_for_other_waterlines()
 
     if write_results:

@@ -212,8 +212,13 @@ class GeneratorOrderLevels(GeneratorBasis):
                         "order_edge_no": range(len(outflow_edge_edges_code[0])),
                     }
                 )
-                outflow_edge_edges = edges_left.merge(
-                    outflow_edge_edges, how="right", on="code"
+                outflow_edge_edges = edges_left.drop(
+                    columns=["rws_code", "rws_code_no", "rws_order_code", "order_no", "outflow_edge", "order_edge_no"],
+                    errors="ignore"
+                ).merge(
+                    outflow_edge_edges, 
+                    how="right", 
+                    on="code"
                 )
                 outflow_edge_edges = outflow_edge_edges.sort_values(
                     "order_no"
@@ -735,7 +740,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                 lines_gdf=self.edges[self.edges["order_no"] > 1][
                     ["code", "order_no", "geometry"]
                 ],
-                layer_name="Orde-nummer watergangen",
+                layer_name="AB-watergangen - Orde-nummer",
                 control=True,
                 lines=True,
                 line_color_column="order_no",
@@ -747,7 +752,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
             if order_labels and "order_no" in self.edges.columns:
                 fg = folium.FeatureGroup(
-                    name=f"Orde-nummer watergangen (labels)",
+                    name=f"AB-watergangen - Orde-nummer (labels)",
                     control=True,
                     show=False,
                 ).add_to(m)
@@ -764,7 +769,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
             if order_labels and "order_code" in self.edges.columns:
                 fg = folium.FeatureGroup(
-                    name=f"Orde-code watergangen (labels)",
+                    name=f"AB-watergangen - Orde-code (labels)",
                     control=True,
                     show=False,
                 ).add_to(m)
@@ -783,7 +788,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         folium.GeoJson(
             self.hydroobjecten.geometry,
-            name="Watergangen",
+            name="AB-Watergangen",
             color="blue",
             fill_color="blue",
             zoom_on_click=True,
@@ -792,7 +797,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         ).add_to(m)
 
         fg = folium.FeatureGroup(
-            name=f"Uitstroompunten RWS-water", control=True
+            name=f"Uitstroompunten in RWS-water", control=True
         ).add_to(m)
 
         folium.GeoJson(
@@ -813,21 +818,6 @@ class GeneratorOrderLevels(GeneratorBasis):
             fg=fg,
         )
 
-        folium.GeoJson(
-            self.outflow_nodes[self.outflow_nodes["order_no"] > 2],
-            name="Overige uitstroompunten",
-            marker=folium.Circle(
-                radius=10,
-                fill_color="orange",
-                fill_opacity=0.8,
-                color="orange",
-                weight=3,
-            ),
-            highlight_function=lambda x: {"fillOpacity": 0.8},
-            zoom_on_click=True,
-            z_index=2,
-        ).add_to(m)
-
         if self.outflow_nodes_overige_watergangen is not None:
             outflow_nodes_overige_watergangen = (
                 self.outflow_nodes_overige_watergangen.sjoin(
@@ -836,7 +826,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             )
             folium.GeoJson(
                 outflow_nodes_overige_watergangen.geometry,
-                name="C-watergangen - uitstroompunten",
+                name="C-watergangen - Uitstroompunten",
                 marker=folium.Circle(
                     radius=3,
                     fill_color="orange",
@@ -844,6 +834,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                     color="black",
                     weight=3,
                 ),
+                show=False,
                 highlight_function=lambda x: {"fillOpacity": 0.8},
                 zoom_on_click=True,
                 z_index=2,
@@ -858,7 +849,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                 lines_gdf=self.overige_watergangen_processed_4[
                     ["outflow_node", "geometry"]
                 ],
-                layer_name=f"C-Watergangen - gegroepeerd per uitstroompunt",
+                layer_name=f"C-Watergangen - Gegroepeerd per uitstroompunt",
                 control=True,
                 lines=True,
                 line_color_column="outflow_node",
@@ -869,7 +860,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
             if order_labels and "order_code" in self.overige_watergangen_processed_4:
                 fg = folium.FeatureGroup(
-                    name=f"C-Watergangen - orde-codering",
+                    name=f"C-Watergangen - Orde-codering",
                     control=True,
                     show=False,
                     z_index=2,
