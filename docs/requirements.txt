@@ -56,3 +56,15 @@ networkx
 pydantic
 rioxarray
 momepy
+shapely
+logging
+pandas
+matplotlib
+random
+typing
+warnings
+time
+itertools
+xlsxwriter
+openpyxl
+pathlib
