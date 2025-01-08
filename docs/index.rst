@@ -4,7 +4,7 @@
 
 Generator Drainage Units: Workflows network-analyses op hydrologische basisdata waterschappen
 ============================================================================================================================
-o.a. voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afwateringseenheden, stroomgebieden afleiden, automatische orde-codering. Bekijk de uitgebreide documentatie via de `read-the-docs <https://generator-drainage-units.readthedocs.io/>`
+o.a. voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afwateringseenheden, stroomgebieden afleiden, automatische orde-codering. Bekijk de uitgebreide documentatie via de `read-the-docs <https://generator-drainage-units.readthedocs.io/>`_.
 
 
 Algemeen
@@ -18,9 +18,9 @@ De vraag om op basis van een raster met een hoogtemodel (maaiveld of grondwaters
 
 - **generator_culvert_locations**: voortbouwend op een al bestaande 'duikergenerator' worden de locaties van duikers bepaald. Dit gebeurd op basis van (configureerbare) regels, die rekening houden met kruizingen van wegen en peilgebiedsgrenzen, de lengte van de duiker (hoe lager, hoe beter) en de richting van de duiker ten opzichte van de watergang (zelfde hoek heeft voorkeur). 
 
-- **generator_order_levels**: bepalen van de orde en de orde-codering van het netwerk en daarmee voor de afwaterende eenheden (conform `Leidraad Harmoniseren Afvoergebieden <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`)
+- **generator_order_levels**: bepalen van de orde en de orde-codering van het netwerk en daarmee voor de afwaterende eenheden (conform `Leidraad Harmoniseren Afvoergebieden <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_)
 
-- **generator_drainage_units**: workflow voor het genereren van afwateringseenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van o.a. `RESPHIGI <https://gitlab.com/deltares/imod/respighi>` en `PyFlwDir van Deltares <https://github.com/Deltares/pyflwdir>`
+- **generator_drainage_units**: workflow voor het genereren van afwateringseenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van o.a. `RESPHIGI <https://gitlab.com/deltares/imod/respighi>`_ en `PyFlwDir van Deltares <https://github.com/Deltares/pyflwdir>`_
 
 
 Waterschap Aa en Maas
