@@ -59,16 +59,7 @@ ruff format
    :maxdepth: 2
    :caption: Contents:
    
-   generator_basis
-   generator_culverts_locations 
-   generator_network_lumping
-   generator_order_levels
-   generator_drainage_units
    preprocess <preprocess>
-   general_functions
-   create_graph
-   network_functions
-   folium_utils
-   pandas_xlsx_tables
+
 
 
