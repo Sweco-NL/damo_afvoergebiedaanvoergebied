@@ -4,7 +4,7 @@
 
 Generator Drainage Units: Workflows network-analyses op hydrologische basisdata waterschappen
 ============================================================================================================================
-o.a. voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afwateringseenheden, stroomgebieden afleiden, automatische orde-codering. Bekijk de uitgebreide documentatie via de `read-the-docs <https://generator-drainage-units.readthedocs.io/>`_.
+o.a. workflows voor voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afleiden van afwateringseenheden en stroomgebieden, automatische toekennen van orde-codering. Bekijk de uitgebreide documentatie via de `read-the-docs <https://generator-drainage-units.readthedocs.io/>`_.
 
 
 Algemeen
