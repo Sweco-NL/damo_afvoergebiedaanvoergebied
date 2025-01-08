@@ -2,7 +2,7 @@
    sphinx-quickstart on Wed Dec 18 09:19:01 2024.
 
 
-Generator Drainage Units: Workflows network-analyses op hydrologische basisdata waterschappen
+Generator Drainage Units: Workflows voor hydrologische basisdata waterschappen
 ============================================================================================================================
 o.a. workflows voor voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afleiden van afwateringseenheden en stroomgebieden, automatische toekennen van orde-codering. Bekijk de uitgebreide documentatie via de `read-the-docs <https://generator-drainage-units.readthedocs.io/>`_.
 
