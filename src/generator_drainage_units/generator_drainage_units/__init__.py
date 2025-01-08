@@ -32,8 +32,8 @@ def run_generator_drainage_units(
 
     Returns
     -------
-    GeneratorCulvertLocations
-        An instance of the GeneratorCulvertLocations including basisdata and results
+    GeneratorDrainageUnits
+        An instance of the GeneratorDrainageUnits including basisdata and results
     """
     start_time = time.time()
     gdu = GeneratorDrainageUnits(

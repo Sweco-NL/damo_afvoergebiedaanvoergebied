@@ -50,21 +50,3 @@ def run_generator_network_lumping(
         )
     return network
 
-
-def run_network_lumping_with_random_selection_splits(
-    network: GeneratorNetworkLumping,
-    include_areas: bool = True,
-    write_results: bool = False,
-):
-    network.select_directions_for_splits()
-    network.find_upstream_downstream_nodes_edges(direction=network.direction)
-    if include_areas:
-        network.assign_drainage_units_to_outflow_points_based_on_length_hydroobject()
-        network.dissolve_assigned_drainage_units()
-
-    if write_results:
-        network.export_results_to_gpkg()
-        network.generate_folium_map(
-            html_file_name=f"{network.name}_random_selection_splits"
-        )
-    return network
