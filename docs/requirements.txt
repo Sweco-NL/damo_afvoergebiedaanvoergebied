@@ -53,3 +53,4 @@ urllib3==1.26.9
 folium==0.12.1
 geopandas
 networkx
+pydantic
