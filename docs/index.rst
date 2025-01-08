@@ -28,7 +28,8 @@ De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te
 - **generator_network_lumping**: Toolbox om voor gegeven uitstroompunten het bovenstroomse netwerk te lumpen en afvoergebieden of (deel)stroomgebieden te genereren.
 
 
-### Installatie environment
+Installatie environment
+--------------
 We gebruiken pixi om de environment op orde te houden. Installatie van pixi (prefix.dev) kan via de Windows Powershell:
 ```
 iwr -useb https://pixi.sh/install.ps1 | iex
