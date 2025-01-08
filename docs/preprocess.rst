@@ -1,7 +1,7 @@
 API Documentatie
 =====================
 
-Utils
+utils
 ^^^^
 
 .. automodule:: generator_drainage_units.utils.create_graph
@@ -34,21 +34,21 @@ Utils
     :undoc-members:
     :private-members:
 
-Generator_basis
+generator_basis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: generator_drainage_units.generator_basis.generator_basis
     :members:
     :undoc-members:
     :private-members:
 
-Generator_culvert_locations
+generator_culvert_locations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: generator_drainage_units.generator_culvert_locations.generator_culverts_locations
     :members:
     :undoc-members:
     :private-members:
 
-Generator_drainage_units
+generator_drainage_units
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: generator_drainage_units.generator_drainage_units.generator_drainage_units
     :members:
@@ -56,7 +56,7 @@ Generator_drainage_units
     :private-members:
 
 
-Generator_network_lumping
+generator_network_lumping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: generator_drainage_units.generator_network_lumping.generator_network_lumping
     :members:
@@ -64,7 +64,7 @@ Generator_network_lumping
     :private-members:
 
 
-Generator_order_levels
+generator_order_levels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: generator_drainage_units.generator_order_levels.generator_order_levels
     :members:
