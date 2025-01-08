@@ -4,7 +4,7 @@ API Documentatie
 Utils
 ^^^^
 
-.. automodule:: generator_drainage_units.generator_basis.generator_basis
+.. automodule:: generator_drainage_units.utils.create_graph
     :members:
     :undoc-members:
     :private-members:
