@@ -2,11 +2,14 @@
    sphinx-quickstart on Wed Dec 18 09:19:01 2024.
 
 
-Generator Drainage Units
+Generator Drainage Units: Workflows network-analyses op hydrologische basisdata waterschappen
 ============================================================================================================================
+o.a. voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afwateringseenheden, stroomgebieden afleiden, automatische orde-codering. Bekijk de uitgebreide documentatie via de [read-the-docs](https://generator-drainage-units.readthedocs.io/en/latest/)
+
+
 Algemeen
---------------
-Deze python-toolbox is opgezet door Sweco Nederland binnen twee opdrachten met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. Er is voor gekozen om open-source te werken. Er is geprobeerd om gestructureerd deze python-toolbox op te zetten en testdata en documentatie toe te voegen.
+----------------------------
+Deze python-toolbox is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Aa en Maas en Vallei & Veluwe met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. Er is voor gekozen om open-source te werken. We proberen deze python-toolbox op te zetten inclusief testdata, voorbeeld-scripts en documentatie.
 
 
 Waterschap Vallei & Veluwe
@@ -34,25 +37,11 @@ We gebruiken pixi om de environment op orde te houden. Installatie van pixi (pre
 ```
 iwr -useb https://pixi.sh/install.ps1 | iex
 ```
-
 Bouw de environment op op basis van het bestand pyproject.toml door in de projectfolder via de terminal te draaien:
 
 ```
 pixi install
 ```
-
-We gebruiken ruff voor de code-formatting. Installatie ruff via:
-
-```
-pixi global install ruff
-```
-
-Gebruik ruff:
-
-```
-ruff format
-```
-
 
 .. toctree::
    :maxdepth: 2
