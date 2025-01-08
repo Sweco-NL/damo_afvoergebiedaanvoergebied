@@ -16,8 +16,7 @@ release = "18/12"
 
 import os
 import sys
-
-sys.path.insert(0, os.path.abspath("."))  # Pad naar de code-map relatief aan de source-folder  # Gebruik forward slashes
+sys.path.insert(0, os.path.abspath('../src'))
 
 # Voeg extensies toe
 # Add any Sphinx extension module names here, as strings. They can be
