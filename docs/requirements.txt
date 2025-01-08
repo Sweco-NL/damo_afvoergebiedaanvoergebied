@@ -55,3 +55,4 @@ geopandas
 networkx
 pydantic
 rioxarray
+momepy
