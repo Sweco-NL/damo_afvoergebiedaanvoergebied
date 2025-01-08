@@ -1,9 +1,8 @@
 .. DrainageUnits documentation master file, created by
    sphinx-quickstart on Wed Dec 18 09:19:01 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 
-Workflows hydrologische basis data waterschappen: o.a. voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afwateringseenheden, stroomgebieden afleiden, automatische orde-codering.
+
+Generator Drainage Units
 ============================================================================================================================
 Algemeen
 --------------
