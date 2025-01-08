@@ -8,12 +8,22 @@ generator_basis
     :undoc-members:
     :private-members:
 
+
 generator_culvert_locations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: generator_drainage_units.generator_culvert_locations.generator_culverts_locations
     :members:
     :undoc-members:
     :private-members:
+
+
+generator_order_levels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: generator_drainage_units.generator_order_levels.generator_order_levels
+    :members:
+    :undoc-members:
+    :private-members:
+
 
 generator_drainage_units
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -30,13 +40,6 @@ generator_network_lumping
     :undoc-members:
     :private-members:
 
-
-generator_order_levels
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. automodule:: generator_drainage_units.generator_order_levels.generator_order_levels
-    :members:
-    :undoc-members:
-    :private-members:
 
 utils
 ^^^^

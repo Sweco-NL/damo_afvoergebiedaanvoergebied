@@ -58,7 +58,7 @@ ruff format
    :maxdepth: 2
    :caption: Contents:
    
-   API documentatie <preprocess>
+   API docs <preprocess>
 
 
 

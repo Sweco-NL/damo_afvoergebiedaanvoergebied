@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "DrainageUnits"
+project = "GeneratorDrainageUnits"
 copyright = "2024, AnaisWens"
 author = "AnaisWens"
 release = "18/12"
