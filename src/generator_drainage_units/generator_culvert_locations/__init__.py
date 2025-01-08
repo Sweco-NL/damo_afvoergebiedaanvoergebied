@@ -2,7 +2,7 @@ import logging
 import time
 from pathlib import Path
 
-from .generator_culverts_locations import GeneratorCulvertLocations
+from .generator_culvert_locations import GeneratorCulvertLocations
 
 
 def run_generator_culvert_locations(
