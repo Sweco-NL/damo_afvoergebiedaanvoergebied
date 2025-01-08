@@ -18,9 +18,9 @@ De vraag om op basis van een raster met een hoogtemodel (maaiveld of grondwaters
 
 - **generator_culvert_locations**: voortbouwend op een al bestaande 'duikergenerator' worden de locaties van duikers bepaald. Dit gebeurd op basis van (configureerbare) regels, die rekening houden met kruizingen van wegen en peilgebiedsgrenzen, de lengte van de duiker (hoe lager, hoe beter) en de richting van de duiker ten opzichte van de watergang (zelfde hoek heeft voorkeur). 
 
-- **generator_order_levels**: bepalen van de orde en de orde-codering van het netwerk en daarmee voor de afwaterende eenheden (conform :ref:`https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf<Leidraad Harmoniseren Afvoergebieden>`)
+- **generator_order_levels**: bepalen van de orde en de orde-codering van het netwerk en daarmee voor de afwaterende eenheden (conform :ref:`Leidraad Harmoniseren Afvoergebieden<https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`)
 
-- **generator_drainage_units**: workflow voor het genereren van afwateringseenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van o.a. :ref:`https://gitlab.com/deltares/imod/respighi<RESPHIGI>` en :ref:`https://github.com/Deltares/pyflwdir<PyFlwDir van Deltares>`
+- **generator_drainage_units**: workflow voor het genereren van afwateringseenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van o.a. :ref:`RESPHIGI<https://gitlab.com/deltares/imod/respighi>` en :ref:`PyFlwDir van Deltares<https://github.com/Deltares/pyflwdir>`
 
 
 Waterschap Aa en Maas
