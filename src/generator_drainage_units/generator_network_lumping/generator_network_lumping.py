@@ -405,9 +405,10 @@ class GeneratorNetworkLumping(GeneratorBasis):
                     axis=1,
                 )
             )
-            logging_message = f"     - randomly choosen {search_direction} direction at splits: {
-                len(self.inflow_outflow_splits_2) - no_splits_known}/{len(self.inflow_outflow_splits_2)
-            }"
+            logging_message = (
+                f"     - randomly choosen {search_direction} direction at splits: "
+                f"{len(self.inflow_outflow_splits_2) - no_splits_known}/{len(self.inflow_outflow_splits_2)}"
+            )
             logging.debug(logging_message)
         return self.inflow_outflow_splits_2
 
