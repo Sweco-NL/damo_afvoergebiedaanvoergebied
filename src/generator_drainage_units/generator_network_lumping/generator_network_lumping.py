@@ -151,11 +151,11 @@ class GeneratorNetworkLumping(GeneratorBasis):
         )
         for i, point in self.inflow_outflow_points.iterrows():
             self.inflow_outflow_nodes[
-                f"{self.direction}_node_{point["representative_node"]}"
-            ] = self.inflow_outflow_nodes[f"{self.direction}_edge_{point["edge_code"]}"]
+                f"{self.direction}_node_{point['representative_node']}"
+            ] = self.inflow_outflow_nodes[f"{self.direction}_edge_{point['edge_code']}"]
             self.inflow_outflow_edges[
-                f"{self.direction}_node_{point["representative_node"]}"
-            ] = self.inflow_outflow_edges[f"{self.direction}_edge_{point["edge_code"]}"]
+                f"{self.direction}_node_{point['representative_node']}"
+            ] = self.inflow_outflow_edges[f"{self.direction}_edge_{point['edge_code']}"]
 
         self.inflow_outflow_nodes = define_list_upstream_downstream_edges_ids(
             self.inflow_outflow_nodes.nodeID.unique(),
