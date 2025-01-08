@@ -37,6 +37,7 @@ We gebruiken `pixi <https://pixi.sh/>`_ om de environment op orde te houden. Ins
 ```
 iwr -useb https://pixi.sh/install.ps1 | iex
 ```
+
 Bouw de environment op op basis van het bestand pyproject.toml door in de projectfolder via de terminal te draaien:
 
 ```
