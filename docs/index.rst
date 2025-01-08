@@ -64,7 +64,7 @@ ruff format
    generator_network_lumping
    generator_order_levels
    generator_drainage_units
-   preprocess <preprocess>
+   preprocess <preprocess.html>
    general_functions
    create_graph
    network_functions
