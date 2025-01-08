@@ -1,6 +1,6 @@
 ## Workflows hydrologische basis data waterschappen: o.a. voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afwateringseenheden, stroomgebieden afleiden, automatische orde-codering.
 
-Bekijk de uitgebreide documentatie via de [read-the-docs](https://sweco-nl.github.io/generator_drainage_units/)
+Bekijk de uitgebreide documentatie via de [read-the-docs](https://generator-drainage-unit.readthedocs.io/en/latest/)
 
 
 ### Algemeen
