@@ -50,9 +50,9 @@ pixi global install ruff
 
 Gebruik ruff:
 
-``
+```
 ruff format
-``
+```
 
 
 .. toctree::
