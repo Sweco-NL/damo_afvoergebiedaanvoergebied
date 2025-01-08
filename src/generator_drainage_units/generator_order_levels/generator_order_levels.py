@@ -392,16 +392,20 @@ class GeneratorOrderLevels(GeneratorBasis):
         for order_no in [
             order_no for order_no in edges.order_no.unique() if order_no > 0
         ]:
+            # get edges from this order
             edges_order = edges[edges.order_no == order_no].copy()
+            # get edges from next order
             edges_next_order = edges[edges.order_no == order_no + 1].copy()
+            # find where edges from next order are entering this order
             edges_order = edges_order.merge(
                 edges_next_order[["code", "node_end"]].rename(
-                    columns={"code": "edge_codes"}
+                    columns={"code": "edge_codes", "node_end": "node_end2"}
                 ),
                 how="left",
                 left_on="node_start",
-                right_on="node_end",
-            )
+                right_on="node_end2",
+            ).drop(columns="node_end2")
+            # sort and get inflow edges from next order
             sort_columns = [
                 "rws_code",
                 "rws_code_no",
@@ -411,7 +415,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             ]
             edges_order = (
                 edges_order.sort_values(sort_columns)
-                .groupby("node_start")
+                .groupby(["node_start", "node_end"])
                 .agg(
                     {
                         k: list if k == "edge_codes" else "first"
@@ -647,7 +651,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             outflow_nodes.explode(
                 ["downstream_edges", "downstream_order_no", "downstream_order_code"]
             )
-            .sort_values(["nodeID", "downstream_order_no"])
+            .sort_values(["nodeID", "downstream_order_no", "downstream_order_code"])
             .drop_duplicates()
         )
         outflow_nodes = outflow_nodes.groupby("nodeID").first().reset_index()
