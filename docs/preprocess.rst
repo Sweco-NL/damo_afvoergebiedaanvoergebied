@@ -1,39 +1,6 @@
 API Documentatie
 =====================
 
-utils
-^^^^
-
-.. automodule:: generator_drainage_units.utils.create_graph
-    :members:
-    :undoc-members:
-    :private-members:
-
-.. automodule:: generator_drainage_units.utils.folium_utils
-    :members:
-    :undoc-members:
-    :private-members:
-
-.. automodule:: generator_drainage_units.utils.general_functions
-    :members:
-    :undoc-members:
-    :private-members:
-
-.. automodule:: generator_drainage_units.utils.network_functions
-    :members:
-    :undoc-members:
-    :private-members:
-
-.. automodule:: generator_drainage_units.utils.pandas_xlsx_tables
-    :members:
-    :undoc-members:
-    :private-members:
-
-.. automodule:: generator_drainage_units.utils.preprocess
-    :members:
-    :undoc-members:
-    :private-members:
-
 generator_basis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: generator_drainage_units.generator_basis.generator_basis
@@ -67,6 +34,39 @@ generator_network_lumping
 generator_order_levels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: generator_drainage_units.generator_order_levels.generator_order_levels
+    :members:
+    :undoc-members:
+    :private-members:
+
+utils
+^^^^
+
+.. automodule:: generator_drainage_units.utils.create_graph
+    :members:
+    :undoc-members:
+    :private-members:
+
+.. automodule:: generator_drainage_units.utils.folium_utils
+    :members:
+    :undoc-members:
+    :private-members:
+
+.. automodule:: generator_drainage_units.utils.general_functions
+    :members:
+    :undoc-members:
+    :private-members:
+
+.. automodule:: generator_drainage_units.utils.network_functions
+    :members:
+    :undoc-members:
+    :private-members:
+
+.. automodule:: generator_drainage_units.utils.pandas_xlsx_tables
+    :members:
+    :undoc-members:
+    :private-members:
+
+.. automodule:: generator_drainage_units.utils.preprocess
     :members:
     :undoc-members:
     :private-members:
