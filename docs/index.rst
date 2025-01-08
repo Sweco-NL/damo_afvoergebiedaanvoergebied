@@ -48,7 +48,7 @@ pixi install
    :maxdepth: 2
    :caption: Contents:
    
-   API docs <preprocess>
+   API docs <api_docs>
 
 
 
