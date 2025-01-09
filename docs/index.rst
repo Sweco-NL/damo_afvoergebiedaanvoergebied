@@ -34,8 +34,9 @@ De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te
    :maxdepth: 2
    :caption: Inhoud:
    
-   Installatie <getting_started>
-   Voorbeelden <some_examples>
+   Overzicht Generator Drainage Units <index>
+   Installatie en gebruik <getting_started>
+   Voorbeelden workflows <some_examples>
    API docs <api_docs>
 
 
