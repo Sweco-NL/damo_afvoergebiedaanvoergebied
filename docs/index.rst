@@ -34,7 +34,8 @@ De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te
    :maxdepth: 2
    :caption: Contents:
    
-   Getting started <getting_started>
+   Installatie en gebruik <getting_started>
+   Voorbeelden <examples>
    API docs <api_docs>
 
 

@@ -6,14 +6,12 @@ Voor gebruik download de public repository. Daarin zit zowel de package generato
 
 Installatie environment
 ----------------------------
-We gebruiken `pixi <https://pixi.sh/>`_ om de environment op orde te houden. Installatie van pixi (prefix.dev) kan via de Windows Powershell:
+We gebruiken `pixi <https://pixi.sh/>`_ om de environment op orde te houden. Installatie van pixi (prefix.dev) kan via de Windows Powershell::
 
-```
-iwr -useb https://pixi.sh/install.ps1 | iex
-```
+    iwr -useb https://pixi.sh/install.ps1 | iex
 
-Bouw de environment op op basis van het bestand pyproject.toml door in de projectfolder via de terminal te draaien:
+Bouw de environment op op basis van het bestand pyproject.toml door in de projectfolder via de terminal te draaien::
 
-```
-pixi install
-```
+    pixi install
+
+
