@@ -34,7 +34,6 @@ Inhoud
 .. toctree::
    :maxdepth: 2
    
-   Overzicht Generator Drainage Units <index>
    Installatie en gebruik <getting_started>
    Voorbeelden workflows <some_examples>
    API docs <api_docs>

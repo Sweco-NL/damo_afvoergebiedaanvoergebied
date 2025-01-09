@@ -1,7 +1,7 @@
 API Documentatie
 =====================
 
-generator_basis
+GeneratorBasis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Used for all generators to load all data from dir_basis_data and dir_results
 
@@ -16,7 +16,7 @@ Used for all generators to load all data from dir_basis_data and dir_results
     :private-members:
 
 
-generator_culvert_locations
+GeneratorCulvertLocations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Generates culverts to connect the lower level hydroobjects and connect them to the hydroobjects
 
@@ -31,7 +31,7 @@ Generates culverts to connect the lower level hydroobjects and connect them to t
     :private-members:
 
 
-generator_order_levels
+GeneratorOrderLevels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Generates order levels and order codes for all hydroobjects including lower level hydroobjects
 
@@ -46,7 +46,7 @@ Generates order levels and order codes for all hydroobjects including lower leve
     :private-members:
 
 
-generator_drainage_units
+GeneratorDrainageUnits
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Generates drainage units for each hydroobject based on a terrain model
 
@@ -61,7 +61,7 @@ Generates drainage units for each hydroobject based on a terrain model
     :private-members:
 
 
-generator_network_lumping
+GeneratorNetworkLumping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Generates upstream (sub)basins for predefined outflow points
 
