@@ -9,18 +9,18 @@ o.a. workflows voor voorbewerking waternetwerk, verbinden c-watergangen middels 
 
 Algemeen
 ----------------------------
-Deze python-toolbox is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Vallei & Veluwe en Aa & Maas met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. Er is voor gekozen om open-source te werken. We proberen deze python-toolbox op te zetten inclusief testdata, voorbeeld-scripts en documentatie.
+Deze python-toolbox is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Vallei & Veluwe en Aa & Maas met als doel om op basis van hydrologische basisdata van het watersysteem analyses uit te voeren. Hierbij wordt open-source gewerkt aan deze public repository waarbij we ons richten op overzichtelijkheid en voldoende documentatie en voorbeeld-scripts inclusief testdata.
 
 
 Waterschap Vallei & Veluwe
 ----------------------------
-De vraag om op basis van een raster met een hoogtemodel (maaiveld of grondwaterstand) en een waternetwerk stroomgebiedjes af te leiden, ook wel afwateringseenheden of hydrologische eenheden genoemd. Middels codering zou het mogelijk moeten zijn om deze te aggregeren tot elk gewenst niveau:
+De vraag om op basis van een raster met een hoogtemodel (maaiveld of in dit geval grondwaterstand GHG) en gegeven waternetwerk stroomgebiedjes af te leiden, ook wel afwateringseenheden of hydrologische eenheden genoemd. Middels netwerk-analyse en codering is het mogelijk om deze te aggregeren tot elk gewenst niveau:
 
 - **generator_culvert_locations**: workflow die voortbouwt op een al bestaande 'duikergenerator' van het waterschap waarin de locaties van duikers voor de C-watergangen worden bepaald. Dit gebeurd op basis van (configureerbare) regels, die rekening houden met kruizingen van (spoor)wegen en peilgebiedsgrenzen, de lengte van de duiker (hoe korter, hoe beter) en de richting van de duiker ten opzichte van de watergang (zelfde hoek heeft voorkeur). 
 
 - **generator_order_levels**: workflow voor het bepalen van orde nummers en de orde-codering van iedere watergang en daarmee voor de afwaterende eenheden (conform `Leidraad Harmoniseren Afvoergebieden <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_), op basis van de codering kan eenvoudig geaggregeerd worden. Ook worden hier de C-watergangen (niet hoofdwatergangen) meegenomen in de analyse.
 
-- **generator_drainage_units**: workflow voor het genereren van afwateringseenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van o.a. `RESPHIGI <https://gitlab.com/deltares/imod/respighi>`_ en `PyFlwDir van Deltares <https://github.com/Deltares/pyflwdir>`_
+- **generator_drainage_units**: workflow voor het genereren van afwateringseenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van andere open source packages zoals `PyFlwDir van Deltares <https://github.com/Deltares/pyflwdir>`_
 
 
 Waterschap Aa & Maas
@@ -30,24 +30,11 @@ De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te
 - **generator_network_lumping**: workflow om voor opgegeven uitstroompunten het bovenstroomse watersysteem te lumpen en afvoergebieden of (deel)stroomgebieden te genereren. Hierbij wordt overlap gedetecteerd en kan men aangeven hoe de deelgebieden verdeeld worden.
 
 
-Installatie environment
-----------------------------
-We gebruiken `pixi <https://pixi.sh/>`_ om de environment op orde te houden. Installatie van pixi (prefix.dev) kan via de Windows Powershell:
-
-```
-iwr -useb https://pixi.sh/install.ps1 | iex
-```
-
-Bouw de environment op op basis van het bestand pyproject.toml door in de projectfolder via de terminal te draaien:
-
-```
-pixi install
-```
-
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
    
+   Getting started <getting_started>
    API docs <api_docs>
 
 
