@@ -9,7 +9,7 @@ o.a. workflows voor voorbewerking waternetwerk, verbinden c-watergangen middels 
 
 Algemeen
 ----------------------------
-Deze python-toolbox is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Aa en Maas en Vallei & Veluwe met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. Er is voor gekozen om open-source te werken. We proberen deze python-toolbox op te zetten inclusief testdata, voorbeeld-scripts en documentatie.
+Deze python-toolbox is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Vallei & Veluwe en Aa & Maas met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. Er is voor gekozen om open-source te werken. We proberen deze python-toolbox op te zetten inclusief testdata, voorbeeld-scripts en documentatie.
 
 
 Waterschap Vallei & Veluwe
@@ -23,11 +23,11 @@ De vraag om op basis van een raster met een hoogtemodel (maaiveld of grondwaters
 - **generator_drainage_units**: workflow voor het genereren van afwateringseenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van o.a. `RESPHIGI <https://gitlab.com/deltares/imod/respighi>`_ en `PyFlwDir van Deltares <https://github.com/Deltares/pyflwdir>`_
 
 
-Waterschap Aa en Maas
+Waterschap Aa & Maas
 ----------------------------
 De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te genereren.
 
-- **generator_network_lumping**: workflow om voor gegeven uitstroompunten het bovenstroomse netwerk te lumpen en afvoergebieden of (deel)stroomgebieden te genereren.
+- **generator_network_lumping**: workflow om voor opgegeven uitstroompunten het bovenstroomse watersysteem te lumpen en afvoergebieden of (deel)stroomgebieden te genereren. Hierbij wordt overlap gedetecteerd en kan men aangeven hoe de deelgebieden verdeeld worden.
 
 
 Installatie environment
