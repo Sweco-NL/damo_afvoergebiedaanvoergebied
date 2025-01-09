@@ -20,6 +20,8 @@ Used for all generators to load all data from dir_basis_data and dir_results
 GeneratorCulvertLocations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Generates culverts to connect the lower level hydroobjects and connect them to the hydroobjects
+
 .. automodule:: generator_drainage_units.generator_culvert_locations
     :members:
     :undoc-members:
