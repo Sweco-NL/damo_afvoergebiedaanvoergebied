@@ -29,10 +29,10 @@ De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te
 
 - **generator_network_lumping**: workflow om voor opgegeven uitstroompunten het bovenstroomse watersysteem te lumpen en afvoergebieden of (deel)stroomgebieden te genereren. Hierbij wordt overlap gedetecteerd en kan men aangeven hoe de deelgebieden verdeeld worden.
 
-
+Inhoud
+----------------------------
 .. toctree::
    :maxdepth: 2
-   :caption: Inhoud:
    
    Overzicht Generator Drainage Units <index>
    Installatie en gebruik <getting_started>
