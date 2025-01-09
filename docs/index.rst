@@ -32,7 +32,7 @@ De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Inhoud:
    
    Installatie en gebruik <getting_started>
    Voorbeelden <examples>
