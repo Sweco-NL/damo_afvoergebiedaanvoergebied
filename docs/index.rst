@@ -4,17 +4,19 @@
 
 Generator Drainage Units: Workflows voor hydrologische basisdata waterschappen
 ============================================================================================================================
+`GitHub-repository`
+`GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units>`_
 o.a. workflows voor voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afleiden van afwateringseenheden en stroomgebieden, automatische toekennen van orde-codering. 
 
 
 Algemeen
 ----------------------------
-Deze python-toolbox is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Vallei & Veluwe en Aa & Maas met als doel om op basis van hydrologische basisdata van het watersysteem analyses uit te voeren. Hierbij wordt open-source gewerkt aan deze public repository waarbij we ons richten op overzichtelijkheid en voldoende documentatie en voorbeeld-scripts inclusief testdata.
+Deze python-toolbox is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Aa en Maas en Vallei & Veluwe met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. We bundelen hierbij de workflows in een public repository inclusief testdata, voorbeeld-scripts en documentatie.
 
 
 Waterschap Vallei & Veluwe
 ----------------------------
-De vraag om op basis van een raster met een hoogtemodel (maaiveld of in dit geval grondwaterstand GHG) en gegeven waternetwerk stroomgebiedjes af te leiden, ook wel afwateringseenheden of hydrologische eenheden genoemd. Middels netwerk-analyse en codering is het mogelijk om deze te aggregeren tot elk gewenst niveau:
+De vraag om stroomgebiedjes af te leiden op basis van een raster met een hoogtemodel (maaiveld of in dit geval grondwaterstand GHG) en een gegeven waternetwerk. Deze stroomgebiedjes worden ook wel afwateringseenheden of hydrologische eenheden genoemd. Middels netwerk-analyse en codering is het mogelijk om deze te aggregeren tot elk gewenst niveau:
 
 - **generator_culvert_locations**: workflow die voortbouwt op een al bestaande 'duikergenerator' van het waterschap waarin de locaties van duikers voor de C-watergangen worden bepaald. Dit gebeurd op basis van (configureerbare) regels, die rekening houden met kruizingen van (spoor)wegen en peilgebiedsgrenzen, de lengte van de duiker (hoe korter, hoe beter) en de richting van de duiker ten opzichte van de watergang (zelfde hoek heeft voorkeur). 
 
@@ -36,7 +38,7 @@ Inhoud
    
    Installatie en gebruik <getting_started>
    Voorbeelden workflows <some_examples>
-   API docs <api_docs>
+   API documentatie <api_docs>
 
 
 
