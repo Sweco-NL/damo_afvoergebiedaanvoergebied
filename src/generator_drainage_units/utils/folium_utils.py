@@ -4,12 +4,15 @@ import matplotlib
 import numpy as np
 import pandas as pd
 import random
+import xarray as xr
+import matplotlib.pyplot as plt
 from folium.plugins import (
     FeatureGroupSubGroup,
     FloatImage,
     MarkerCluster,
     MeasureControl,
 )
+from branca.element import Template, MacroElement
 from shapely.geometry import LineString, Point, Polygon
 
 
@@ -117,6 +120,48 @@ def check_fields_aliases(
     return fields_x, aliases
 
 
+def create_categories_based_on_thresholds(thresholds: list[float],
+                                          unit: str = 'm',
+                                          lower_limit: bool = True,
+                                          upper_limit: bool = True,
+                                          decimals: int = 2):
+    """This function creates categories based on a list of tresholds.
+
+    Input:  * thresholds: A list of floats
+            * unit: str indicating the unit. in case unit == % then 0.3 --> 30%
+            * lower_limit: Also a category "everything below lowest threshold"
+            * upper_limit: Also a category "everything above highest threshold"
+            * decimals: number of decimals included in category-name
+
+    Output: * thresholds: list of thresholds (adapted in case of upper- and/or lower_limit)
+            * categories: names of the categories
+    """
+    # create categories
+    categories = []
+    thresholds_new = []
+    if unit == '%':
+        if not lower_limit:
+            categories.append(f'<{thresholds[0]:0.{decimals}%}')
+            thresholds_new.append(thresholds[0] - 100.0 * (thresholds[-1] - thresholds[0]))
+        for i in range(len(thresholds) - 1):
+            categories.append(f'{thresholds[i]:0.{decimals}%}-{thresholds[i + 1]:0.{decimals}%}')
+        thresholds_new += list(thresholds)
+        if not upper_limit:
+            categories.append(f'{thresholds[-1]:0.{decimals}%}<')
+            thresholds_new.append(thresholds[-1] + 100.0 * (thresholds[-1] - thresholds[0]))
+    else:
+        if not lower_limit:
+            categories.append(f'<{thresholds[0]:0.{decimals}f}{unit}')
+            thresholds_new.append(thresholds[0] - 100.0*(thresholds[-1] - thresholds[0]))
+        for i in range(len(thresholds)-1):
+            categories.append(f'{thresholds[i]:0.{decimals}f}-{thresholds[i + 1]:0.{decimals}f}{unit}')
+        thresholds_new += list(thresholds)
+        if not upper_limit:
+            categories.append(f'{thresholds[-1]:0.{decimals}f}{unit}<')
+            thresholds_new.append(thresholds[-1] + 100.0*(thresholds[-1] - thresholds[0]))
+    return thresholds_new, categories
+
+
 def add_categorized_color_to_gdf(
     gdf,
     color_column=None,
@@ -192,6 +237,163 @@ def add_categorized_color_to_gdf(
             ] = color
 
     return gdf, names, colors
+
+
+def create_legend_format(line_colors: list[str] = None,
+                         fill_colors: list[str] = None,
+                         line_weight: float = 1.0,
+                         labels: list[str] = None,
+                         legend_title: str = 'Legenda',
+                         opacity: float = 0.0,
+                         no_legend: int = 0,
+                         legend_location: str = 'top',
+                         reverse: bool = False):
+    """Generate a color legend based on colors and labels
+
+    Input:  * line_colors: list of colors specified by strings (hex)
+            * fill_colors: list of colors specified by strings (hex)
+            * labels: list of labels attached to colors (categories?)
+            * legend_title: title of the legend
+            * opacity: opacity of the legend 0.0-1.0
+            * no_legend: number of legend (location at top or bottom)
+            * legend_location: location of legend ('top' or 'bottom')
+            * reverse: reverse the order of the colors/labels (high->low versus low->high)
+
+    Output: * macro including the legend, which can be added to the map.
+    """
+    # if None replace
+    if line_colors is None:
+        line_colors = ['#3f3f42'] * len(fill_colors)
+    if fill_colors is None:
+        fill_colors = ['rgba(0,0,0,0)'] * len(line_colors)
+    if labels is None:
+        labels = [str(i) for i in range(len(line_colors))]
+
+    # if len() = 1 then replace with array with length equal to other
+    if len(line_colors) == 1 and len(fill_colors) > 1:
+        line_colors = [line_colors[0]] * len(fill_colors)
+    if len(fill_colors) == 1 and len(line_colors) > 1:
+        fill_colors = [fill_colors[0]] * len(line_colors)
+
+    if reverse:
+        line_colors = list(reversed(line_colors))
+        fill_colors = list(reversed(fill_colors))
+        labels = list(reversed(labels))
+
+    template = """
+    {% macro html(this, kwargs) %}
+
+    <!doctype html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>jQuery UI Draggable - Default functionality</title>
+      <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+      <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+      <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+      <script>
+      $( function() {
+      $( "#__MAP_LEGEND__" ).draggable({
+        start: function (event, ui) {
+          $(this).css({
+            right: "auto",
+            top: "auto",
+            bottom: "auto"
+          });
+        }
+      });
+    });
+    </script>
+
+      </script>
+    </head>
+    <body>
+
+    <div id='__MAP_LEGEND__' class='__MAP_LEGEND__'
+        style='position: absolute; z-index:999; border:0px solid grey; width: __LEGEND_WIDTH__px;
+        background-color: rgba(255, 255, 255, 0.85); border-radius:0px; padding: 10px 10px 8px 10px; font-size:14px;
+        top: __LEGEND_TOP__; right: __LEGEND_RIGHT__; left: __LEGEND_LEFT__; bottom: __LEGEND_BOTTOM__;
+        box-shadow: 0px 0px 3px;'>
+
+    <div class='legend-title'>__LEGEND_TITLE__</div>
+    <div class='legend-scale'>
+      <ul class='legend-labels'>
+        __COLOR_LABELS__
+      </ul>
+    </div>
+    </div>
+
+    </body>
+    </html>
+
+    <style type='text/css'>
+      .__MAP_LEGEND__ .legend-title {
+        text-align: left;
+        margin-bottom: 5px;
+        font-weight: bold;
+        font-size: 90%;
+        }
+      .__MAP_LEGEND__ .legend-scale ul {
+        margin: 0;
+        margin-bottom: 5px;
+        padding: 0;
+        float: left;
+        list-style: none;
+        }
+      .__MAP_LEGEND__ .legend-scale ul li {
+        font-size: 80%;
+        list-style: none;
+        margin-left: 0;
+        line-height: 18px;
+        margin-bottom: 2px;
+        }
+      .__MAP_LEGEND__ ul.legend-labels li span {
+        display: block;
+        float: left;
+        height: 18px;
+        width: 30px;
+        margin-left: 5px;
+        margin-right: 10px;
+        border: 1px solid #999;
+        }
+      .__MAP_LEGEND__ .legend-source {
+        font-size: 80%;
+        color: #777;
+        clear: both;
+        }
+      .__MAP_LEGEND__ a {
+        color: #777;
+        }
+    </style>
+    {% endmacro %}"""
+
+    color_label_str = f"""        <li><span style='border-color: __COLOR__; border-width: __LINE_WEIGHT__px; background:__FILL_COLOR__;opacity:{opacity:0.2f};'></span>__LABEL__</li>
+    """
+    list_color_labels = ""
+    for line_color, fill_color, label in zip(line_colors, fill_colors, labels):
+        list_color_labels += color_label_str.replace("__COLOR__", line_color)\
+            .replace("__FILL_COLOR__", fill_color)\
+            .replace("__LABEL__", label)\
+            .replace("__LINE_WEIGHT__", f"{line_weight:0.2f}")
+
+    template = template.replace("__COLOR_LABELS__", list_color_labels)
+    template = template.replace("__LEGEND_TITLE__", legend_title)
+
+    # Set width of legend and location using __WIDTH_LEGEND__ and no_legend
+    legend_width = 200
+    template = template.replace("__MAP_LEGEND__", f"maplegend{no_legend}").replace("__LEGEND_WIDTH__", str(legend_width))
+
+    if legend_location == 'top':
+        template = template.replace("__LEGEND_TOP__", "120px").replace("__LEGEND_BOTTOM__", "auto")\
+            .replace("__LEGEND_RIGHT__", "auto").replace("__LEGEND_LEFT__", f"{60+no_legend*(legend_width+10)}px")
+    else:
+        template = template.replace("__LEGEND_TOP__", "auto").replace("__LEGEND_BOTTOM__", "6%")\
+            .replace("__LEGEND_RIGHT__", "auto").replace("__LEGEND_LEFT__", f"{60+(no_legend-100)*(legend_width+10)}px")
+    macro = MacroElement()
+    macro._template = Template(template)
+    return macro
 
 
 def add_labels_to_points_lines_polygons(
@@ -347,8 +549,8 @@ def add_lines_to_map(
 ):
     """
     Voegt lijnen toe aan de kaart
-    
-    Input:  
+
+    Input:
             * lines_gdf: Geodataframe with lines
             * layer_name: De naam van de laag zoals deze verschijnt in de lijst met lagen in de kaart
             * feature_group: Vul hier de featuregroup naam in indien je meerdere lagen in één groep plaatst
@@ -367,7 +569,7 @@ def add_lines_to_map(
             * popup: Geeft de informatie bij klikken op de fetaure in de kaart. Werking; zie tooltip.
             * popup_alisases: Geeft aliases voor de popup. Werking; zie tooltip_aliases
             * z_index: bij meerdere lagen; geef met een waarde aan welke laag op de voorgrond weergegeven wordt
-            
+
     Output
             * feature_group
     """
@@ -543,4 +745,245 @@ def add_categorized_lines_to_map(
         popup=popup,
         popup_aliases=popup_aliases,
     )
+    return fg
+
+
+def add_graduated_raster_to_map(
+    m: folium.Map,
+    raster: xr.DataArray,
+    dx: float = 0.0,
+    dy: float = 0.0,
+    feature_group: folium.FeatureGroup = None,
+    layer_name: str = None,
+    unit: str = "",
+    control: bool = True,
+    cmap: str = "Spectral",
+    values: list[float | int] = None,
+    colors: list[str] = None,
+    vmin: float = None,
+    vmax: float = None,
+    upper_limit: bool = False,
+    lower_limit: bool = False,
+    opacity: float = 0.5,
+    z_index: int = 1,
+    legend: bool = False,
+    legend_name: str = None,
+    legend_location: str = "top",
+    legend_reverse: bool = False,
+    show=True,
+) -> folium.FeatureGroup:
+    """Voegt raster toe aan swecoleaflet
+        Input:  * raster: raster
+            * layer_name: De naam van de laag zoals deze verschijnt in de lijst met lagen in de kaart
+            * feature_group: Vul hier de featuregroup naam in indien je meerdere lagen in één groep plaatst
+            * unit: de eenheid van de waarde in je raster, om eventueel weer te geven in legenda
+            * cmap: de naam van de te gebruiken colormap volgens de built-in colormaps van matplotlib
+            * vmin: de minimale waarde voor je colormap
+            * vmax: de maximale waarde voor je colormap
+            * opacity: vul een waarde tussen 0.0 (volledig transparant) en 1.0 in (volledig ontransparant)
+            * show: Geef met True of False aan of de laag standaard weergegeven moet worden bij openen van de kaart.
+            * control: Geef met True of False aan of de laag opgenomen moet worden in de lijst met lagen
+            * z_index: bij meerdere lagen; geef met een waarde aan welke laag op de voorgrond weergegeven wordt
+            * legend: bool = False voor weergeven van legenda, False voor geen legenda
+            * legend_name: Naam die boven de legenda wordt weergegeven,
+            * legend_location: locatie van de legenda, bottom of top
+            * legend_reverse: True als je de legenda andersom wil weergeven (laagste waarde boven, hoogste onder)
+    Output = swecoleaflet"""
+    print(f" - raster: add raster {str(layer_name)}")
+    fg, fgs = check_map_exists_and_feature_group(
+        m=m,
+        feature_group=feature_group,
+        layer_name=layer_name,
+        show=show,
+        control=control,
+        z_index=z_index,
+    )
+
+    # inladen raster en omzetten naar gekleurde image zodat deze geplot kan worden
+    raster = raster.assign_coords(x=raster.x.data + dx, y=raster.y.data + dy)
+    raster_4326 = raster.rio.reproject("EPSG:4326", nodata=np.nan)
+    if "band" in raster_4326.coords:
+        raster_4326 = raster_4326.drop("band")[0]
+    xmin = raster_4326.x.data.min()
+    ymin = raster_4326.y.data.min()
+    xmax = raster_4326.x.data.max()
+    ymax = raster_4326.y.data.max()
+
+    def colorize_raster_cmap(array, cmap, vmin, vmax):
+        normed_data = (array - vmin) / (vmax - vmin)
+        if type(cmap) == str:
+            c_map = plt.cm.get_cmap(cmap)
+            return c_map(normed_data)
+        return cmap(normed_data)
+
+    data = np.ma.masked_invalid(raster_4326)
+    if values is not None:
+        vmin = values[0]
+        vmax = values[-1]
+    if vmin is None:
+        vmin = data.min()
+    if vmax is None:
+        vmax = data.max()
+
+    if vmin is not None and lower_limit:
+        data.data[raster_4326.data < vmin] = np.nan
+    if vmax is not None and upper_limit:
+        data.data[raster_4326.data > vmax] = np.nan
+
+    if cmap is None and colors:
+        cmap = matplotlib.colors.LinearSegmentedColormap.from_list("mycmap", colors)
+    colored_raster = colorize_raster_cmap(data, cmap, vmin, vmax)
+    _raster = folium.raster_layers.ImageOverlay(
+        colored_raster,
+        [[ymin, xmin], [ymax, xmax]],
+        origin="upper",
+        opacity=opacity,
+        z_index=z_index,
+    )
+    if fgs is not None:
+        _raster.add_to(fgs)
+    else:
+        _raster.add_to(fg)
+
+    if legend:
+        if values is not None:
+            categories = [str(v) for v in values]
+        else:
+            no_categories = 10
+            thresholds = list(
+                np.arange(
+                    vmin,
+                    vmax + (vmax - vmin) / no_categories,
+                    (vmax - vmin) / no_categories,
+                )
+            )
+            thresholds, categories = create_categories_based_on_thresholds(
+                thresholds=thresholds, unit=unit
+            )
+        c_map = plt.cm.get_cmap(cmap)
+        fill_colors = [
+            matplotlib.colors.rgb2hex(c_map(float(i) / float(len(categories) - 1)))
+            for i in range(len(categories))
+        ]
+        macro = create_legend_format(
+            fill_colors=fill_colors,
+            labels=categories,
+            legend_title=legend_name if legend_name is not None else layer_name,
+            opacity=1.0,
+            # no_legend=self.no_legend_top
+            # if legend_location == "top"
+            # else self.no_legend_bottom,
+            legend_location=legend_location,
+            reverse=legend_reverse,
+        )
+        fg.add_child(macro)
+        # if legend_location == "top":
+        #     self.no_legend_top += 1
+        # elif legend_location == "bottom":
+        #     self.no_legend_bottom += 1
+    return fg
+
+
+def add_categorized_raster_to_map(
+    self,
+    raster: xr.DataArray,
+    dx: float = 0.0,
+    dy: float = 0.0,
+    feature_group: folium.FeatureGroup = None,
+    layer_name: str = "",
+    unit: str = "m",
+    control: bool = True,
+    category_values: list[float | int] = None,
+    category_names: list[float | int | str] = None,
+    category_thresholds: list[float | int] = None,
+    category_lower_limit: bool = True,
+    category_upper_limit: bool = True,
+    category_cmap: str = None,
+    category_colors: list[str] = None,
+    opacity: float = 1.0,
+    legend: bool = False,
+    legend_name: str = None,
+    legend_location: str = "top",
+    legend_reverse: bool = False,
+    z_index: int = 1,
+    show=True,
+) -> folium.FeatureGroup:
+    """Voegt raster toe aan swecoleaflet op basis van zelf gedefinieerde categorieen
+                Input:  zie add_raster_to_map, met als toevoeging
+            * category_values: lijst met rasterwaardes per category
+            * category_names: lijst met category namen
+            * category_thresholds: lijst met de waarden van de grenzen voor de categorieen
+            * category_lower_limit: True voor een extra categorie voor alle waarden lager dan je laagste categorie
+            * category_upper_limit: True voor een extra categorie voor alle waarden hoger dan je hoogste categorie
+            * category_cmap: matploblib-colormap
+            * category_colors: lijst met kleuren behorend bij de categorieen
+    output: feature group"""
+    data_array = raster.copy()
+
+    if category_values is not None:
+        data_array.data = np.empty(raster.data.shape)
+        data_array.data[:] = np.nan
+        for i_value, value in enumerate(category_values):
+            data_array.data[raster.data == value] = i_value
+        if category_names is None:
+            category_names = [str(val) for val in category_values]
+
+    if category_thresholds is not None:
+        data_array, thresholds, categories = create_raster_categories(
+            raster,
+            unit=unit,
+            thresholds=category_thresholds,
+            lower_limit=category_lower_limit,
+            upper_limit=category_upper_limit,
+        )
+        if category_names is None:
+            category_names = categories
+    elif data_array is None:
+        data_array = raster
+
+    fg = self.add_graduated_raster_to_map(
+        raster=data_array,
+        dx=dx,
+        dy=dy,
+        cmap=category_cmap,
+        control=control,
+        feature_group=feature_group,
+        values=None if category_values is None else list(range(len(category_values))),
+        colors=category_colors,
+        layer_name=layer_name,
+        opacity=opacity,
+        z_index=z_index,
+        legend=False,
+        show=show,
+    )
+    if legend:
+        if category_colors is None and category_cmap:
+            c_map = plt.cm.get_cmap(category_cmap)
+            category_colors = [
+                matplotlib.colors.rgb2hex(
+                    c_map(float(i) / float(len(category_names) - 1))
+                )
+                for i in range(len(category_names))
+            ]
+        macro = create_legend_format(
+            fill_colors=category_colors,
+            line_weight=1.0,
+            labels=category_names,
+            legend_title=legend_name if legend_name is not None else layer_name,
+            opacity=1.0,
+            # no_legend=self.no_legend_top
+            # if legend_location == "top"
+            # else self.no_legend_bottom,
+            legend_location=legend_location,
+            reverse=legend_reverse,
+        )
+        fg.add_child(macro)
+        # if fgs is not None:
+        #     fgs.add_child(macro)
+        # else:
+        #     fg.add_child(macro)
+        # if legend_location == "top":
+        #     self.no_legend_top += 1
+        # elif legend_location == "bottom":
+        #     self.no_legend_bottom += 1
     return fg

@@ -203,7 +203,7 @@ def find_node_edge_ids_in_directed_graph(
     results_edges = [[e] if e in search_edge_ids else [] for e in outflow_edge_ids]
     if set_logging:
         logging.debug(
-            f"    - find {direction} nodes/edges for {len(outflow_edge_ids)}/{len(search_edge_ids)} nodes"
+            f"     - find {direction} nodes/edges for {len(outflow_edge_ids)}/{len(search_edge_ids)} nodes"
         )
     search_direction = "upstream" if direction == "downstream" else "downstream"
     opposite_direction = "downstream" if direction == "downstream" else "upstream"

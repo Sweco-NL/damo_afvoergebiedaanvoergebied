@@ -22,9 +22,9 @@ from ..utils.general_functions import (
     remove_holes_from_polygons,
 )
 from ..utils.network_functions import (
-    find_nodes_edges_for_direction,
-    define_list_upstream_downstream_edges_ids,
     calculate_angles_of_edges_at_nodes,
+    define_list_upstream_downstream_edges_ids,
+    find_nodes_edges_for_direction,
 )
 
 
@@ -33,9 +33,8 @@ class GeneratorNetworkLumping(GeneratorBasis):
 
     path: Path = None
     name: str = None
-    dir_basis_data: str = "0_basisdata"
-    dir_inter_results: str | None = "1_tussenresultaat"
-    dir_results: str | None = "2_resultaat"
+    dir_basisdata: str = "0_basisdata"
+    dir_results: str | None = "1_resultaat"
 
     direction: str = "upstream"
     read_results: bool = False
@@ -205,8 +204,8 @@ class GeneratorNetworkLumping(GeneratorBasis):
 
         for i_node, node in enumerate(inflow_outflow_nodes.nodeID.values):
             if i_node % 50 == 0:
-                logging.debug(
-                    f"    - detect points: {i_node}/{len(inflow_outflow_nodes)}"
+                logging.info(
+                    f"     - detect points: {i_node}/{len(inflow_outflow_nodes)}"
                 )
             upstream_edges = self.inflow_outflow_edges[
                 self.inflow_outflow_edges[node_search] == node
@@ -268,16 +267,16 @@ class GeneratorNetworkLumping(GeneratorBasis):
             )
 
         if self.inflow_outflow_splits is None:
-            logging.debug(f"    - no. of splits as input: {0}")
+            logging.info(f"     - no. of splits as input: {0}")
         else:
-            logging.debug(
-                f"    - no. of splits as input: {len(self.inflow_outflow_splits)}"
+            logging.info(
+                f"     - no. of splits as input: {len(self.inflow_outflow_splits)}"
             )
-        logging.debug(
-            f"    - no. of splits found in network: {len(self.inflow_outflow_splits_0)}"
+        logging.info(
+            f"     - no. of splits found in network: {len(self.inflow_outflow_splits_0)}"
         )
-        logging.debug(
-            f"    - no. of splits in total: {len(self.inflow_outflow_splits_1)}"
+        logging.info(
+            f"     - no. of splits in total: {len(self.inflow_outflow_splits_1)}"
         )
 
         return self.inflow_outflow_splits_1
@@ -384,7 +383,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
         ):
             self.inflow_outflow_splits_2 = self.inflow_outflow_splits_0.copy()
         else:
-            logging.debug("    - no splits found: no direction for splits selected")
+            logging.info("     - no splits found: no direction for splits selected")
             return None
 
         logging.info("   x search for direction in splits")
@@ -394,8 +393,8 @@ class GeneratorNetworkLumping(GeneratorBasis):
                     ~self.inflow_outflow_splits_2[f"{search_direction}_edge"].isna()
                 ]
             )
-            logging_message = f"    - known {search_direction} direction at splits: {no_splits_known}/{len(self.inflow_outflow_splits_2)}"
-            logging.debug(logging_message)
+            logging_message = f"     - known {search_direction} direction at splits: {no_splits_known}/{len(self.inflow_outflow_splits_2)}"
+            logging.info(logging_message)
 
             self.inflow_outflow_splits_2[f"selected_{search_direction}_edge"] = (
                 self.inflow_outflow_splits_2.apply(
@@ -409,7 +408,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
                 f"     - randomly choosen {search_direction} direction at splits: "
                 f"{len(self.inflow_outflow_splits_2) - no_splits_known}/{len(self.inflow_outflow_splits_2)}"
             )
-            logging.debug(logging_message)
+            logging.info(logging_message)
         return self.inflow_outflow_splits_2
 
     def assign_drainage_units_to_outflow_points_based_on_id(self):
@@ -537,9 +536,9 @@ class GeneratorNetworkLumping(GeneratorBasis):
         ]:
             result = getattr(self, layer)
             if result is None:
-                logging.debug(f"    - {layer} not available")
+                logging.info(f"     - {layer} not available")
             else:
-                logging.debug(f"    - {layer} ({len(result)})")
+                logging.info(f"     - {layer} ({len(result)})")
                 result.to_file(Path(results_dir, f"{layer}.gpkg"))
 
     def generate_folium_map(
@@ -733,6 +732,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
 
         m = add_basemaps_to_folium_map(m=m, base_map=base_map)
         folium.LayerControl(collapsed=False).add_to(m)
+        m.add_child(folium.plugins.MeasureControl())
 
         self.folium_map = m
 

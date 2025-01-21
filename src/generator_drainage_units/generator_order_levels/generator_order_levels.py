@@ -1,27 +1,25 @@
 import logging
-from pathlib import Path
 import webbrowser
-import datetime
+from pathlib import Path
 
 import folium
 import geopandas as gpd
 import networkx as nx
-import numpy as np
 import pandas as pd
 from shapely.geometry import Point
 
 from ..generator_basis import GeneratorBasis
 from ..utils.create_graph import create_graph_from_edges
-from ..utils.network_functions import (
-    define_list_upstream_downstream_edges_ids,
-    calculate_angles_of_edges_at_nodes,
-    select_downstream_upstream_edges,
-    find_node_edge_ids_in_directed_graph,
-)
 from ..utils.folium_utils import (
-    add_labels_to_points_lines_polygons,
     add_basemaps_to_folium_map,
     add_categorized_lines_to_map,
+    add_labels_to_points_lines_polygons,
+)
+from ..utils.network_functions import (
+    calculate_angles_of_edges_at_nodes,
+    define_list_upstream_downstream_edges_ids,
+    find_node_edge_ids_in_directed_graph,
+    select_downstream_upstream_edges,
 )
 
 
@@ -31,7 +29,9 @@ class GeneratorOrderLevels(GeneratorBasis):
 
     path: Path = None
     name: str = None
-    base_dir: Path = None
+    dir_basisdata: str = "0_basisdata"
+    dir_results: str | None = "1_resultaat"
+
     waterschap: str = None
     range_order_code_min: int = None
     range_order_code_max: int = None
@@ -44,13 +44,22 @@ class GeneratorOrderLevels(GeneratorBasis):
     read_results: bool = False
     write_results: bool = False
 
+    required_results: list[str] = [
+        "hydroobjecten",
+        "hydroobjecten_processed_0", 
+        "rws_wateren",
+        "overige_watergangen",
+        "overige_watergangen_processed_3", 
+        "outflow_nodes_overige_watergangen",
+    ]
+
     outflow_edges: gpd.GeoDataFrame = None
     outflow_nodes: gpd.GeoDataFrame = None
 
+    outflow_nodes_overige_watergangen: gpd.GeoDataFrame = None
     overige_watergangen: gpd.GeoDataFrame = None
     overige_watergangen_processed_3: gpd.GeoDataFrame = None
     overige_watergangen_processed_4: gpd.GeoDataFrame = None
-    outflow_nodes_overige_watergangen: gpd.GeoDataFrame = None
 
     edges: gpd.GeoDataFrame = None
     nodes: gpd.GeoDataFrame = None
@@ -128,7 +137,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             )
             if outflows["rws_code_no"].max() > self.range_order_code_max:
                 logging_message = f" XXX aantal uitstroompunten op RWS-water ({rws_code}) hoger dan range order_code waterschap"
-                logging.debug(logging_message)
+                logging.info(logging_message)
 
             if outflow_edges_all_waters is None:
                 outflow_edges_all_waters = outflows.copy()
@@ -137,12 +146,12 @@ class GeneratorOrderLevels(GeneratorBasis):
                     [outflow_edges_all_waters, outflows]
                 )
             logging_message = (
-                f"    - RWS-water ({rws_code}): {len(outflows)} outflow_points"
+                f"     - RWS-water ({rws_code}): {len(outflows)} outflow_points"
             )
-            logging.debug(logging_message)
+            logging.info(logging_message)
 
-        logging_message = f"    - total no. outflow_point on outside waters for {self.name}: {len(outflow_edges_all_waters)}"
-        logging.debug(logging_message)
+        logging_message = f"     - total no. outflow_point on outside waters for {self.name}: {len(outflow_edges_all_waters)}"
+        logging.info(logging_message)
 
         self.outflow_edges = outflow_edges_all_waters.rename(
             columns={"nodeID": "node_end"}
@@ -175,16 +184,16 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         while not new_outflow_edges_order.empty and order_no < 100:
             logging_message = (
-                f"    - order {order_no}: {len(new_outflow_edges_order)} outflow edges"
+                f"     - order {order_no}: {len(new_outflow_edges_order)} outflow edges"
             )
-            logging.debug(logging_message)
+            logging.info(logging_message)
             outflow_edges = new_outflow_edges_order.copy()
             new_outflow_edges_order = None
             outflow_edges_edges = None
             outflow_edges_nodes = None
 
             for i_edge, outflow_edge in outflow_edges.reset_index(drop=True).iterrows():
-                # logging.debug(f"      * {i_node+1}/{len(outflow_edges)}")
+                # logging.info(f"      * {i_node+1}/{len(outflow_edges)}")
                 outflow_edge_nodes_id, outflow_edge_edges_code, new_outflow_edges = (
                     find_node_edge_ids_in_directed_graph(
                         from_node_ids=edges_left.node_start.to_numpy(),
@@ -453,9 +462,9 @@ class GeneratorOrderLevels(GeneratorBasis):
                 (self.outflow_edges.order_no == order_no)
             ]
             logging_message = (
-                f"    - order {order_no}: {len(order_outflow_edges)} outflow edges"
+                f"     - order {order_no}: {len(order_outflow_edges)} outflow edges"
             )
-            logging.debug(logging_message)
+            logging.info(logging_message)
 
             if edges_outflow_edges is not None:
                 new_outflow_edge = edges_outflow_edges[
@@ -695,8 +704,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
 
     def export_results_to_gpkg(self):
-        """Export results to geopackages in folder 1_tussenresultaat"""
-        results_dir = Path(self.path, self.dir_inter_results)
+        """Export results to geopackages in folder 1_resultaat"""
         logging.info(f"   x export results")
         for layer in [
             "outflow_edges",
@@ -708,10 +716,10 @@ class GeneratorOrderLevels(GeneratorBasis):
         ]:
             result = getattr(self, layer)
             if result is None:
-                logging.debug(f"    - {layer} not available")
+                logging.info(f"     - {layer} not available")
             else:
-                logging.debug(f"    - {layer} ({len(result)})")
-                result.to_file(Path(results_dir, f"{layer}.gpkg"))
+                logging.info(f"     - {layer} ({len(result)})")
+                result.to_file(Path(self.dir_results, f"{layer}.gpkg"))
 
     def generate_folium_map(
         self,
@@ -885,6 +893,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         m = add_basemaps_to_folium_map(m=m, base_map=base_map)
 
         folium.LayerControl(collapsed=False).add_to(m)
+        m.add_child(folium.plugins.MeasureControl())
 
         self.folium_map = m
 

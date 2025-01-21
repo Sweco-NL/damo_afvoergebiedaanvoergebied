@@ -5,9 +5,8 @@ from .generator_network_lumping import GeneratorNetworkLumping
 
 def run_generator_network_lumping(
     path: Path,
-    dir_basis_data: str = "0_basisdata",
-    dir_inter_results: str = "1_tussenresultaat",
-    dir_results: str = "2_resultaat",
+    dir_basisdata: str = "0_basisdata",
+    dir_results: str = "1_resultaat",
     direction: str = "upstream",
     water_lines: list[str] = None,
     include_areas: bool = True,
@@ -21,8 +20,7 @@ def run_generator_network_lumping(
 ):
     network = GeneratorNetworkLumping(
         path=path,
-        dir_basis_data=dir_basis_data,
-        dir_inter_results=dir_inter_results,
+        dir_basisdata=dir_basisdata,
         dir_results=dir_results,
     )
     network.create_graph_from_network(water_lines=water_lines)
@@ -49,4 +47,3 @@ def run_generator_network_lumping(
             opacity_edges=opacity_edges,
         )
     return network
-

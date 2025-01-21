@@ -1,21 +1,24 @@
 import logging
 import time
 from pathlib import Path
-import xarray as xr
+import rioxarray
 
 from .generator_drainage_units import GeneratorDrainageUnits
 
 
 def run_generator_drainage_units(
     path: Path,
-    dir_basis_data: Path,
-    dir_inter_results: Path = None,
+    dir_basisdata: Path,
     dir_results: Path = None,
     ghg_file_name: str = None,
+    resolution: float = 2.0,
+    depth_waterways: float = 1.0,
+    buffer_waterways: float = 2.5,
+    smooth_distance: float = 25.0,
+    iterations: int = 2000,
     read_results: bool = False,
     write_results: bool = False,
     create_html_map: bool = False,
-    water_lines: list[str] = ["hydroobjecten"],
 ) -> GeneratorDrainageUnits:
     """Run Generator Culvert Locations (Duikergenerator)
 
@@ -23,7 +26,7 @@ def run_generator_drainage_units(
     ----------
     path : Path
         Path to the case directory including directories 0_basisdata and
-        1_tussenresultaat. Directory name is used as name for the case,
+        1_resultaat. Directory name is used as name for the case,
         by default None
     read_results : bool, optional
         option (True/False) to read previous results from gpkg, by default None
@@ -37,12 +40,21 @@ def run_generator_drainage_units(
     """
     start_time = time.time()
     gdu = GeneratorDrainageUnits(
-        path=path, read_results=read_results, write_results=write_results
+        path=path, 
+        dir_basisdata=dir_basisdata,
+        dir_results=dir_results,
+        read_results=read_results, 
+        write_results=write_results,
     )
-    gdu.ghg = xr.open_dataset(Path(gdu.path, gdu.dir_basis_data, ghg_file_name))[
-        "__xarray_dataarray_variable__"
-    ][0]
-    gdu.ghg.name = "GHG_2000-2010_L1"
+    if ghg_file_name is not None:
+        gdu.read_ghg(ghg_file_name=ghg_file_name)
+        gdu.preprocess_ghg(
+            resolution=resolution, 
+            depth_waterways=depth_waterways,
+            buffer_waterways=buffer_waterways,
+            smooth_distance=smooth_distance,
+        )
+        gdu.generate_drainage_units(iterations=iterations)
 
     # create map
     if create_html_map:

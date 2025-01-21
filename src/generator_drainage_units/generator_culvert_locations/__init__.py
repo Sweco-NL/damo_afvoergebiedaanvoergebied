@@ -20,7 +20,7 @@ def run_generator_culvert_locations(
     ----------
     path : Path
         Path to the case directory including directories 0_basisdata and
-        1_tussenresultaat. Directory name is used as name for the case,
+        2_resultaat. Directory name is used as name for the case,
         by default None
     distance_vertices : float, optional
         distacne between vertices, by default 10.0

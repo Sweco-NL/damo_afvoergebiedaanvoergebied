@@ -4,7 +4,7 @@ API Documentatie
 GeneratorBasis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Used for all generators to load all data from dir_basis_data and dir_results
+Used for all generators to load all data from dir_basisdata and dir_results
 
 .. automodule:: generator_drainage_units.generator_basis
     :members:

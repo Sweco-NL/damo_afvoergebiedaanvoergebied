@@ -1,6 +1,6 @@
 from pathlib import Path
 import geopandas as gpd
-
+import logging
 from .generator_order_levels import GeneratorOrderLevels
 
 
@@ -9,6 +9,8 @@ def run_generator_order_levels(
     waterschap: str,
     range_order_code_min: int,
     range_order_code_max: int,
+    dir_basisdata: str = "0_basisdata",
+    dir_results: str = "1_resultaat",
     buffer_rws: float = 10.0,
     generate_order_no: bool = True,
     generate_order_code: bool = True,
@@ -22,12 +24,15 @@ def run_generator_order_levels(
 ) -> GeneratorOrderLevels:
     order = GeneratorOrderLevels(
         path=path,
+        dir_basisdata=dir_basisdata,
+        dir_results=dir_results,
         waterschap=waterschap,
         range_order_code_min=range_order_code_min,
         range_order_code_max=range_order_code_max,
         read_results=read_results,
         write_results=write_results,
     )
+    order.read_required_data_from_case()
 
     if generate_order_no:
         order.create_graph_from_network(water_lines=water_lines)
