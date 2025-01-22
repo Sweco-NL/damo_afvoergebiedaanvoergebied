@@ -4,6 +4,7 @@ Voorbeelden
 GeneratorCulvertLocations (workflow Duiker Locaties)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Doel van deze workflow is het verbinden van de C-watergangen met de A/B-watergangen: om te bepalen welke gebieden stromen in de hoofdwatergangen van het waterschap, dat is namelijk vaak niet duidelijk of het is verweven.
+
 De workflow bestaat uit de volgende stappen:
 
 * zoekt alle mogelijke verbindingen (duikers) tussen losliggende C-waterdelen en de hoofdwatergangen (A/B);
@@ -24,6 +25,7 @@ GeneratorOrderLevels (workflow Orde-codering)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Doel van deze workflow is het bepalen van orde nummers en de orde-codering voor iedere watergang en daarmee voor de afwateringseenheden/afvoergebieden die daarmee corresponderen. 
 Hiervoor wordt voor de A/B-watergangen uitgegaan van de methode beschreven in de `Leidraad Harmoniseren Afvoergebieden <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_. 
+
 De workflow bestaat (op dit moment) uit de volgende stappen:
 
 * De RWS-wateren waar de watergangen in uitstromen vormen de basis voor de codering (bijv. Veluwemeer: VE, IJssel: IJ);
@@ -34,10 +36,11 @@ De workflow bestaat (op dit moment) uit de volgende stappen:
 * De C-watergangen die afstromen naar een A/B-watergang worden van een orde hoger dan de watergang waar ze instromen en krijgen dezelfde codering mee (met aanvulling C0001, C0002, ...). Hieruit kan afgeleid worden welke C-watergangen met bijbehorende afvoergebieden bij een watergang horen.
 
 Zie ook: 
-* `Issue #16 <https://github.com/Sweco-NL/generator_drainage_units/issues/16#issuecomment-2558479293>`_: Codering RWS wateren en uitstroompunten;
-* `Issue #17 <https://github.com/Sweco-NL/generator_drainage_units/issues/17#issuecomment-2516835304>`_: Definitie orde A/B watergangen;
-* `Issue #18 <https://github.com/Sweco-NL/generator_drainage_units/issues/18#issue-2629773652>`_: Definitie orde C watergangen;
-* `Issue #19 <https://github.com/Sweco-NL/generator_drainage_units/issues/20#issuecomment-2558543651>`: Definitie orde-codering;
+
+* `Issue #16 <https://github.com/Sweco-NL/generator_drainage_units/issues/16#issuecomment-2558479293>`_: Codering RWS wateren en uitstroompunten
+* `Issue #17 <https://github.com/Sweco-NL/generator_drainage_units/issues/17#issuecomment-2516835304>`_: Definitie orde A/B watergangen
+* `Issue #18 <https://github.com/Sweco-NL/generator_drainage_units/issues/18#issue-2629773652>`_: Definitie orde C watergangen
+* `Issue #19 <https://github.com/Sweco-NL/generator_drainage_units/issues/20#issuecomment-2558543651>`_: Definitie orde-codering
 
 .. image:: assets/generator_order_levels.png
     :alt: Generator Order Levels (workflow orde-codering)
@@ -48,6 +51,8 @@ Zie ook:
 GeneratorDrainageUnits (workflow Orde-codering)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Generates drainage units for each hydroobject based on a terrain model
+
+De workflow bestaat (op dit moment) uit de volgende stappen:
 
 * punt 1
 * punt 2
