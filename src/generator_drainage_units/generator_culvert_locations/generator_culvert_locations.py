@@ -1217,9 +1217,10 @@ class GeneratorCulvertLocations(GeneratorBasis):
             self.hydroobjecten_processed_0.geometry,
             name="A/B-Watergangen",
             color="blue",
+            line_weight=2,
             fill_color="blue",
             zoom_on_click=True,
-            z_index=2,
+            z_index=0,
         ).add_to(m)
 
         folium.GeoJson(
