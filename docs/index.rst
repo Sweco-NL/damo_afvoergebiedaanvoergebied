@@ -12,6 +12,11 @@ Algemeen
 ----------------------------
 Deze python-toolbox is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Aa en Maas en Vallei & Veluwe met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. We bundelen hierbij de workflows in een public repository inclusief testdata, voorbeeld-scripts en documentatie.
 
+.. image:: _static/logos.jpg
+    :alt: Opdrachtgever + Sweco
+    :width: 800px
+    :align: center
+
 
 Waterschap Vallei & Veluwe
 ----------------------------

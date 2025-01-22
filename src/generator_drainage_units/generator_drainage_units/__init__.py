@@ -11,6 +11,8 @@ def run_generator_drainage_units(
     dir_basisdata: Path,
     dir_results: Path = None,
     ghg_file_name: str = None,
+    preprocess: bool = True,
+    process: bool = True,
     resolution: float = 2.0,
     depth_waterways: float = 1.0,
     buffer_waterways: float = 2.5,
@@ -48,13 +50,16 @@ def run_generator_drainage_units(
     )
     if ghg_file_name is not None:
         gdu.read_ghg(ghg_file_name=ghg_file_name)
-        gdu.preprocess_ghg(
-            resolution=resolution, 
-            depth_waterways=depth_waterways,
-            buffer_waterways=buffer_waterways,
-            smooth_distance=smooth_distance,
-        )
-        gdu.generate_drainage_units(iterations=iterations)
+
+        if preprocess:
+            gdu.preprocess_ghg(
+                resolution=resolution, 
+                depth_waterways=depth_waterways,
+                buffer_waterways=buffer_waterways,
+                smooth_distance=smooth_distance,
+            )
+        if process:
+            gdu.generate_drainage_units(iterations=iterations)
 
     # create map
     if create_html_map:

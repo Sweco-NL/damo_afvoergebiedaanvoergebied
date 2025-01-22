@@ -35,6 +35,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
 
     read_results: bool = False
     write_results: bool = False
+    crs: int = 28992
     
     required_results: list[str] = [
         "hydroobjecten",
@@ -53,6 +54,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
 
     outflow_nodes: gpd.GeoDataFrame = None
 
+    ghg_file_name: str = None
     ghg: xarray.Dataset = None
 
     all_waterways: gpd.GeoDataFrame = None
@@ -73,6 +75,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
 
 
     def read_ghg(self, ghg_file_name: str):
+        self.ghg_file_name = ghg_file_name
         self.ghg = rioxarray.open_rasterio(Path(self.path, self.dir_basisdata, ghg_file_name))
         self.ghg.name = "GHG_2000-2010_L1"
         return self.ghg
@@ -123,10 +126,21 @@ class GeneratorDrainageUnits(GeneratorBasis):
         ghg_processed.data = ghg_processed.data - ghg_waterways.data
         ghg_processed.data[ghg_processed.data<-900.0] = -999.99
 
-        # if self.write_results:
-        #     self.ghg_processed.to_netcdf(Path(self.dir_results, "ghg_processed.nc"))
         self.all_waterways = all_waterways.copy()
         self.ghg_processed = ghg_processed.copy()
+        if self.write_results:
+            netcdf_file_path = Path(self.dir_results, "ghg_processed.nc")
+            encoding = {
+                self.ghg_file_name.replace(".nc", "").replace(".NC", ""): {
+                    'dtype': 'float32',
+                    'zlib': True,
+                    'complevel': 9,
+                },
+            }
+            self.ghg_processed.to_netcdf(
+                netcdf_file_path, 
+                encoding=encoding
+            )
         return ghg_processed
 
 
@@ -317,34 +331,37 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 z_index=2,
             ).add_to(m)
 
-        # if self.ghg is not None:
-        #     add_graduated_raster_to_map(
-        #         m=m,
-        #         raster=self.ghg_processed,
-        #         layer_name="GHG",
-        #         unit="m NAP",
-        #         control=True,
-        #         vmin=self.ghg.STATISTICS_MINIMUM if zmin is None else zmin,
-        #         vmax=self.ghg.STATISTICS_MAXIMUM if zmax is None else zmax,
-        #         legend=True,
-        #         opacity=0.75,
-        #         show=False,
-        #         dx=dx,
-        #         dy=dy,
-        #     )
-
         if self.afwateringseenheden is not None:
+            afwateringseenheden = self.afwateringseenheden.where(self.afwateringseenheden > -1.0)
+            afwateringseenheden = afwateringseenheden.rio.write_crs(self.crs)
             add_graduated_raster_to_map(
                 m=m,
-                raster=self.afwateringseenheden.where(self.afwateringseenheden > -1.0),
+                raster=afwateringseenheden,
                 layer_name="Afwateringseenheden",
                 unit="unique id",
                 control=True,
                 vmin=0,
-                vmax=self.all_waterways["drainage_unit_id"].max(),
+                vmax=int(self.afwateringseenheden.data.max()),
                 legend=False,
                 opacity=0.75,
                 show=True,
+                dx=dx,
+                dy=dy,
+            )
+
+        if self.ghg is not None:
+            add_graduated_raster_to_map(
+                m=m,
+                raster=self.ghg,
+                layer_name="GHG",
+                unit="m NAP",
+                control=True,
+                vmin=self.ghg.STATISTICS_MINIMUM if zmin is None else zmin,
+                vmax=self.ghg.STATISTICS_MAXIMUM if zmax is None else zmax,
+                legend=True,
+                opacity=0.75,
+                show=False,
+                cmap='Spectral_r',
                 dx=dx,
                 dy=dy,
             )
