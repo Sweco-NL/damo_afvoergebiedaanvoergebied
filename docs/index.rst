@@ -9,7 +9,7 @@ Generator Drainage Units: Workflows voor hydrologische basisdata waterschappen
 
 o.a. workflows voor voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afleiden van afwateringseenheden en stroomgebieden, automatische toekennen van orde-codering. 
 
-Voor meer informatie: Harmen van de Werfhorst (Waterschap Vallei & Veluwe), Joachim Hunink (Waterschap Aa & Maas), Harm Nomden (Sweco)
+Voor meer informatie: Harmen van de Werfhorst (Waterschap Vallei & Veluwe), Joachim Hunink (Waterschap Aa & Maas), Harm Nomden / Joren van Os / Lieke van Haastrecht (Sweco)
 
 
 Algemeen
@@ -38,6 +38,23 @@ Waterschap Aa & Maas
 De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te genereren.
 
 - `GeneratorNetworkLumping <some_examples.html#generatornetworklumping-workflow-aggregeren-deel-stroomgebieden>`_: workflow om voor opgegeven uitstroompunten het bovenstroomse watersysteem te lumpen en afvoergebieden of (deel)stroomgebieden te genereren. Hierbij wordt overlap gedetecteerd en kan men aangeven hoe de deelgebieden verdeeld worden.
+
+
+.. image:: _static/ghg_leuvenumse_beek_1.jpg
+   :alt: Leuvenumse beek GHG
+   :width: 450px
+.. image:: _static/afwaterende_eenheden_leuvenumse_beek_1.jpg
+   :alt: Leuvenumse beek GHG
+   :width: 450px
+
+
+.. image:: _static/ghg_leuvenumse_beek_2.jpg
+   :alt: Leuvenumse beek GHG
+   :width: 450px
+.. image:: _static/afwaterende_eenheden_leuvenumse_beek_2.jpg
+   :alt: Leuvenumse beek GHG
+   :width: 450px
+
 
 Inhoud
 ----------------------------
