@@ -58,7 +58,7 @@ Zie ook:
 
 Figuur: Afleiden orde nummer van de A/B watergangen
 
-.. image:: _static/generator_culvert_locations_2.jpg
+.. image:: _static/generator_order_levels_2.jpg
     :alt: Generator Order Levels (workflow orde-codering)
     :width: 800px
     :align: center
