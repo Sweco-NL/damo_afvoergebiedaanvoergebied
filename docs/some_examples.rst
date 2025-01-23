@@ -15,13 +15,17 @@ De workflow bestaat uit de volgende stappen:
 
 zie ook `Issue #12 <https://github.com/Sweco-NL/generator_drainage_units/issues/12#issuecomment-2446702722>`_: Selectie beste duiker 
 
+Figuur: duikergenerator - het vinden van de verbindingen van de C-watergangen
+
 .. image:: _static/generator_culvert_locations_1.jpg
-    :alt: Generator Culvert Locations (workflow duiker locaties)
+    :alt: Generator Order Levels (workflow duiker-generator)
     :width: 800px
     :align: center
 
+Figuur: afleiden stroomrichting C-watergangen naar A/B-watergangen (nu kortste route)
+
 .. image:: _static/generator_culvert_locations_2.jpg
-    :alt: Generator Culvert Locations (workflow duiker locaties)
+    :alt: Generator Order Levels (workflow duiker-generator)
     :width: 800px
     :align: center
 
@@ -47,10 +51,14 @@ Zie ook:
 * `Issue #18 <https://github.com/Sweco-NL/generator_drainage_units/issues/18#issue-2629773652>`_: Definitie orde C watergangen
 * `Issue #19 <https://github.com/Sweco-NL/generator_drainage_units/issues/20#issuecomment-2558543651>`_: Definitie orde-codering
 
-.. image:: _static/generator_culvert_locations_1.jpg
+Figuur: Afleiden orde nummer van de A/B watergangen
+
+.. image:: _static/generator_order_levels_1.jpg
     :alt: Generator Order Levels (workflow orde-codering)
     :width: 800px
     :align: center
+
+Figuur: Afleiden orde codering van de A/B watergangen
 
 .. image:: _static/generator_culvert_locations_2.jpg
     :alt: Generator Order Levels (workflow orde-codering)
@@ -68,10 +76,14 @@ De workflow bestaat (op dit moment) uit de volgende stappen:
 * punt 2
 * punt 3
 
+Figuur: afleiden afwateringseenheden - laaggelegen/polder
+
 .. image:: _static/generator_drainage_units_1.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
+
+Figuur: afleiden afwateringseenheden - hogergelegen gebied / vrij-afwaterend
 
 .. image:: _static/generator_drainage_units_2.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
