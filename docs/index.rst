@@ -7,6 +7,10 @@ Generator Drainage Units: Workflows voor hydrologische basisdata waterschappen
 - `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units>`_
 o.a. workflows voor voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afleiden van afwateringseenheden en stroomgebieden, automatische toekennen van orde-codering. 
 
+Voor meer informatie
+- Waterschap Vallei & Veluwe: Harmen van de Werfhorst
+- Waterschap Aa & Maas: Joachim Hunink
+- Sweco: Harm Nomden
 
 Algemeen
 ----------------------------
