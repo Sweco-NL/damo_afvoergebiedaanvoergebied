@@ -15,7 +15,12 @@ De workflow bestaat uit de volgende stappen:
 
 zie ook `Issue #12 <https://github.com/Sweco-NL/generator_drainage_units/issues/12#issuecomment-2446702722>`_: Selectie beste duiker 
 
-.. image:: assets/generator_culvert_locations.png
+.. image:: _static/generator_culvert_locations_1.jpg
+    :alt: Generator Culvert Locations (workflow duiker locaties)
+    :width: 800px
+    :align: center
+
+.. image:: _static/generator_culvert_locations_2.jpg
     :alt: Generator Culvert Locations (workflow duiker locaties)
     :width: 800px
     :align: center
@@ -29,7 +34,7 @@ Hiervoor wordt voor de A/B-watergangen uitgegaan van de methode beschreven in de
 De workflow bestaat (op dit moment) uit de volgende stappen:
 
 * De RWS-wateren waar de watergangen in uitstromen vormen de basis voor de codering (bijv. Veluwemeer: VE, IJssel: IJ);
-* De A/B-watergangen die uitstromen in de RWS-wateren zijn van de 2de orde en krijgen een toevoegen waarbij het nummer binnen een bepaalde range ligt die is gespecificeerd voor het waterschap (Vallei&Veluwe: 712-760). De Leuvenumsebeek krijgt bijvoorbeeld VE.733;
+* De A/B-watergangen die uitstromen in de RWS-wateren zijn van de 2de orde en krijgen een nummer toegewezen die binnen een range ligt die is gespecificeerd voor het waterschap (bijv. Vallei&Veluwe: 712-760). De Leuvenumsebeek krijgt bijvoorbeeld VE.733. Per uitstroompunt zou die vastgelegd moeten worden;
 * Ieder individueel watergangsdeel krijgt een opvolgend nummer (bijv. VE.733.001, VE.733.002) of er kan voor gekozen worden dit pas te doen bij splitsingen van de A/B-watergangen;
 * Een instromende A/B-watergang wordt een orde hoger (3, 4, 5, etc.) en wordt als gehele zijtak ook meegenomen in de nummering;
 * Bij splitsingen of confluences wordt voor het orde nummer (en daarmee ook codering) ervanuit gegaan dat als twee watergangsdelen in het verlengde van elkaar liggen, dat deze van dezelfde orde zijn.
@@ -42,7 +47,12 @@ Zie ook:
 * `Issue #18 <https://github.com/Sweco-NL/generator_drainage_units/issues/18#issue-2629773652>`_: Definitie orde C watergangen
 * `Issue #19 <https://github.com/Sweco-NL/generator_drainage_units/issues/20#issuecomment-2558543651>`_: Definitie orde-codering
 
-.. image:: assets/generator_order_levels.png
+.. image:: _static/generator_culvert_locations_1.jpg
+    :alt: Generator Order Levels (workflow orde-codering)
+    :width: 800px
+    :align: center
+
+.. image:: _static/generator_culvert_locations_2.jpg
     :alt: Generator Order Levels (workflow orde-codering)
     :width: 800px
     :align: center
@@ -58,7 +68,12 @@ De workflow bestaat (op dit moment) uit de volgende stappen:
 * punt 2
 * punt 3
 
-.. image:: assets/generator_drainage_units.png
+.. image:: _static/generator_drainage_units_1.jpg
+    :alt: Generator Drainage Units (workflow afwateringseenheden)
+    :width: 800px
+    :align: center
+
+.. image:: _static/generator_drainage_units_2.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
@@ -71,9 +86,4 @@ Generates upstream (sub)basins for predefined outflow points
 * punt 1
 * punt 2
 * punt 3
-
-.. image:: assets/generator_network_lumping.png
-    :alt: Generator Network Lumping (workflow stroomgebieden)
-    :width: 800px
-    :align: center
 
