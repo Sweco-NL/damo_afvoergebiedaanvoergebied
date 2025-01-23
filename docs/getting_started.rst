@@ -16,6 +16,16 @@ Bouw de environment op op basis van het bestand pyproject.toml door in de projec
 
 Vervolgens wordt een pixi environment opgebouwd in de folder .pixi/envs (waarschijnlijk default-environment).
 
+
+Klaarzetten basisdata
+----------------------------
+Er moet een locatie van een map worden opgegeven waar gewerkt wordt. Hierbinnen komt een map met basisdata en een map met resultaten. 
+
+De basisdata bestaat (voor nu) uit geopackages met steeds een layer/laag met dezelfde naam als het geopackage. Het raster bestand voor de GHG is van het format TIF/ASC/NetCDF:
+Bij het aanroepen van de analyse wordt de benodigde data uit de map met basisdata ingelezen en als dit vereist is ook uit de resultaten-folder (resultaten van duikergenerator wordt gebruikt voor orde-codering en vervolgens voor het genereren van de afwaterende eenheden)
+De basis-data bestaat uit:
+
+
 Draaien van de voorbeeld notebooks
 ----------------------------
 Voor het draaien van de notebooks, gebruiken wij standaard VS Code. Als kernel kan de python-executable in de map .pixi/envs/default/python.exe worden geselecteerd. Middels Ctrl+Shift+P en "Python: Select Interpreter" kan de kernel geselecteerd worden.

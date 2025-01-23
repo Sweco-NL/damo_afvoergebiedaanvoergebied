@@ -78,7 +78,7 @@ De workflow bestaat (op dit moment) uit de volgende stappen:
 * Grof GHG raster wordt gedownscaled naar een opgegeven resolutie.
 * Watergangen (lijnen) worden verrasterd. Om te zorgen dat afvoer realistisch richting de watergangen afstroomt wordt het fijne GHG-raster ter hoogte van de watergangen verdiept met 0.20 meter. Deze verlaging wordt minder hoe verder van de watergang.
 * Voor het resulterende fijne GHG-raster wordt per cel bepaald welke stroomrichting het heeft (local drainage direction);
-* Per watergangs wordt berekend welke cellen er bovenstrooms van liggen. Op de Veluwe kunnen cellen op wel 10-20km afstand liggen die er alsnog naartoe draineren.
+* Per watergangsdeel wordt berekend welke cellen er bovenstrooms van liggen. Op de Veluwe kunnen cellen op wel 10-20km afstand liggen die er alsnog naartoe draineren.
 
 .. image:: _static/generator_drainage_units_1.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
