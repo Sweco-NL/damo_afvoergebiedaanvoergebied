@@ -40,22 +40,6 @@ De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te
 - `GeneratorNetworkLumping <some_examples.html#generatornetworklumping-workflow-aggregeren-deel-stroomgebieden>`_: workflow om voor opgegeven uitstroompunten het bovenstroomse watersysteem te lumpen en afvoergebieden of (deel)stroomgebieden te genereren. Hierbij wordt overlap gedetecteerd en kan men aangeven hoe de deelgebieden verdeeld worden.
 
 
-.. image:: _static/ghg_leuvenumse_beek_1.jpg
-   :alt: Leuvenumse beek GHG
-   :width: 450px
-.. image:: _static/afwaterende_eenheden_leuvenumse_beek_1.jpg
-   :alt: Leuvenumse beek GHG
-   :width: 450px
-
-
-.. image:: _static/ghg_leuvenumse_beek_2.jpg
-   :alt: Leuvenumse beek GHG
-   :width: 450px
-.. image:: _static/afwaterende_eenheden_leuvenumse_beek_2.jpg
-   :alt: Leuvenumse beek GHG
-   :width: 450px
-
-
 Inhoud
 ----------------------------
 .. toctree::
