@@ -1,22 +1,6 @@
 API Documentatie
 =====================
 
-GeneratorBasis
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Used for all generators to load all data from dir_basisdata and dir_results
-
-.. automodule:: generator_drainage_units.generator_basis
-    :members:
-    :undoc-members:
-    :private-members:
-
-.. automodule:: generator_drainage_units.generator_basis.generator_basis
-    :members:
-    :undoc-members:
-    :private-members:
-
-
 GeneratorCulvertLocations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -113,3 +97,21 @@ Utils
     :members:
     :undoc-members:
     :private-members:
+
+
+GeneratorBasis
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Used for all generators to load all data from dir_basisdata and dir_results
+
+.. automodule:: generator_drainage_units.generator_basis
+    :members:
+    :undoc-members:
+    :private-members:
+
+.. automodule:: generator_drainage_units.generator_basis.generator_basis
+    :members:
+    :undoc-members:
+    :private-members:
+
+

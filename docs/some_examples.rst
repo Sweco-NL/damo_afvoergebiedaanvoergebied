@@ -10,7 +10,7 @@ Ook vormen de greppels en sloten vaak een verweven netwerk en wil men graag wete
 De workflow bestaat uit de volgende stappen:
 
 * Zoekt alle mogelijke verbindingen (duikers) tussen losliggende C-waterdelen en de hoofdwatergangen (A/B);
-* Bepaald voor elke mogelijke verbinding/duiker of er een snelweg/spoor/weg of peilgebiedsgrens wordt gekruisd;
+* Bepaald voor elke mogelijke verbinding/duiker of er een snelweg/spoor/weg of peilgebiedsgrens wordt gekruist;
 * Voorziet elke mogelijke verbinding/duiker van een score op basis van criteria (kruisingen, lengte duiker, richting duiker tov watergang);
 * Zoekt de duikers met de hoogste scores tussen losliggende C-waterdelen en daarmee ook de verbindingen met de hoofdwatergangen (A/B);
 * De richting van de C-watergangen worden gezocht door te bepalen wat de kortste afstand is naar de hoofdwatergangen. Idealiter zou je hier bekijken naar het verhang richting een uitstroompunt naar de hoofdwatergangen.
