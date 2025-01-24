@@ -752,7 +752,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         if "order_no" in self.edges.columns:
             edges = self.edges[self.edges["order_no"] > 1][
                 ["code", "order_no", "geometry"]
-            ].sort_values("order_no")
+            ].sort_values("order_no", ascending=False)
 
             add_categorized_lines_to_map(
                 m=m,
