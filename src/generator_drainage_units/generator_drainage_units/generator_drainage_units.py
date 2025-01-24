@@ -94,6 +94,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
         self.ghg.name = "GHG_2000-2010_L1"
         return self.ghg
 
+
     def preprocess_ghg(self, resolution=2.0, depth_waterways=1.0, buffer_waterways=2.5, smooth_distance=25.0):
         # resample to new resolution (m)
         logging.info("   x preprocessing GHG data")
@@ -412,3 +413,4 @@ class GeneratorDrainageUnits(GeneratorBasis):
         if open_html:
             webbrowser.open(Path(self.path, f"{html_file_name}.html"))
         return m
+

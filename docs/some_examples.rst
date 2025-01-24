@@ -104,11 +104,11 @@ Zie ook
 |ghg_leuvenumsebeek| |afwateringseenheden_leuvenumsebeek|
 
 .. |ghg_leuvenumsebeek| image:: _static/ghg_leuvenumsebeek_1.jpg
-    :alt: Generator Drainage Units (workflow afwateringseenheden)
+    :alt: Generator Drainage Units (ghg_leuvenumsebeek)
     :width: 45%
 
 .. |afwateringseenheden_leuvenumsebeek| image:: _static/afwaterende_eenheden_leuvenumsebeek_1.jpg
-    :alt: Generator Drainage Units (workflow afwateringseenheden)
+    :alt: Generator Drainage Units (afwateringseenheden_leuvenumsebeek)
     :width: 45%
 
 
