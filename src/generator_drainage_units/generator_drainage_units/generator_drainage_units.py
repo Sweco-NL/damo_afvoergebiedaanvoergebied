@@ -75,10 +75,25 @@ class GeneratorDrainageUnits(GeneratorBasis):
 
 
     def read_ghg(self, ghg_file_name: str):
+        """Read GHG file with different name then GHG
+
+        Read GHG file with different name then GHG
+
+        Parameters
+        ----------
+        ghg_file_name : str
+            Name of GHG netcdf file ('GHG.nc')
+
+        Returns
+        -------
+        GHG xarray data array
+            GHG DataArray
+        """
         self.ghg_file_name = ghg_file_name
         self.ghg = rioxarray.open_rasterio(Path(self.path, self.dir_basisdata, ghg_file_name))
         self.ghg.name = "GHG_2000-2010_L1"
         return self.ghg
+
 
     def preprocess_ghg(self, resolution=2.0, depth_waterways=1.0, buffer_waterways=2.5, smooth_distance=25.0):
         # resample to new resolution (m)
@@ -245,7 +260,9 @@ class GeneratorDrainageUnits(GeneratorBasis):
 
         if self.outflow_nodes is not None:
             fg = folium.FeatureGroup(
-                name=f"Uitstroompunten RWS-water", control=True
+                name=f"Uitstroompunten in RWS-wateren", 
+                control=True,
+                z_index=0
             ).add_to(m)
 
             folium.GeoJson(
@@ -256,7 +273,6 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 ),
                 highlight_function=lambda x: {"fillOpacity": 0.8},
                 zoom_on_click=True,
-                z_index=3,
             ).add_to(fg)
 
             add_labels_to_points_lines_polygons(
@@ -266,21 +282,11 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 fg=fg,
             )
 
-        if self.overige_watergangen_processed_4 is not None:
-            folium.GeoJson(
-                self.overige_watergangen_processed_4.geometry,
-                name="C-watergangen",
-                color="blue",
-                line_weight=0.2,
-                zoom_on_click=True,
-                z_index=3,
-            ).add_to(m)
-
         folium.GeoJson(
             self.hydroobjecten.geometry,
             name="AB-Watergangen",
             color="blue",
-            fill_color="blue",
+            weight=4,
             zoom_on_click=True,
             show=True,
             z_index=2,
@@ -293,20 +299,20 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 lines_gdf=self.edges[self.edges["order_no"] > 1][
                     ["code", "order_no", "geometry"]
                 ].sort_values("order_no", ascending=False),
-                layer_name="Watergangen: orde-nummers",
+                layer_name="A/B Watergangen: orde-nummers",
                 control=True,
                 show=False,
                 lines=True,
                 line_color_column="order_no",
                 line_color_cmap=None,
                 label=False,
-                line_weight=5,
+                line_weight=4,
                 z_index=1,
             )
 
             if order_labels and "order_no" in self.edges.columns:
                 fg = folium.FeatureGroup(
-                    name=f"Watergangen: orde-nummers (labels)",
+                    name=f"A/B Watergangen: orde-nummers (labels)",
                     control=True,
                     show=False,
                 ).add_to(m)
@@ -323,13 +329,38 @@ class GeneratorDrainageUnits(GeneratorBasis):
         else:
             folium.GeoJson(
                 self.hydroobjecten_processed_0.geometry,
-                name="Watergangen",
+                name="A/B Watergangen",
                 color="blue",
                 fill_color="blue",
                 zoom_on_click=True,
                 show=False,
                 z_index=2,
             ).add_to(m)
+
+        if self.overige_watergangen_processed_4 is not None:
+            folium.GeoJson(
+                self.overige_watergangen_processed_4.geometry,
+                name="C-watergangen",
+                color="blue",
+                weight=1,
+                zoom_on_click=True,
+                show=True,
+                z_index=3,
+            ).add_to(m)
+
+            add_categorized_lines_to_map(
+                m=m,
+                lines_gdf=self.overige_watergangen_processed_4[
+                    ["outflow_node", "geometry"]
+                ],
+                layer_name=f"C-Watergangen - gegroepeerd",
+                control=True,
+                lines=True,
+                line_color_column="outflow_node",
+                line_color_cmap=None,
+                show=False,
+                z_index=3,
+            )
 
         if self.afwateringseenheden is not None:
             afwateringseenheden = self.afwateringseenheden.where(self.afwateringseenheden > -1.0)
@@ -382,3 +413,4 @@ class GeneratorDrainageUnits(GeneratorBasis):
         if open_html:
             webbrowser.open(Path(self.path, f"{html_file_name}.html"))
         return m
+

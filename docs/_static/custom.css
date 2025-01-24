@@ -1,4 +1,7 @@
 .wy-nav-content {
     max-width: 1000px;
-    margin: 0 auto;
+}
+
+.bordered-image {
+    border: 1px solid black;
 }
