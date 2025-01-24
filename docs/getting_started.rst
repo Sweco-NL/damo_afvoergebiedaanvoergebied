@@ -55,3 +55,18 @@ Voor het draaien van de notebooks, gebruiken wij standaard VS Code. Als kernel k
 
 De analyse inclusief brondata en de resultaten komt in een map terecht. In de notebooks wordt hierbij verwezen naar de .env-file. Dit is gedaan omdat een ieder de data op een ander path kan hebben staan.
 
+De verschillende workflows kunnen los gedraaid worden, maar er zit ook een volgorde in:
+
+- GeneratorCulvertLocations: bereid het watersysteem helemaal voor, preprocessed the A/B-watergangen, verbindt de C-watergangen, etc; 
+- GeneratorOrderLevels: Genereert order nummers en codering voor alle watergangen; 
+- GeneratorDrainageUnits: Genereert de afwateringseenheden; 
+- GeneratorNetworkLumping: Genereert de deelstroomgebieden voor uitstroompunten, (sluitend) waternetwerk en afwateringseenheden.
+
+Om de analyses uit te voeren zijn voor iedere analyse losse functies geschreven:
+
+- run_generator_culvert_locations()
+- run_generator_order_levels()
+- run_generator_drainage_units()
+- run_generator_network_lumping()
+
+Alle functies hebben eigenlijk alleen het path nodig waar de map met basisdata staat. De resultaatmap wordt automatisch aangemaakt. Er kunnen nog wel allerlei extra parameters worden meegegeven.

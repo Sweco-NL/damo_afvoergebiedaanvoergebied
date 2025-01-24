@@ -1,5 +1,15 @@
-Voorbeelden
-=====================
+Beschrijving van de workflows
+============================
+
+Voorbewerkingen op de basisdata (preprocessing)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+De voorbewerkingen die zijn uitgevoerd op de basisdata bestaan uit twee types:
+
+* Handmatige aanpassingen: Een los script met twee geopackages wordt gebruikt om vooraf elementen uit de basisdata te verwijderen of toe te voegen. Dit blijkt nodig te zijn, omdat er losliggende stukken zijn of omdat A/B watergangen de verkeerde richting op lopen.
+* Automatische aanpassingen: in de praktijk blijken bij veel A/B watergangen de geometrieën niet goed op elkaar aan te sluiten, soms liggen de uiteindes maar centimeters of milimeters van elkaar af. Er wordt een correctie toegepast op de lijnelementen om dit op te lossen en er een sluitend netwerk van te maken. Dit gaat voornamelijk om de hydroobjecten die apart worden opgeslagen in de resultaat map in hydroobjecten_snapped.gpkg.
+
+De automatische voorbewerkingen (snapping) worden voorlopig nog uitgevoerd in de GeneratorCulvertLocations.
+
 
 GeneratorCulvertLocations (workflow Duiker Locaties)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
