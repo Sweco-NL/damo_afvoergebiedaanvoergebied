@@ -134,7 +134,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
         Parameters
         ----------
         distance_vertices : float, optional
-            distacne between vertices, by default 10.0
+            distance between vertices, by default 10.0
         waterlines : list[str], optional
             list of attributes to be included, by default ["hydroobjecten", "overige_watergangen"]
         read_results : bool, optional
@@ -215,7 +215,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
         write_results: bool = False,
     ) -> gpd.GeoDataFrame:
         """Find potential culvert locations based on water_line_pnts.
-        THe connections between two points from different waterlines
+        The connections between two points from different waterlines
         with a maximum distance of x m (max_culvert_length)
 
         Parameters
@@ -341,11 +341,9 @@ class GeneratorCulvertLocations(GeneratorBasis):
     ) -> gpd.GeoDataFrame:
         """Check intersections of culverts with other objects like roads, etc
 
-        Args:
-            shorten_line_offset (float, optional): shorten lines in analysis. Defaults to 0.01.
-
-        Returns:
-            gpd.GeoDataFrame: potential culverts without impossible intersections
+        Returns
+        -------
+        gpd.GeoDataFrame: potential culverts without impossible intersections
         """
         # Crossing objects
         if isinstance(read_results, bool):
@@ -633,6 +631,26 @@ class GeneratorCulvertLocations(GeneratorBasis):
         read_results=None,
         factor_angle_on_length=3,
     ) -> gpd.GeoDataFrame:
+        """Select the best possible score of culvert for each dangling point. The selection is based on both length of the culvert, angle, and score.
+        The angle increases the fictive length of a culvert, where a straight culvert has no increase and a culvert that has an angle of 90 degrees with the waterline has its length increased by the given 'factor_angle_on_length'.
+        The lowest score is prefered. However, when a higher score, has a shorter fictive length, a higher score can be chosen. This is done with the function 'select_best_line'.
+        This length is used select the best score, then culverts with the score same are filtered based on fictive length.
+
+
+        Parameters
+        ----------
+        read_results : boolean, optional
+            Read results and skip calculation when True and potential_culverts_3 already generated, by default None
+        factor_angle_on_length : int, optional
+            Factor by which potential culvert length is increased at an angle of 90 degrees, by default 3
+
+        Returns
+        -------
+        self.potential_culverts_3: gpd.GeoDataFrame
+            Filtered potential culverts geodataframe, with at most one potential culvert for each dangling point
+        self.potential_culverts_pre_filter: gpd.GeoDataFrame
+            Geodataframe of all potential culvert before filtering, including their lenght, fictive length, and angle
+        """
         if isinstance(read_results, bool):
             self.read_results = read_results
         if self.read_results and self.potential_culverts_3 is not None:
@@ -867,6 +885,13 @@ class GeneratorCulvertLocations(GeneratorBasis):
         return self.potential_culverts_3, self.potential_culverts_pre_filter
 
     def post_process_potential_culverts(self):
+        """Postprocess culverts. removing double culverts, or culverts going to one point from the same waterline. 
+
+        Returns
+        -------
+        self.potential_culverts_4: gpd.GeoDataFrame
+            Geodataframe with culverts after postprocessing 
+        """
         culverts = self.potential_culverts_3.copy()
 
         # Check for already connected watergangen and remove potential connections
@@ -911,6 +936,19 @@ class GeneratorCulvertLocations(GeneratorBasis):
         return self.potential_culverts_4
 
     def splits_hydroobjecten_by_endpoints_of_culverts_and_combine(self):
+        """Splits hydroobjects and overige_watergangen at the location where culverts are connected. This is done to create a complete and connected network.
+        The function also generates the outflow point of the overige_watergangen in hydroobjects.
+
+
+        Returns
+        -------
+        self.overige_watergangen_processed_0: gpd.GeoDataFrame
+            Overige_watergangen after the splits from the culverts
+        self.hydroobjecten_processed_0: gpd.GeoDataFrame
+            Hydroobjecten after the splits from the culverts
+        self.outflow_nodes_overige_watergangen: gpd.GeoDataFrame
+            Outflow points of overige_watergangen in hydroobjects
+        """
         other_culverts_hydro = self.potential_culverts_4[
             (self.potential_culverts_4["line_type"] == "other")
             & (self.potential_culverts_4["WaterLineType"] == "hydroobjecten")
@@ -977,6 +1015,13 @@ class GeneratorCulvertLocations(GeneratorBasis):
         )
 
     def check_culverts_direction(self):
+        """Some culvert are generated in the wrong direction compared to the waterlines, if this is the case, they are flipped.
+
+        Returns
+        -------
+        self.potential_culverts_5: gpd.GeoDataFrame
+            Geodataframe containing corrected culverts
+        """
         culvert = self.potential_culverts_4.copy()
         lines = pd.concat(
             [self.hydroobjecten_processed_0, self.overige_watergangen_processed_0],
@@ -1011,6 +1056,13 @@ class GeneratorCulvertLocations(GeneratorBasis):
         return self.potential_culverts_5
 
     def combine_culvert_with_line(self):
+        """Culverts are combined with the one of the waterlines they are connected to, to form a single linestring. After this funtion the 'check_culverts_direction' function be run again.
+
+        Returns
+        -------
+        self.overige_watergangen_processed_1: gpd.GeoDataFrame
+            Geodataframe containing processed overige_watergangen where the waterline is combined with culverts
+        """
         culvert = self.potential_culverts_5.copy()
         culvert_dict = (
             culvert.groupby("dangling_code")["geometry"].apply(list).to_dict()
@@ -1061,6 +1113,13 @@ class GeneratorCulvertLocations(GeneratorBasis):
     def splits_hydroobjecten_by_endpoind_of_culverts_and_combine_2(
         self, write_results=True
     ):
+        """After a second check of the culvert direction, the hydroobjects and overige_watergangen must be split again for some instances and the remaining flipped culverts are combined with the overige_watergangen.
+
+        Returns
+        -------
+        self.overige_watergangen_processed_1: gpd.GeoDataFrame
+            Geodataframe containing processed overige_watergangen where the waterline is combined with culverts
+        """
         # split overige watergangen opnieuw
         overige_watergangen = self.overige_watergangen_processed_1.copy()
         overige_watergangen = split_waterways_by_endpoints(
@@ -1080,6 +1139,24 @@ class GeneratorCulvertLocations(GeneratorBasis):
     def get_shortest_path_from_overige_watergangen_to_hydroobjects(
         self, write_results=False
     ):
+        """Calculate the shortest path to a hydroobject for the overige_watergangen. This is done to identify overige_watergangen with an incorrect direction, these are then flipped.
+
+        Parameters
+        ----------
+        write_results : bool, optional
+            Option (True/False) to write results to case folder in gpkg, by default False
+
+        Returns
+        -------
+        outflow_nodes: gpd.GeoDataFrame
+            Outflow nodes of the overige_watergangen in hydroobjecten
+        overige_watergangen_nodes: gpd.GeoDataFrame
+            All outflow nodes of overige_watergangen
+        edges: gpd.GeoDataFrame
+            All overige_watergangen as edges with information about previous and subsequent overige_watergangen
+        edges_cleaned: gpd.GeoDataFrame
+            Overige_watergangen cleaned through removal of unconnected waterlines and flipped waterlines when required
+        """
         logging.info(f"   x redirect 'overige watergangen' based on shortest path")
         # create networkx graph
         logging.info(f"     - create sub networks")
@@ -1199,6 +1276,24 @@ class GeneratorCulvertLocations(GeneratorBasis):
     def generate_folium_map(
         self, html_file_name=None, base_map="Light Mode", open_html=False, zoom_start=12
     ):
+        """generate a folium map of the results of the culvert generator
+
+        Parameters
+        ----------
+        html_file_name : _type_, optional
+            name of html file, by default None
+        base_map : str, optional
+            basemap for the folium map, by default "Light Mode"
+        open_html : bool, optional
+            indicated whether the map must be opened after running, by default False
+        zoom_start : int, optional
+            zoomlevel of the map when opened, by default 12
+
+        Returns
+        -------
+        m: folium.Map
+            folium map with the results of the culvert generator
+        """
         # Make figure
 
         hydro_4326 = self.hydroobjecten_processed_0.to_crs(4326)
