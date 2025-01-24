@@ -56,7 +56,6 @@ Zie ook:
 .. image:: _static/generator_order_levels_1.jpg
     :alt: Generator Order Levels (workflow orde-codering)
     :width: 800px
-    :class: bordered-image
     :align: center
 
 Figuur: Afleiden orde nummer van de A/B watergangen
@@ -64,7 +63,6 @@ Figuur: Afleiden orde nummer van de A/B watergangen
 .. image:: _static/generator_order_levels_2.jpg
     :alt: Generator Order Levels (workflow orde-codering)
     :width: 800px
-    :class: bordered-image
     :align: center
 
 Figuur: Afleiden orde codering van de A/B watergangen
@@ -72,7 +70,6 @@ Figuur: Afleiden orde codering van de A/B watergangen
 .. image:: _static/order_levels_west_oost.jpg
     :alt: Generator Order Levels (oost)
     :width: 800px
-    :class: bordered-image
     :align: center
 
 Figuur: Orde nummer van de A/B watergangen voor gehele waterschap Vallei & Veluwe
@@ -93,7 +90,6 @@ De workflow bestaat (op dit moment) uit de volgende stappen:
 .. image:: _static/generator_drainage_units_1.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
-    :class: bordered-image
     :align: center
 
 Figuur: afleiden afwateringseenheden - laaggelegen/polder
@@ -111,7 +107,6 @@ De gebruikte python-package PyFlwDir (net als PCRASTER en vergelijkbare methodes
 .. image:: _static/ldd_d8.png
     :alt: Generator Drainage Units (ldd d8)
     :width: 300px
-    :class: bordered-image
     :align: center
 
 Omdat er maar 8 richtingen zijn zie je dit terug in de afwaterende eenheden op aflopende gebieden/hellingen: Bij de Leuvenumsebeek loopt het voornamelijk in de NW richting.
@@ -122,7 +117,6 @@ Zie ook `Issue #50 <https://github.com/Sweco-NL/generator_drainage_units/issues/
 .. image:: _static/ghg_drainage_units_leuvenumsebeek.jpg
     :alt: Generator Drainage Units (ghg_leuvenumsebeek)
     :width: 800px
-    :class: bordered-image
     :align: center
 
 Figuur: Leuvenumsebeek, GHG en afwateringseenheden per watergangsdeel
