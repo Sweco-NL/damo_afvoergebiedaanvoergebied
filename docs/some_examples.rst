@@ -17,18 +17,14 @@ De workflow bestaat uit de volgende stappen:
 
 zie ook `Issue #12 <https://github.com/Sweco-NL/generator_drainage_units/issues/12#issuecomment-2446702722>`_: Selectie beste duiker 
 
-|generator_culvert_locations_1|
-
-.. |generator_culvert_locations_1| image:: _static/generator_culvert_locations_1.jpg
+.. image:: _static/generator_culvert_locations_1.jpg
     :alt: Generator Order Levels (workflow duiker-generator)
     :width: 800px
     :align: center
 
 Figuur: duikergenerator - het vinden van de verbindingen van de C-watergangen
 
-|generator_culvert_locations_2|
-
-.. |generator_culvert_locations_2| image:: _static/generator_culvert_locations_2.jpg
+.. image:: _static/generator_culvert_locations_2.jpg
     :alt: Generator Order Levels (workflow duiker-generator)
     :width: 800px
     :align: center
@@ -57,9 +53,7 @@ Zie ook:
 * `Issue #18 <https://github.com/Sweco-NL/generator_drainage_units/issues/18#issue-2629773652>`_: Definitie orde C watergangen
 * `Issue #19 <https://github.com/Sweco-NL/generator_drainage_units/issues/20#issuecomment-2558543651>`_: Definitie orde-codering
 
-|generator_order_levels_1|
-
-.. |generator_order_levels_1| image:: _static/generator_order_levels_1.jpg
+.. image:: _static/generator_order_levels_1.jpg
     :alt: Generator Order Levels (workflow orde-codering)
     :width: 800px
     :class: bordered-image
@@ -67,9 +61,7 @@ Zie ook:
 
 Figuur: Afleiden orde nummer van de A/B watergangen
 
-|generator_order_levels_2|
-
-.. |generator_order_levels_2| image:: _static/generator_order_levels_2.jpg
+.. image:: _static/generator_order_levels_2.jpg
     :alt: Generator Order Levels (workflow orde-codering)
     :width: 800px
     :class: bordered-image
@@ -77,9 +69,7 @@ Figuur: Afleiden orde nummer van de A/B watergangen
 
 Figuur: Afleiden orde codering van de A/B watergangen
 
-|order_levels_west_oost|
-
-.. |order_levels_west_oost| image:: _static/order_levels_west_oost.jpg
+.. image:: _static/order_levels_west_oost.jpg
     :alt: Generator Order Levels (oost)
     :width: 800px
     :class: bordered-image
@@ -100,9 +90,7 @@ De workflow bestaat (op dit moment) uit de volgende stappen:
 * Voor het resulterende fijne GHG-raster wordt per cel bepaald welke stroomrichting het heeft (local drainage direction);
 * Per watergangsdeel wordt berekend welke cellen er bovenstrooms van liggen. Op de Veluwe kunnen cellen op wel 10-20km afstand liggen die er alsnog naartoe draineren.
 
-|generator_drainage_units_1|
-
-.. |generator_drainage_units_1| _static/generator_drainage_units_1.jpg
+.. image:: _static/generator_drainage_units_1.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :class: bordered-image
@@ -110,9 +98,7 @@ De workflow bestaat (op dit moment) uit de volgende stappen:
 
 Figuur: afleiden afwateringseenheden - laaggelegen/polder
 
-|generator_drainage_units_2|
-
-.. |generator_drainage_units_2| image:: _static/generator_drainage_units_2.jpg
+.. image:: _static/generator_drainage_units_2.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
@@ -122,9 +108,7 @@ Figuur: afleiden afwateringseenheden - hogergelegen gebied / vrij-afwaterend
 In principe werkt de methode om per watergang het afwaterende gebied te bepalen, alleen de methode kan nog verbeterd worden.
 De gebruikte python-package PyFlwDir (net als PCRASTER en vergelijkbare methodes) maakt gebruik van de D8-methode om per cel de afstroomrichting te bepalen aan de hand van de laagste naastliggende cel.
 
-|ldd_d8|
-
-.. |ldd_d8| image:: _static/ldd_d8.png
+.. image:: _static/ldd_d8.png
     :alt: Generator Drainage Units (ldd d8)
     :width: 300px
     :class: bordered-image
@@ -135,9 +119,7 @@ Hier wordt momenteel nog naar gekeken.
 
 Zie ook `Issue #50 <https://github.com/Sweco-NL/generator_drainage_units/issues/50>`_: Omzetten D8-methode naar D-INF-methode.
 
-|ghg_drainage_units_leuvenumsebeek|
-
-.. |ghg_drainage_units_leuvenumsebeek| image:: _static/ghg_drainage_units_leuvenumsebeek.jpg
+.. image:: _static/ghg_drainage_units_leuvenumsebeek.jpg
     :alt: Generator Drainage Units (ghg_leuvenumsebeek)
     :width: 800px
     :class: bordered-image
