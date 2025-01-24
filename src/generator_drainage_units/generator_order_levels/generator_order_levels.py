@@ -106,7 +106,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
     def generate_rws_code_for_all_outflow_points(self, buffer_rws=10.0):
         # Copy hydroobject data to new variable 'hydroobjects' and make dataframes with start and end nodes
-        logging.info("   x find start and end nodes hydrobojects")
+        logging.info("   x find start and end nodes hydroobjects")
 
         dead_end_edges = self.edges[
             ~self.edges.node_end.isin(self.edges.node_start.values)
@@ -750,11 +750,13 @@ class GeneratorOrderLevels(GeneratorBasis):
         ).add_to(m)
 
         if "order_no" in self.edges.columns:
+            edges = self.edges[self.edges["order_no"] > 1][
+                ["code", "order_no", "geometry"]
+            ].sort_values("order_no")
+
             add_categorized_lines_to_map(
                 m=m,
-                lines_gdf=self.edges[self.edges["order_no"] > 1][
-                    ["code", "order_no", "geometry"]
-                ],
+                lines_gdf=edges,
                 layer_name="AB-watergangen - Orde-nummer",
                 control=True,
                 lines=True,
@@ -773,9 +775,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                 ).add_to(m)
 
                 add_labels_to_points_lines_polygons(
-                    gdf=self.edges[self.edges["order_no"] > 1][
-                        ["code", "order_no", "geometry"]
-                    ],
+                    gdf=edges,
                     column="order_no",
                     label_fontsize=8,
                     label_decimals=0,
@@ -792,9 +792,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                 self.edges["order_code"].fill = ""
 
                 add_labels_to_points_lines_polygons(
-                    gdf=self.edges[self.edges["order_no"] > 1][
-                        ["code", "order_code", "geometry"]
-                    ],
+                    gdf=edges,
                     column="order_code",
                     label_fontsize=8,
                     center=True,
