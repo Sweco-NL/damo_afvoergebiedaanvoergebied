@@ -94,6 +94,18 @@ Figuur: afleiden afwateringseenheden - laaggelegen/polder
 
 Figuur: afleiden afwateringseenheden - hogergelegen gebied / vrij-afwaterend
 
+In principe werkt de methode om per watergang het afwaterende gebied te bepalen, alleen de methode kan nog verbeterd worden.
+De gebruikte python-package PyFlwDir (net als PCRASTER en vergelijkbare methodes) maakt gebruik van de D8-methode om per cel de afstroomrichting te bepalen aan de hand van de laagste naastliggende cel.
+Omdat er maar 8 richtingen zijn zie je dit terug in de afwaterende eenheden op aflopende gebieden/hellingen: Bij de Leuvenumsebeek loopt het voornamelijk in de NW richting.
+
+.. image:: _static/ghg_leuvenumsebeek_1.jpg
+    :alt: Generator Drainage Units (workflow afwateringseenheden)
+    :width: 400px
+
+.. image:: _static/afwaterende_eenheden_leuvenumsebeek_1.jpg
+    :alt: Generator Drainage Units (workflow afwateringseenheden)
+    :width: 400px
+
 
 GeneratorNetworkLumping (workflow aggregeren (deel)stroomgebieden)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
