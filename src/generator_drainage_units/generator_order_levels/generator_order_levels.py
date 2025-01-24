@@ -761,7 +761,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                 control=True,
                 lines=True,
                 line_color_column="order_no",
-                line_color_cmap="hsv",
+                line_color_cmap="hsv_r",
                 label=False,
                 line_weight=5,
                 z_index=1,
