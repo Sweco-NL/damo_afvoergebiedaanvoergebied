@@ -9,7 +9,11 @@ Generator Drainage Units: Workflows voor hydrologische basisdata waterschappen
 
 o.a. workflows voor voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afleiden van afwateringseenheden en stroomgebieden, automatische toekennen van orde-codering. 
 
-Voor meer informatie: Harmen van de Werfhorst (Waterschap Vallei & Veluwe), Joachim Hunink (Waterschap Aa & Maas), Harm Nomden / Joren van Os / Lieke van Haastrecht (Sweco)
+Voor meer informatie: 
+
+- Harmen van de Werfhorst (Waterschap Vallei & Veluwe)
+- Joachim Hunink (Waterschap Aa & Maas)
+- Harm Nomden / Joren van Os / Lieke van Haastrecht (Sweco)
 
 
 Algemeen

@@ -21,7 +21,6 @@ zie ook `Issue #12 <https://github.com/Sweco-NL/generator_drainage_units/issues/
     :alt: Generator Order Levels (workflow duiker-generator)
     :width: 800px
     :align: center
-    :class: bordered-image
 
 Figuur: duikergenerator - het vinden van de verbindingen van de C-watergangen
 
@@ -29,7 +28,6 @@ Figuur: duikergenerator - het vinden van de verbindingen van de C-watergangen
     :alt: Generator Order Levels (workflow duiker-generator)
     :width: 800px
     :align: center
-    :class: bordered-image
 
 Figuur: afleiden stroomrichting C-watergangen naar A/B-watergangen (nu kortste route)
 
@@ -59,7 +57,6 @@ Zie ook:
     :alt: Generator Order Levels (workflow orde-codering)
     :width: 800px
     :align: center
-    :class: bordered-image
 
 Figuur: Afleiden orde nummer van de A/B watergangen
 
@@ -67,21 +64,20 @@ Figuur: Afleiden orde nummer van de A/B watergangen
     :alt: Generator Order Levels (workflow orde-codering)
     :width: 800px
     :align: center
-    :class: bordered-image
 
 Figuur: Afleiden orde codering van de A/B watergangen
 
-.. [order_levels_oost] image:: _static/order_levels_oost.jpg
+|order_levels_oost| |order_levels_west|
+
+.. |order_levels_oost| image:: _static/order_levels_oost.jpg
     :alt: Generator Order Levels (oost)
     :width: 45%
     :class: bordered-image
 
-.. [order_levels_west] image:: _static/order_levels_west.jpg
+.. |order_levels_west| image:: _static/order_levels_west.jpg
     :alt: Generator Order Levels (oost)
     :width: 45%
     :class: bordered-image
-
-[order_levels_oost] [order_levels_west]
 
 Figuur: Afleiden orde codering van de A/B watergangen
 
@@ -102,7 +98,6 @@ De workflow bestaat (op dit moment) uit de volgende stappen:
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
-    :class: bordered-image
 
 Figuur: afleiden afwateringseenheden - laaggelegen/polder
 
@@ -110,7 +105,6 @@ Figuur: afleiden afwateringseenheden - laaggelegen/polder
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
-    :class: bordered-image
 
 Figuur: afleiden afwateringseenheden - hogergelegen gebied / vrij-afwaterend
 
@@ -121,7 +115,6 @@ De gebruikte python-package PyFlwDir (net als PCRASTER en vergelijkbare methodes
     :alt: Generator Drainage Units (ldd d8)
     :width: 300px
     :align: center
-    :class: bordered-image
 
 Omdat er maar 8 richtingen zijn zie je dit terug in de afwaterende eenheden op aflopende gebieden/hellingen: Bij de Leuvenumsebeek loopt het voornamelijk in de NW richting.
 Hier wordt momenteel nog naar gekeken.
@@ -132,7 +125,6 @@ Zie ook `Issue #50 <https://github.com/Sweco-NL/generator_drainage_units/issues/
     :alt: Generator Drainage Units (ghg_leuvenumsebeek)
     :width: 800px
     :align: center
-    :class: bordered-image
 
 Figuur: Leuvenumsebeek, GHG en afwateringseenheden per watergangsdeel
 
