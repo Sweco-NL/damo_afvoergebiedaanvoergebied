@@ -99,8 +99,7 @@ De gebruikte python-package PyFlwDir (net als PCRASTER en vergelijkbare methodes
 Omdat er maar 8 richtingen zijn zie je dit terug in de afwaterende eenheden op aflopende gebieden/hellingen: Bij de Leuvenumsebeek loopt het voornamelijk in de NW richting.
 Hier wordt momenteel nog naar gekeken.
 
-Zie ook 
-* `Issue #50 <https://github.com/Sweco-NL/generator_drainage_units/issues/50>`_: Omzetten D8-methode naar DINF-methode.
+Zie ook `Issue #50 <https://github.com/Sweco-NL/generator_drainage_units/issues/50>`_: Omzetten D8-methode naar D-INF-methode.
 
 .. image:: _static/ghg_drainage_units_leuvenumsebeek.jpg
     :alt: Generator Drainage Units (ghg_leuvenumsebeek)
