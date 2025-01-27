@@ -27,27 +27,33 @@ De workflow bestaat uit de volgende stappen:
 
 Zie ook:
 
-* `Issue #12 <https://github.com/Sweco-NL/generator_drainage_units/issues/12#issuecomment-2446702722>`_: Selectie beste duiker 
+* `Issue #12 <https://github.com/Sweco-NL/generator_drainage_units/issues/12#issuecomment-2446702722>`_: Voor criteria waarop de beste duiker/verbinding wordt geselecteerd
 
 .. image:: _static/generator_culvert_locations_1.jpg
     :alt: Generator Order Levels (workflow duiker-generator)
     :width: 800px
     :align: center
 
-Figuur: duikergenerator - het vinden van de verbindingen van de C-watergangen
+Figuur: Duikergenerator - het selecteren van de verbindingen (duikers, zie rode lijntjes) tussen de C-watergangen
 
 .. image:: _static/generator_culvert_locations_2.jpg
     :alt: Generator Order Levels (workflow duiker-generator)
     :width: 800px
     :align: center
 
-Figuur: afleiden stroomrichting C-watergangen naar A-/B-watergangen (nu kortste route)
+Figuur: Afleiden welke C-watergangen bij welke uitstroompunten in de A-/B-watergangen horen (dit gebeurt nu op basis van de kortste route)
 
 
 GeneratorOrderLevels (workflow Orde-codering)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Doel van deze workflow is het bepalen van orde nummers en de orde-codering voor iedere watergang, zodat de codes vervolgens gekoppeld kunnen worden aan de afwateringseenheden/afvoergebieden die aan de watergang gelinkt zijn. 
+Doel van deze workflow is het bepalen van orde-nummers en de orde-codering voor iedere watergang, zodat de codes vervolgens gekoppeld kunnen worden aan de afwateringseenheden/afvoergebieden die aan de watergang gelinkt zijn. 
 Hiervoor wordt voor de A-/B-watergangen uitgegaan van de methode beschreven in de `Leidraad Harmoniseren Afvoergebieden <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_. 
+De watergangen die uitstromen in RWS-wateren zijn van de 2e orde, de watergangen die daarop instromen zijn dan weer van de 3e orde. De orde-codering is als volgt opgebouwd:
+
+.. image:: _static/order_code_explanation.jpg
+    :alt: Order codering
+    :width: 500px
+    :align: center
 
 De workflow bestaat (op dit moment) uit de volgende stappen, werkend van beneden- naar bovenstrooms:
 
@@ -55,7 +61,7 @@ De workflow bestaat (op dit moment) uit de volgende stappen, werkend van beneden
 * De A-/B-watergangen die uitstromen in het betreffende RWS-water zijn van de 2e orde en krijgen een driecijferig nummer toegewezen dat binnen een range ligt die is gespecificeerd voor het waterschap (bijv. Vallei&Veluwe: 712-760, zie leidraad voor range per waterschap). Dit nummer wordt achter de code van het RWS-water gevoegd. Voorbeeld: De Leuvenumsebeek (zie onderstaande figuren) krijgt als code VE.733. Per uitstroompunt zou deze code vastgelegd moeten worden;
 * Ieder individueel watergangsdeel krijgt een opvolgend driecijferig nummer (gescheiden van de basiscode door een punt, bijv. VE.733.001, VE.733.002) of er kan voor gekozen worden pas onderscheid te maken in watergangsdelen op punten waar A-/B-watergangen splitsen;
 * Een instromende A-/B-watergang wordt als een orde hoger geregistreerd (3, 4, 5, etc.) en wordt als gehele zijtak ook meegenomen in de nummering;
-* Bij splitsingen of samenvloeiingen wordt ervan uit gegaan dat twee watergangsdelen die in het verlengde van elkaar liggen van dezelfde orde zijn. Deze krijgen dus ook hetzelfde orde nummer;
+* Bij splitsingen of samenvloeiingen wordt ervan uit gegaan dat een watergang dat in het verlengde van de benedenstroomse tak ligt nog van dezelfde orde is. Andere watergangen worden gezien als instromende takken die een orde hoger zijn;
 * De C-watergangen die uitstromen op een A-/B-watergang worden een orde hoger geregistreerd dan de watergang waar ze in uitstromen en krijgen dezelfde codering mee (met aanvulling C0001, C0002, ...). Hieruit kan afgeleid worden welke C-watergangen met bijbehorende afvoergebieden bij een watergang horen.
 
 Zie ook: 

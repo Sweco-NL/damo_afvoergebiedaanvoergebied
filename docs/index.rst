@@ -25,6 +25,14 @@ Voor meer informatie:
    :width: 800px
    :align: center
 
+Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_
+
+Waterschap Aa & Maas
+----------------------------
+De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te genereren.
+
+- `GeneratorNetworkLumping <description_workflows.html#generatornetworklumping-workflow-aggregeren-deel-stroomgebieden>`_: workflow om voor opgegeven uitstroompunten het bovenstroomse watersysteem inclusief afwateringseenheden te lumpen (aggregeren) om stroomgebieden of deelstroomgebieden te genereren. Hierbij wordt overlap gedetecteerd en kan men aangeven hoe de deelgebieden verdeeld worden.
+
 
 Waterschap Vallei & Veluwe
 ----------------------------
@@ -35,13 +43,6 @@ De vraag om stroomgebiedjes af te leiden op basis van een raster met een hoogtem
 - `GeneratorOrderLevels <description_workflows.html#generatororderlevels-workflow-orde-codering>`_: workflow voor het bepalen van orde nummers en de orde-codering van iedere watergang en daarmee voor de afwaterende eenheden (conform `Leidraad Harmoniseren Afvoergebieden <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_), op basis van de codering kan eenvoudig geaggregeerd worden. Ook worden hier de C-watergangen (niet hoofdwatergangen) meegenomen in de analyse.
 
 - `GeneratorDrainageUnits <description_workflows.html#generatordrainageunits-workflow-afwateringseenheden>`_: workflow voor het genereren van afwateringseenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van andere open source packages zoals `PyFlwDir van Deltares <https://github.com/Deltares/pyflwdir>`_
-
-
-Waterschap Aa & Maas
-----------------------------
-De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te genereren.
-
-- `GeneratorNetworkLumping <description_workflows.html#generatornetworklumping-workflow-aggregeren-deel-stroomgebieden>`_: workflow om voor opgegeven uitstroompunten het bovenstroomse watersysteem te lumpen en afvoergebieden of (deel)stroomgebieden te genereren. Hierbij wordt overlap gedetecteerd en kan men aangeven hoe de deelgebieden verdeeld worden.
 
 
 Inhoud
