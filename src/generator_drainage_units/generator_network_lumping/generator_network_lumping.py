@@ -287,7 +287,6 @@ class GeneratorNetworkLumping(GeneratorBasis):
                 "   x splitsingen nog niet gevonden. gebruik functie .detect_split_points()"
             )
         else:
-            results_dir = Path(self.path, self.dir_results)
             file_detected_points = "inflow_outflow_splits_detected.gpkg"
             logging.info(
                 f"   x split points found: saved as {self.dir_results}/{file_detected_points}"
@@ -308,7 +307,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
                 ]
             ]
             detected_inflow_outflow_splits.to_file(
-                Path(results_dir, file_detected_points)
+                Path(self.dir_results, file_detected_points)
             )
 
     def calculate_angles_of_edges_at_nodes(self):
