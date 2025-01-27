@@ -19,11 +19,11 @@ Ook vormen de greppels en sloten vaak een verweven netwerk en wil men graag wete
 
 De workflow bestaat uit de volgende stappen:
 
-* Zoekt alle mogelijke verbindingen (duikers) tussen losliggende C-watergangen en de hoofdwatergangen (A/B);
-* Bepaalt voor elke mogelijke verbinding/duiker of er een snelweg/spoor/weg of peilgebiedsgrens wordt gekruist;
+* Zoekt alle mogelijke verbindingen (duikers) tussen losliggende C-watergangen en de hoofdwatergangen (A/B) met een opgegeven maximale lengte (standaard 40meter);
+* Bepaalt voor elke mogelijke verbinding/duiker of er een snelweg/spoorweg/weg of peilgebiedsgrens wordt gekruist;
 * Voorziet elke mogelijke verbinding/duiker van een score op basis van criteria (kruisingen, lengte duiker, richting duiker t.o.v. watergang);
-* Zoekt de duikers met de hoogste scores tussen losliggende C-watergangen en daarmee ook de verbindingen met de hoofdwatergangen (A/B);
-* De richting van de C-watergangen wordt bepaald door de kortste afstand tot een hoofdwatergang te zoeken. Idealiter zou hier gekeken worden naar het verhang richting een uitstroompunt op een hoofdwatergang.
+* Selecteert de duikers met de hoogste scores tussen losliggende C-watergangen en de verbindingen met de hoofdwatergangen (A/B);
+* De afvoerrichting van de C-watergangen is niet bekend en wordt bepaald aan de hand van de kortste route tot een hoofdwatergang en welke kant dat dan op is. Idealiter zou hier gekeken worden naar het verhang richting een uitstroompunt op een hoofdwatergang.
 
 Zie ook:
 
@@ -34,14 +34,14 @@ Zie ook:
     :width: 800px
     :align: center
 
-Figuur: Duikergenerator - het selecteren van de verbindingen (duikers, zie rode lijntjes) tussen de C-watergangen
+Figuur: Duikergenerator - Geselecteerde verbindingen/duikers (de rode lijntjes) tussen de C-watergangen onderling en met de A-/B-watergangen.
 
 .. image:: _static/generator_culvert_locations_2.jpg
     :alt: Generator Order Levels (workflow duiker-generator)
     :width: 800px
     :align: center
 
-Figuur: Afleiden welke C-watergangen bij welke uitstroompunten in de A-/B-watergangen horen (dit gebeurt nu op basis van de kortste route)
+Figuur: Afleiden welke C-watergangen bij welke uitstroompunten in de A-/B-watergangen horen (op basis van de kortste route). Hieruit kan de richting bepaald worden.
 
 
 GeneratorOrderLevels (workflow Orde-codering)
