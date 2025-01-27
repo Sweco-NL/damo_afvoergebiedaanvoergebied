@@ -1,4 +1,4 @@
-Getting Started
+Installatie en gebruik van de workflows
 =====================
 
 Download voor gebruik de public repository. Daarin zit zowel de package generator_drainage_units als enkele voorbeeldscripts inclusief testdata.
@@ -46,7 +46,8 @@ Topografische hoogtemodel (raster data) voor afleiden afwateringseenheden. In di
 
 Afleiden deelstroomgebieden middels uitstroompunten:
 
-- **inflow_outflow_points.gpkg**: punten die dienen als uitstroompunt (eventueel ook als inlaatpunten te gebruiken).
+- **inflow_outflow_points.gpkg**: punten die worden opgegeven als uitstroompunt waarvoor dan stroomgebieden worden afgeleid.
+- **inflow_outflow_splits.gpkg**: Voor splitsingen in het netwerk kan worden opgegeven welke richting voorrang heeft, zodat overlap voorkomen wordt. Deze locaties worden bij elke analyse ook gedetecteerd en weggeschreven.
 
 
 Draaien van de voorbeeld notebooks
