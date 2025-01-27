@@ -1,7 +1,7 @@
 Getting Started
 =====================
 
-Voor gebruik download de public repository. Daarin zit zowel de package generator_drainage_units als enkele voorbeeldscripts inclusief testdata.
+Download voor gebruik de public repository. Daarin zit zowel de package generator_drainage_units als enkele voorbeeldscripts inclusief testdata.
 
 
 Installatie environment
@@ -27,8 +27,8 @@ De basis-data bestaat uit:
 
 Datasets voor het watersysteem:
 
-- **rws_wateren.gpkg**: Polygonen die de RWS-wateren voorstellen inclusief code
-- **hydroobjecten.gpkg**: A/B-watergangen (hoofdwatergangen waterschappen)
+- **rws_wateren.gpkg**: Polygonen die de RWS-wateren voorstellen inclusief officiële code
+- **hydroobjecten.gpkg**: A-/B-watergangen (hoofdwatergangen waterschappen)
 - **hydroobjecten_extra.gpkg**: Extra hoofdwatergangen optioneel toe te voegen
 - **overige_watergangen.gpkg**: C-watergangen (lijn-elementen afgeleid van waterdelen)
 
@@ -57,9 +57,9 @@ De analyse inclusief brondata en de resultaten komt in een map terecht. In de no
 
 De verschillende workflows kunnen los gedraaid worden, maar er zit ook een volgorde in:
 
-- GeneratorCulvertLocations: bereid het watersysteem helemaal voor, preprocessed the A/B-watergangen, verbindt de C-watergangen, etc; 
+- GeneratorCulvertLocations: bereid het watersysteem helemaal voor, preprocessed the A-/B-watergangen, verbindt de C-watergangen, etc; 
 - GeneratorOrderLevels: Genereert order nummers en codering voor alle watergangen; 
-- GeneratorDrainageUnits: Genereert de afwateringseenheden; 
+- GeneratorDrainageUnits: Genereert de afwateringseenheden (polygonen); 
 - GeneratorNetworkLumping: Genereert de deelstroomgebieden voor uitstroompunten, (sluitend) waternetwerk en afwateringseenheden.
 
 Om de analyses uit te voeren zijn voor iedere analyse losse functies geschreven:
@@ -69,4 +69,4 @@ Om de analyses uit te voeren zijn voor iedere analyse losse functies geschreven:
 - run_generator_drainage_units()
 - run_generator_network_lumping()
 
-Alle functies hebben eigenlijk alleen het path nodig waar de map met basisdata staat. De resultaatmap wordt automatisch aangemaakt. Er kunnen nog wel allerlei extra parameters worden meegegeven.
+Alle functies hebben eigenlijk alleen het path nodig waar de map met basisdata staat. De resultaatmap wordt automatisch aangemaakt. Indien gewenst kunnen extra parameters worden meegegeven voor het draaien van de functies.
