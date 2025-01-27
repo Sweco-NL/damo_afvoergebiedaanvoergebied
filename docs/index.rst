@@ -18,7 +18,7 @@ Voor meer informatie:
 
 - Harmen van de Werfhorst (Waterschap Vallei & Veluwe)
 - Joachim Hunink (Waterschap Aa & Maas)
-- Harm Nomden / Joren van Os / Lieke van Haastrecht (Sweco)
+- Harm Nomden / Joren van Os / Lieke van Haastregt (Sweco)
 
 .. image:: _static/logos.jpg
    :alt: Opdrachtgever + Sweco
