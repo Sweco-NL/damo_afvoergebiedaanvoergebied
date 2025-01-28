@@ -104,7 +104,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
         return self.nodes
 
-    def generate_rws_code_for_all_outflow_points(self, buffer_rws=10.0):
+    def generate_rws_code_for_all_outflow_points(self, buffer_rws_water=50.0):
         # Copy hydroobject data to new variable 'hydroobjects' and make dataframes with start and end nodes
         logging.info("   x find start and end nodes hydroobjects")
 
@@ -118,7 +118,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         logging.info("   x generating order code for all outflow points")
         rws_wateren = self.rws_wateren.copy()
-        rws_wateren.geometry = rws_wateren.geometry.buffer(buffer_rws)
+        rws_wateren.geometry = rws_wateren.geometry.buffer(buffer_rws_water)
 
         outflow_edges = (
             dead_end_edges.sjoin(rws_wateren[["geometry", "rws_code"]])
@@ -686,6 +686,8 @@ class GeneratorOrderLevels(GeneratorBasis):
             left_on="outflow_node",
             right_on="nodeID",
         )
+        edges = edges.sort_values("downstream_order_code").drop_duplicates(subset="geometry", keep="first")
+
         edges["order_no"] = edges["downstream_order_no"] + 1
         edges["order_code_no"] = (
             edges.groupby("downstream_order_code").cumcount().fillna(-1000).astype(int)
@@ -702,6 +704,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             self.outflow_nodes_overige_watergangen,
             self.overige_watergangen_processed_4,
         )
+
 
     def export_results_to_gpkg(self):
         """Export results to geopackages in folder 1_resultaat"""
