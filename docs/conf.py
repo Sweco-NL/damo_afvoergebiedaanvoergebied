@@ -7,9 +7,9 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "GeneratorDrainageUnits"
-copyright = "2024, AnaisWens"
-author = "AnaisWens"
-release = "18/12"
+copyright = "2025, Harm Nomden, Joren van Os, Lieke van Haastrecht, Anais Wens"
+author = "Harm Nomden, Anais Wens"
+release = "2025/1/28"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -55,9 +55,13 @@ html_theme_options = {
 }
 
 html_static_path = ['_static']
+
 html_css_files = [
     'custom.css',
 ]
+
+# add a logo
+html_logo = "_static/order_levels_oost.jpg"
 
 # Allow errors in notebooks, so we can see the error online
 nbsphinx_allow_errors = True
