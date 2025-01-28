@@ -298,15 +298,31 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 layer="all_waterways_1"
             )
 
-        translations_drainage_unit_id = all_waterways_1.groupby("new_drainage_unit_id").agg({"drainage_unit_id": list}).reset_index()
+        # translations_drainage_unit_id = all_waterways_1.groupby("new_drainage_unit_id").agg({"drainage_unit_id": list}).reset_index()
+        translations_drainage_unit_id = all_waterways_1[["drainage_unit_id", "new_drainage_unit_id"]]
 
         logging.info(f"     - make the translations from {len(all_waterways_1)} to {len(translations_drainage_unit_id)}")
         drainage_units_1 = self.drainage_units_0.copy()
-        for i, row in tqdm(translations_drainage_unit_id.iterrows(), total=translations_drainage_unit_id.shape[0]):
-            drainage_units_1 = drainage_units_1.where(
-                ~drainage_units_1.isin(row["drainage_unit_id"]), 
-                row["new_drainage_unit_id"]
-            )
+        drainage_units_1_flat = drainage_units_1[0].data.flatten()
+
+        @njit
+        def replace_values_in_array(array, old_values, new_values):
+            perc_array = 0
+            index = 0
+            for old_value, new_value in zip(old_values, new_values):
+                array[array==old_value] = new_value
+                index += 1
+                if index > perc_array:
+                    print(index, "/", len(old_values))
+                    perc_array += len(old_values)/20.0
+            return array
+        
+        drainage_units_1_flat_new = replace_values_in_array(
+            drainage_units_1_flat, 
+            translations_drainage_unit_id["drainage_unit_id"].values,
+            translations_drainage_unit_id["new_drainage_unit_id"].values,
+        )
+        drainage_units_1[0].data = np.reshape(drainage_units_1_flat_new, drainage_units_1[0].data.shape)
         
         self.drainage_units_1 = drainage_units_1.copy()
         self.drainage_units_1.name = "drainage_units_1"
