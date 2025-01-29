@@ -32,29 +32,49 @@ Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide
       :height: 400px
       :align: center
 
+      GeneratorCulvertLocations
+
+      Het zoeken van de duikers om te achterhalen waar het water naartoe stroomt.
+
    .. image:: _static/generator_order_levels_1.jpg
       :height: 400px
       :align: center
+
+      GeneratorOrderLevels
+
+      Bepalen van orde-nummers
 
    .. image:: _static/generator_order_levels_2.jpg
       :height: 400px
       :align: center
 
+      GeneratorOrderLevels
+
+      Bepalen van orde-codering
+
    .. image:: _static/order_levels_west_oost.jpg
       :height: 400px
       :align: center
+
+      GeneratorOrderLevels
+
+      Orde-nummers van de watergangen voor waterschap Vallei & Veluwe
 
    .. image:: _static/generator_drainage_units_1.jpg
       :height: 400px
       :align: center
 
-   .. image:: _static/generator_drainage_units_2.jpg
-      :height: 400px
-      :align: center
+      GeneratorDrainageUnits
+
+      Afleiden afwateringseenheden per watergang
 
    .. image:: _static/ghg_drainage_units_leuvenumsebeek.jpg
       :height: 400px
       :align: center
+
+      GeneratorDrainageUnits
+
+      Afleiden afwateringseenheden Leuvenumsebeek
 
 
 Waterschap Aa & Maas
