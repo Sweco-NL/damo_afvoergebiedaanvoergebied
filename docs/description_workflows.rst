@@ -23,7 +23,7 @@ De workflow bestaat uit de volgende stappen:
 * Bepaalt voor elke mogelijke verbinding/duiker of er een snelweg/spoorweg/weg of peilgebiedsgrens wordt gekruist;
 * Voorziet elke mogelijke verbinding/duiker van een score op basis van criteria (kruisingen, lengte duiker, richting duiker t.o.v. watergang);
 * Selecteert de duikers met de hoogste scores tussen losliggende C-watergangen en de verbindingen met de hoofdwatergangen (A/B);
-* De afvoerrichting van de C-watergangen is niet bekend en wordt bepaald aan de hand van de kortste route tot een hoofdwatergang en welke kant dat dan op is. Idealiter zou hier gekeken worden naar het verhang richting een uitstroompunt op een hoofdwatergang.
+* De afvoerrichting van de C-watergangen is niet bekend en wordt bepaald door de kortste route te bepalen tot een hoofdwatergang. Idealiter zou hier gekeken worden naar het verhang richting een uitstroompunt op een hoofdwatergang.
 
 Zie ook:
 
