@@ -18,6 +18,7 @@ def run_generator_drainage_units(
     buffer_waterways: float = 2.5,
     smooth_distance: float = 25.0,
     iterations: int = 2000,
+    iteration_group: int = 100,
     read_results: bool = False,
     write_results: bool = False,
     create_html_map: bool = False,
@@ -82,7 +83,10 @@ def run_generator_drainage_units(
                 smooth_distance=smooth_distance,
             )
         if process:
-            gdu.generate_drainage_units(iterations=iterations)
+            gdu.generate_drainage_units(
+                iterations=iterations,
+                iteration_group=iteration_group
+            )
 
         if postprocess:
             gdu.aggregate_drainage_units()

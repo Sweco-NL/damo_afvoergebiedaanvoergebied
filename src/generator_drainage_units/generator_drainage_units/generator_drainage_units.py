@@ -16,6 +16,7 @@ from numba import njit
 from pydantic import ConfigDict
 from rasterio.enums import Resampling
 from scipy.ndimage import distance_transform_edt
+import imod
 
 from ..generator_basis import GeneratorBasis
 from ..utils.folium_utils import (
@@ -69,8 +70,10 @@ class GeneratorDrainageUnits(GeneratorBasis):
     flw: pyflwdir.FlwdirRaster = None
     
     drainage_units_0: xarray.Dataset = None
-    drainage_units_1: xarray.Dataset = None
-    
+    drainage_units_1: gpd.GeoDataFrame = None
+    drainage_units_2: gpd.GeoDataFrame = None
+    drainage_units_3: gpd.GeoDataFrame = None
+
     edges: gpd.GeoDataFrame = None
     nodes: gpd.GeoDataFrame = None
     
@@ -154,22 +157,10 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 layer="all_waterways_0"
             )
 
-            # netcdf_file_path = Path(self.dir_results, "ghg_processed.nc")
-            # encoding = {
-            #     self.ghg_file_name.replace(".nc", "").replace(".NC", ""): {
-            #         'dtype': 'float32',
-            #         'zlib': True,
-            #         'complevel': 9,
-            #     },
-            # }
-            # self.ghg_processed.to_netcdf(
-            #     netcdf_file_path, 
-            #     encoding=encoding
-            # )
-        return ghg_processed
+        return self.ghg_processed
 
 
-    def generate_drainage_units(self, iterations=2000):
+    def generate_drainage_units(self, iterations=2000, iteration_group=100):
         logging.info("   x generate drainage units for each waterway")
         # create raster with unique id of each waterway
         logging.info("     - give each waterway an unique id")
@@ -211,7 +202,8 @@ class GeneratorDrainageUnits(GeneratorBasis):
             flw_mask: np.ndarray, 
             flw_idxs_ds: np.ndarray, 
             drainage_units_flat: np.ndarray, 
-            iterations: int
+            iterations: int,
+            iteration_start: int
         ):
             for i in range(iterations):
                 time_start = time.time()
@@ -226,24 +218,38 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 if number_new_filled_cells == 0:
                     print("     * break at iteration: ", i)
                     break
-                print1 = f"  * iteration: {i}/{iterations}"
+                print1 = f"  * iteration: {i+iteration_start}"
                 print2 = f" | number new cells: {number_new_filled_cells}"
                 print3 = f"({round(time.time()-time_start, 2)} seconds)"
                 print(print1 + print2 + print3, end="\r")
             return drainage_units_flat
         
-        logging.info("     - get upstream area of each waterway")
-        drainage_units_flat_basis = flw._check_data(self.drainage_units_0.data, "data")
-        drainage_units_flat_new = get_upstream_values(
-            flw.mask, 
-            flw.idxs_ds, 
-            drainage_units_flat_basis, 
-            iterations
-        )
+        logging.info(f"     - get upstream area of each waterway: {iterations} iterations")
+        drainage_units_flat_new = flw._check_data(self.drainage_units_0.data, "data")
+
+        time_start_groups = time.time()
+        for i in range(0, iterations, iteration_group):
+            drainage_units_flat_new = get_upstream_values(
+                flw_mask=flw.mask, 
+                flw_idxs_ds=flw.idxs_ds, 
+                drainage_units_flat=drainage_units_flat_new, 
+                iterations=min(iterations-i, iteration_group),
+                iteration_start=i
+            )
+            print(f"iteration ({i}/{iterations}): ({round(time.time()-time_start_groups, 2)} s)")
+
         self.drainage_units_0.data = drainage_units_flat_new.reshape(
             self.drainage_units_0.data.shape
         )
+        self.drainage_units_0.data = self.drainage_units_0.data
         self.drainage_units_0.name = "drainage_units_0"
+
+        self.drainage_units_1 = imod.prepare.polygonize(self.drainage_units_0)
+        self.drainage_units_1 = self.drainage_units_1.rename(columns={"value": "drainage_unit_id"})
+        self.drainage_units_1["drainage_unit_id"] = self.drainage_units_1["drainage_unit_id"].astype(int)
+        self.drainage_units_1 = self.drainage_units_1[self.drainage_units_1["drainage_unit_id"] >= 0]
+        self.drainage_units_1 = self.drainage_units_1.set_crs(self.hydroobjecten.crs)
+
         if self.write_results:
             netcdf_file_path = Path(self.dir_results, "drainage_units_0.nc")
             encoding = {
@@ -257,7 +263,8 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 netcdf_file_path, 
                 encoding=encoding
             )
-        return self.drainage_units_0
+            self.drainage_units_1.to_file(Path(self.dir_results, "drainage_units_1.gpkg"))
+        return self.drainage_units_1
 
 
     def aggregate_drainage_units(self):
@@ -287,8 +294,12 @@ class GeneratorDrainageUnits(GeneratorBasis):
             subset=["geometry"], 
             keep="first"
         )
+        ind_new_drainage_unit_id_nan = all_waterways_1["new_drainage_unit_id"].isna()
+        all_waterways_1.loc[ind_new_drainage_unit_id_nan, "new_drainage_unit_id"] = all_waterways_1.loc[
+            ind_new_drainage_unit_id_nan
+        ].groupby('drainage_unit_id')['drainage_unit_id'].transform('first')
+
         all_waterways_1 = all_waterways_1.dropna(subset="new_drainage_unit_id")
-        all_waterways_1 = all_waterways_1[all_waterways_1['order_code'].isna()]
         all_waterways_1["new_drainage_unit_id"] = all_waterways_1["new_drainage_unit_id"].astype(int)
 
         self.all_waterways_1 = all_waterways_1.copy()
@@ -298,48 +309,24 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 layer="all_waterways_1"
             )
 
-        translations_drainage_unit_id = all_waterways_1[["drainage_unit_id", "new_drainage_unit_id"]]
-
         logging.info(f"     - aggregate sub drainage units: replace {len(all_waterways_1)} drainage_unit_ids")
-        drainage_units_1 = self.drainage_units_0.copy()
-        drainage_units_1_flat = drainage_units_1.data.flatten()
+        drainage_units_2 = self.drainage_units_1.copy()
 
-        @njit
-        def replace_values_in_array(array, old_values, new_values):
-            perc_array = 0
-            index = 0
-            for old_value, new_value in zip(old_values, new_values):
-                array[array==old_value] = new_value
-                index += 1
-                if index > perc_array:
-                    print(index, "/", len(old_values))
-                    perc_array += len(old_values)/20.0
-            return array
-        
-        drainage_units_1_flat_new = replace_values_in_array(
-            drainage_units_1_flat, 
-            translations_drainage_unit_id["drainage_unit_id"].values,
-            translations_drainage_unit_id["new_drainage_unit_id"].values,
+        drainage_units_2 = drainage_units_2.merge(
+            all_waterways_1[["drainage_unit_id", "new_drainage_unit_id"]],
+            how="left",
+            on="drainage_unit_id"
         )
-        drainage_units_1.values = np.reshape(drainage_units_1_flat_new, drainage_units_1.data.shape)
-                
-        self.drainage_units_1 = drainage_units_1.copy()
-        self.drainage_units_1.name = "drainage_units_1"
-
+        self.drainage_units_2 = drainage_units_2.copy()
         if self.write_results:
-            netcdf_file_path = Path(self.dir_results, "drainage_units_1.nc")
-            encoding = {
-                'drainage_units_1': {
-                    'dtype': 'float32',
-                    'zlib': True,
-                    'complevel': 9,
-                },
-            }
-            self.drainage_units_1.to_netcdf(
-                netcdf_file_path, 
-                encoding=encoding
-            )
-        return self.drainage_units_1
+            self.drainage_units_2.to_file(Path(self.dir_results, "drainage_units_2.gpkg"))
+        
+        self.drainage_units_3 = self.drainage_units_2.copy()
+        self.drainage_units_3 = self.drainage_units_3.drop(columns="drainage_unit_id").dissolve("new_drainage_unit_id")
+        if self.write_results:
+            self.drainage_units_3.to_file(Path(self.dir_results, "drainage_units_3.gpkg"))
+
+        return self.drainage_units_2
 
 
     def generate_folium_map(
@@ -467,41 +454,23 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 z_index=3,
             )
 
-        if self.drainage_units_0 is not None:
-            drainage_units_0 = self.drainage_units_0.where(self.drainage_units_0 > -1.0)
-            drainage_units_0 = drainage_units_0.rio.write_crs(self.crs)
-            add_graduated_raster_to_map(
-                m=m,
-                raster=drainage_units_0,
-                layer_name="Afwateringseenheden (per watergangsdeel)",
-                unit="unique id",
-                control=True,
-                vmin=0,
-                vmax=int(self.drainage_units_0.data.max()),
-                legend=False,
-                opacity=0.75,
-                show=True,
-                dx=dx,
-                dy=dy,
-            )
-
-        if self.drainage_units_1 is not None:
-            drainage_units_1 = self.drainage_units_1.where(self.drainage_units_1 > -1.0)
-            drainage_units_1 = drainage_units_1.rio.write_crs(self.crs)
-            add_graduated_raster_to_map(
-                m=m,
-                raster=drainage_units_1,
-                layer_name="Afwateringseenheden (hydroobjecten)",
-                unit="unique id",
-                control=True,
-                vmin=0,
-                vmax=int(self.drainage_units_1.data.max()),
-                legend=False,
-                opacity=0.75,
-                show=True,
-                dx=dx,
-                dy=dy,
-            )
+        show = True
+        for drainage_units, drainage_units_name in zip(
+            [self.drainage_units_3, self.drainage_units_1],
+            ["Afwateringseenheden (geaggregeerd)", "Afwateringseenheden (per watergangsdeel)"],
+        ):
+            if drainage_units is not None:
+                folium.GeoJson(
+                    drainage_units,
+                    name=drainage_units_name,
+                    color="grey",
+                    fill_color="#00000000",
+                    weight=1,
+                    zoom_on_click=True,
+                    show=show,
+                    z_index=3,
+                ).add_to(m)
+                show = False
 
         if self.ghg is not None:
             add_graduated_raster_to_map(
