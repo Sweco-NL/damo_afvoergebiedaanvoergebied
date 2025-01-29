@@ -8,17 +8,17 @@ Generator Drainage Units
 Workflows voor hydrologische basisdata waterschappen
 ----------------------------
 
-.. image:: _static/logos.jpg
-   :alt: V&V + A&M + Sweco
-   :width: 600px
-   :align: center
-
 Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Aa en Maas en Vallei & Veluwe met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. We bundelen hierbij de workflows in een public repository inclusief testdata, voorbeeld-scripts en documentatie.
 De python-package bevat o.a. workflows voor voorbewerking van de datasets voor het waternetwerk, verbinden van de c-watergangen middels duikers, automatische toekennen van orde-codering en het afleiden van afwateringseenheden en (deel)stroomgebieden. Voor meer informatie: 
 
 - **Waterschap Vallei & Veluwe**: Harmen van de Werfhorst
 - **Waterschap Aa & Maas**: Joachim Hunink
 - **Sweco Nederland (Water)**: Harm Nomden / Joren van Os / Lieke van Haastregt
+
+.. image:: _static/logos.jpg
+   :alt: V&V + A&M + Sweco
+   :width: 600px
+   :align: center
 
 Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_. Voor vragen en opmerkingen: kijk onder Issues in de `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units>`_.
 
