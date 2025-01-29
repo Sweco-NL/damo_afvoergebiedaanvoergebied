@@ -28,6 +28,7 @@ Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide
 
 .. carousel::
    :show_controls:
+   :show_dark:
 
    .. image:: _static/generator_culvert_locations_1.jpg
       :height: 400px
