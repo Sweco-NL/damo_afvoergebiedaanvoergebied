@@ -11,7 +11,7 @@ def run_generator_order_levels(
     range_order_code_max: int,
     dir_basisdata: str = "0_basisdata",
     dir_results: str = "1_resultaat",
-    buffer_rws: float = 10.0,
+    buffer_rws_water: float = 50.0,
     generate_order_no: bool = True,
     generate_order_code: bool = True,
     generate_order_code_sub_waterlines: bool = False,
@@ -43,7 +43,7 @@ def run_generator_order_levels(
 
         order.select_downstream_upstream_edges(min_difference_angle=20.0)
 
-        order.generate_rws_code_for_all_outflow_points(buffer_rws=buffer_rws)
+        order.generate_rws_code_for_all_outflow_points(buffer_rws_water=buffer_rws_water)
 
         order.generate_order_level_for_hydroobjects()
 
