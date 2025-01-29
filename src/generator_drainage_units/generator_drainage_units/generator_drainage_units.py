@@ -160,7 +160,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
         return self.ghg_processed
 
 
-    def generate_drainage_units(self, iterations=2000):
+    def generate_drainage_units(self, iterations=2000, iteration_group=100):
         logging.info("   x generate drainage units for each waterway")
         # create raster with unique id of each waterway
         logging.info("     - give each waterway an unique id")
@@ -202,7 +202,8 @@ class GeneratorDrainageUnits(GeneratorBasis):
             flw_mask: np.ndarray, 
             flw_idxs_ds: np.ndarray, 
             drainage_units_flat: np.ndarray, 
-            iterations: int
+            iterations: int,
+            iteration_start: int
         ):
             for i in range(iterations):
                 time_start = time.time()
@@ -217,20 +218,26 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 if number_new_filled_cells == 0:
                     print("     * break at iteration: ", i)
                     break
-                print1 = f"  * iteration: {i}/{iterations}"
+                print1 = f"  * iteration: {i+iteration_start}"
                 print2 = f" | number new cells: {number_new_filled_cells}"
                 print3 = f"({round(time.time()-time_start, 2)} seconds)"
                 print(print1 + print2 + print3, end="\r")
             return drainage_units_flat
         
-        logging.info("     - get upstream area of each waterway")
-        drainage_units_flat_basis = flw._check_data(self.drainage_units_0.data, "data")
-        drainage_units_flat_new = get_upstream_values(
-            flw.mask, 
-            flw.idxs_ds, 
-            drainage_units_flat_basis, 
-            iterations
-        )
+        logging.info(f"     - get upstream area of each waterway: {iterations} iterations")
+        drainage_units_flat_new = flw._check_data(self.drainage_units_0.data, "data")
+
+        time_start_groups = time.time()
+        for i in range(0, iterations, iteration_group):
+            drainage_units_flat_new = get_upstream_values(
+                flw_mask=flw.mask, 
+                flw_idxs_ds=flw.idxs_ds, 
+                drainage_units_flat=drainage_units_flat_new, 
+                iterations=min(iterations-i, iteration_group),
+                iteration_start=i
+            )
+            print(f"iteration ({i}/{iterations}): ({round(time.time()-time_start_groups, 2)} s)")
+
         self.drainage_units_0.data = drainage_units_flat_new.reshape(
             self.drainage_units_0.data.shape
         )
