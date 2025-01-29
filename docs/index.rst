@@ -5,8 +5,6 @@
 Generator Drainage Units
 ============================================================================================================================
 
-- `GitHub-repository GeneratorDrainageUnits <https://github.com/Sweco-NL/generator_drainage_units>`_
-
 Workflows voor hydrologische basisdata waterschappen
 ----------------------------
 
@@ -20,9 +18,9 @@ De python-package bevat o.a. workflows voor voorbewerking van de datasets voor h
 
 - **Waterschap Vallei & Veluwe**: Harmen van de Werfhorst
 - **Waterschap Aa & Maas**: Joachim Hunink
-- **Sweco**: Harm Nomden / Joren van Os / Lieke van Haastregt
+- **Sweco Nederland (Water)**: Harm Nomden / Joren van Os / Lieke van Haastregt
 
-Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_. Voor vragen en opmerkingen op de methode zie de `Issues <https://github.com/Sweco-NL/generator_drainage_units/issues>`_.
+Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_. Voor vragen en opmerkingen: kijk onder Issues in de `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units>`_.
 
 
 .. carousel::
