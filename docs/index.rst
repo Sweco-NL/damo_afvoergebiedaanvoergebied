@@ -25,10 +25,25 @@ Voor meer informatie:
 
 Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_
 
+
 .. carousel::
    :show_controls:
    :width: 800px
-   :align: center
+
+   .. image:: _static/generator_culvert_locations_1.jpg
+   
+   .. image:: _static/generator_order_levels_1.jpg
+
+   .. image:: _static/generator_order_levels_2.jpg
+
+   .. image:: _static/order_levels_west.jpg
+
+   .. image:: _static/order_levels_oost.jpg
+
+   .. image:: _static/generator_drainage_units_1.jpg
+
+   .. image:: _static/generator_drainage_units_2.jpg
+
 
    .. image:: _static/generator_culvert_locations_1.jpg
    .. image:: _static/generator_order_levels_1.jpg
