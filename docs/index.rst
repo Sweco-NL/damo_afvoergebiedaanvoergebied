@@ -31,26 +31,17 @@ Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide
    :width: 800px
 
    .. image:: _static/generator_culvert_locations_1.jpg
-   
+
    .. image:: _static/generator_order_levels_1.jpg
 
    .. image:: _static/generator_order_levels_2.jpg
 
-   .. image:: _static/order_levels_west.jpg
-
-   .. image:: _static/order_levels_oost.jpg
-
-   .. image:: _static/generator_drainage_units_1.jpg
-
-   .. image:: _static/generator_drainage_units_2.jpg
-
-
-   .. image:: _static/generator_culvert_locations_1.jpg
-   .. image:: _static/generator_order_levels_1.jpg
-   .. image:: _static/generator_order_levels_2.jpg
    .. image:: _static/order_levels_west_oost.jpg
+
    .. image:: _static/generator_drainage_units_1.jpg
+
    .. image:: _static/generator_drainage_units_2.jpg
+
    .. image:: _static/ghg_drainage_units_leuvenumsebeek.jpg
 
 
