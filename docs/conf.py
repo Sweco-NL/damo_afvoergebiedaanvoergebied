@@ -3,19 +3,19 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import os
+import sys
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "GeneratorDrainageUnits"
-copyright = "2025, Harm Nomden, Joren van Os, Lieke van Haastrecht, Anais Wens"
+copyright = "2025, Sweco"
 author = "Harm Nomden, Anais Wens"
-release = "2025/1/28"
+release = "2025/1/31"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-
-import os
-import sys
 
 sys.path.insert(0, os.path.abspath("../src"))
 
