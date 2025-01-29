@@ -123,7 +123,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
         
         self.all_waterways_0["depth_waterways"] = depth_waterways
         self.all_waterways_0["drainage_unit_id"] = self.all_waterways_0.index
-        self.all_waterways_0.geometry = self.all_waterways_0.geometry.buffer(buffer_waterways)
+        self.all_waterways_0.geometry = self.all_waterways_0.geometry.buffer(buffer_waterways, cap_style="flat")
 
         ghg_waterways = make_geocube(
             vector_data=self.all_waterways_0,
@@ -298,12 +298,11 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 layer="all_waterways_1"
             )
 
-        # translations_drainage_unit_id = all_waterways_1.groupby("new_drainage_unit_id").agg({"drainage_unit_id": list}).reset_index()
         translations_drainage_unit_id = all_waterways_1[["drainage_unit_id", "new_drainage_unit_id"]]
 
-        logging.info(f"     - make the translations from {len(all_waterways_1)} to {len(translations_drainage_unit_id)}")
+        logging.info(f"     - aggregate sub drainage units: replace {len(all_waterways_1)} drainage_unit_ids")
         drainage_units_1 = self.drainage_units_0.copy()
-        drainage_units_1_flat = drainage_units_1[0].data.flatten()
+        drainage_units_1_flat = drainage_units_1.data.flatten()
 
         @njit
         def replace_values_in_array(array, old_values, new_values):
@@ -322,8 +321,8 @@ class GeneratorDrainageUnits(GeneratorBasis):
             translations_drainage_unit_id["drainage_unit_id"].values,
             translations_drainage_unit_id["new_drainage_unit_id"].values,
         )
-        drainage_units_1[0].data = np.reshape(drainage_units_1_flat_new, drainage_units_1[0].data.shape)
-        
+        drainage_units_1.values = np.reshape(drainage_units_1_flat_new, drainage_units_1.data.shape)
+                
         self.drainage_units_1 = drainage_units_1.copy()
         self.drainage_units_1.name = "drainage_units_1"
 
