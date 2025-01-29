@@ -27,9 +27,11 @@ def run_generator_drainage_units(
     Parameters
     ----------
     path : Path
-        Path to the case directory including directories 0_basisdata and
-        1_resultaat. Directory name is used as name for the case,
-        by default None
+        Path to the case directory. Directory name is used as name for the case
+    dir_basisdata : str | pathlib.Path
+        String representing subfolder with basisdata
+    dir_results : str | pathlib.Path
+        String representing subfolder with results
     read_results : bool, optional
         option (True/False) to read previous results from gpkg, by default None
     write_results : bool, optional

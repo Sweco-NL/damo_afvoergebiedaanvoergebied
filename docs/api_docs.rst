@@ -65,6 +65,22 @@ Generates upstream (sub)basins for predefined outflow points
     :private-members:
 
 
+GeneratorBasis
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Used for all generators to load all data from dir_basisdata and dir_results
+
+.. automodule:: generator_drainage_units.generator_basis
+    :members:
+    :undoc-members:
+    :private-members:
+
+.. automodule:: generator_drainage_units.generator_basis.generator_basis
+    :members:
+    :undoc-members:
+    :private-members:
+
+
 Utils
 ^^^^
 
@@ -94,22 +110,6 @@ Utils
     :private-members:
 
 .. automodule:: generator_drainage_units.utils.preprocess
-    :members:
-    :undoc-members:
-    :private-members:
-
-
-GeneratorBasis
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Used for all generators to load all data from dir_basisdata and dir_results
-
-.. automodule:: generator_drainage_units.generator_basis
-    :members:
-    :undoc-members:
-    :private-members:
-
-.. automodule:: generator_drainage_units.generator_basis.generator_basis
     :members:
     :undoc-members:
     :private-members:
