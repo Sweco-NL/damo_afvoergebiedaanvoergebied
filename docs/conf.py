@@ -3,19 +3,19 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import os
+import sys
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "GeneratorDrainageUnits"
-copyright = "2024, AnaisWens"
-author = "AnaisWens"
-release = "18/12"
+copyright = "2025, Sweco"
+author = "Harm Nomden, Anais Wens"
+release = "2025/1/31"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-
-import os
-import sys
 
 sys.path.insert(0, os.path.abspath("../src"))
 
@@ -31,6 +31,7 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
+    "sphinx_carousel.carousel",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -55,9 +56,13 @@ html_theme_options = {
 }
 
 html_static_path = ['_static']
+
 html_css_files = [
     'custom.css',
 ]
+
+# add a logo
+html_logo = "_static/order_levels_oost.jpg"
 
 # Allow errors in notebooks, so we can see the error online
 nbsphinx_allow_errors = True

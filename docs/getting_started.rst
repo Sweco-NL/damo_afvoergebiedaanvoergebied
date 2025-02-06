@@ -1,7 +1,7 @@
-Getting Started
+Installatie en gebruik van de workflows
 =====================
 
-Voor gebruik download de public repository. Daarin zit zowel de package generator_drainage_units als enkele voorbeeldscripts inclusief testdata.
+Download voor gebruik de public repository. Daarin zit zowel de package generator_drainage_units als enkele voorbeeldscripts inclusief testdata.
 
 
 Installatie environment
@@ -27,8 +27,8 @@ De basis-data bestaat uit:
 
 Datasets voor het watersysteem:
 
-- **rws_wateren.gpkg**: Polygonen die de RWS-wateren voorstellen inclusief code
-- **hydroobjecten.gpkg**: A/B-watergangen (hoofdwatergangen waterschappen)
+- **rws_wateren.gpkg**: Polygonen die de RWS-wateren voorstellen inclusief officiële code
+- **hydroobjecten.gpkg**: A-/B-watergangen (hoofdwatergangen waterschappen)
 - **hydroobjecten_extra.gpkg**: Extra hoofdwatergangen optioneel toe te voegen
 - **overige_watergangen.gpkg**: C-watergangen (lijn-elementen afgeleid van waterdelen)
 
@@ -46,7 +46,8 @@ Topografische hoogtemodel (raster data) voor afleiden afwateringseenheden. In di
 
 Afleiden deelstroomgebieden middels uitstroompunten:
 
-- **inflow_outflow_points.gpkg**: punten die dienen als uitstroompunt (eventueel ook als inlaatpunten te gebruiken).
+- **inflow_outflow_points.gpkg**: punten die worden opgegeven als uitstroompunt waarvoor dan stroomgebieden worden afgeleid.
+- **inflow_outflow_splits.gpkg**: Voor splitsingen in het netwerk kan worden opgegeven welke richting voorrang heeft, zodat overlap voorkomen wordt. Deze locaties worden bij elke analyse ook gedetecteerd en weggeschreven.
 
 
 Draaien van de voorbeeld notebooks
@@ -55,3 +56,18 @@ Voor het draaien van de notebooks, gebruiken wij standaard VS Code. Als kernel k
 
 De analyse inclusief brondata en de resultaten komt in een map terecht. In de notebooks wordt hierbij verwezen naar de .env-file. Dit is gedaan omdat een ieder de data op een ander path kan hebben staan.
 
+De verschillende workflows kunnen los gedraaid worden, maar er zit ook een volgorde in:
+
+- GeneratorCulvertLocations: bereid het watersysteem helemaal voor, preprocessed the A-/B-watergangen, verbindt de C-watergangen, etc; 
+- GeneratorOrderLevels: Genereert order nummers en codering voor alle watergangen; 
+- GeneratorDrainageUnits: Genereert de afwateringseenheden (polygonen); 
+- GeneratorNetworkLumping: Genereert de deelstroomgebieden voor uitstroompunten, (sluitend) waternetwerk en afwateringseenheden.
+
+Om de analyses uit te voeren zijn voor iedere analyse losse functies geschreven:
+
+- run_generator_culvert_locations()
+- run_generator_order_levels()
+- run_generator_drainage_units()
+- run_generator_network_lumping()
+
+Alle functies hebben eigenlijk alleen het path nodig waar de map met basisdata staat. De resultaatmap wordt automatisch aangemaakt. Indien gewenst kunnen extra parameters worden meegegeven voor het draaien van de functies.

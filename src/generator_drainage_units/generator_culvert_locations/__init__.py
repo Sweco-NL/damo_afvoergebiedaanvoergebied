@@ -7,6 +7,8 @@ from .generator_culvert_locations import GeneratorCulvertLocations
 
 def run_generator_culvert_locations(
     path: Path,
+    dir_basisdata: Path,
+    dir_results: Path = None,
     distance_vertices: float = 10.0,
     max_culvert_length: float = 40.0,
     preprocess_hydroobjecten: bool = True,
@@ -19,9 +21,11 @@ def run_generator_culvert_locations(
     Parameters
     ----------
     path : Path
-        Path to the case directory including directories 0_basisdata and
-        2_resultaat. Directory name is used as name for the case,
-        by default None
+        Path to the case directory. Directory name is used as name for the case
+    dir_basisdata : str | pathlib.Path
+        String representing subfolder with basisdata
+    dir_results : str | pathlib.Path
+        String representing subfolder with results
     distance_vertices : float, optional
         distacne between vertices, by default 10.0
     max_culvert_length : int, optional
@@ -39,6 +43,8 @@ def run_generator_culvert_locations(
     start_time = time.time()
     culverts_generator = GeneratorCulvertLocations(
         path=path,
+        dir_basisdata=dir_basisdata,
+        dir_results=dir_results,
         preprocess_hydroobjecten=preprocess_hydroobjecten,
         read_results=read_results,
         write_results=write_results,

@@ -1,6 +1,6 @@
 [project]
 authors = [{name = "harm-nomden-sweco", email = "harm.nomden@sweco.nl"}]
-dependencies = ["ugrid>=0.13.0,<0.14", "tomli-w>=1.1.0,<2", "pandas-xlsx-tables>=1.0.0,<2"]
+dependencies = ["ugrid>=0.13.0,<0.14", "pandas-xlsx-tables>=1.0.0,<2", "tomli-w>=1.2.0,<2"]
 description = "Python toolbox om afwateringseenheden te genereren op basis van basisdata en een raster"
 name = "generator_drainage_units"
 requires-python = ">= 3.11"
@@ -40,3 +40,4 @@ libgdal-netcdf = ">=3.10.0,<4"
 geocube = ">=0.7.0,<0.8"
 pyflwdir = ">=0.5.9,<0.6"
 netcdf4 = ">=1.7.2,<2"
+imod = ">=1.0.0rc0,<2"
