@@ -69,6 +69,22 @@ class GeneratorOrderLevels(GeneratorBasis):
     folium_html_path: Path = None
 
     def create_graph_from_network(self, water_lines=["hydroobjecten"]):
+        """Turns a linestring layer containing waterlines into a graph of edges and nodes. 
+
+        Parameters
+        ----------
+        water_lines : list, optional
+            List of waterline files names used to create graph, must refer to geopackages containing linestrings, by default ["hydroobjecten"]
+
+        Returns
+        -------
+        self.nodes: gpd.GeoDataFrame
+            Geodataframe containing nodes between waterlines
+        self.edges: gpd.GeoDataFrame
+            Geodataframe containing edges (waterlines)
+        self.graph: nx.DiGraph
+            Networkx graph containing the edges and nodes
+        """
         edges = None
         for water_line in water_lines:
             gdf_water_line = getattr(self, water_line)
@@ -85,12 +101,26 @@ class GeneratorOrderLevels(GeneratorBasis):
         return self.nodes, self.edges, self.graph
 
     def define_list_upstream_downstream_edges_ids(self):
+        """Get the upstream and downstream edges for each node. 
+
+        Returns
+        -------
+        self.nodes: gpd.GeoDataFrame
+            Geodataframe containing nodes between waterlines, including upstream and downstream edges
+        """
         self.nodes = define_list_upstream_downstream_edges_ids(
             node_ids=self.nodes.nodeID.values, nodes=self.nodes, edges=self.edges
         )
         return self.nodes
 
     def calculate_angles_of_edges_at_nodes(self):
+        """Calculates the angles of the upstream and downstream edges for each node. 
+
+        Returns
+        -------
+        self.nodes: gpd.GeoDataFrame
+            Geodataframe containing nodes between waterlines, including upstream and downstream edges and their angles
+        """
         logging.info("   x calculate angles of edges to nodes")
         self.nodes, self.edges = calculate_angles_of_edges_at_nodes(
             nodes=self.nodes, edges=self.edges
@@ -98,6 +128,18 @@ class GeneratorOrderLevels(GeneratorBasis):
         return self.nodes
 
     def select_downstream_upstream_edges(self, min_difference_angle: str = 20.0):
+        """select the upstream or downstream edge that represents the main channel, based on the smallest angle. When the angle of both edges is too large, no edge is selected.
+
+        Parameters
+        ----------
+        min_difference_angle : str, optional
+            minimum , by default 20.0
+
+        Returns
+        -------
+        self.nodes: gpd.GeoDataFrame
+            Geodataframe containing nodes between waterlines, including the selected upstream and downstream angles
+        """
         logging.info("   x find downstream upstream edges")
         self.nodes = select_downstream_upstream_edges(
             self.nodes, min_difference_angle=min_difference_angle
@@ -105,6 +147,18 @@ class GeneratorOrderLevels(GeneratorBasis):
         return self.nodes
 
     def generate_rws_code_for_all_outflow_points(self, buffer_rws=10.0):
+        """Generates an RWS code for al outflow points into rws water bodies. These are the points where the water flows out of the management area of the water board and therefore the start of the orde codes of the edges.
+
+        Parameters
+        ----------
+        buffer_rws : float, optional
+            buffers around the RWS water polygons, ensures that outflow points intersect with the RWS water, by default 10.0
+
+        Returns
+        -------
+        self.outflow_edges: gpd.GeoDataFrame
+            Geodataframe containing the outflow edges into the RWS waters
+        """
         # Copy hydroobject data to new variable 'hydroobjects' and make dataframes with start and end nodes
         logging.info("   x find start and end nodes hydroobjects")
 
@@ -164,6 +218,10 @@ class GeneratorOrderLevels(GeneratorBasis):
         return self.outflow_edges
 
     def generate_order_level_for_hydroobjects(self):
+        """Generates the order level of the hydroobjects. A hydroobject will get the same orde as the downstream edge. 
+        When a hydroobject is split at a node, the edge with the larger angle difference will get the order number downstream +1.
+        The order level will keeping increasing until the complete network has an order level.
+        """
         logging.info(f"   x generate order levels for hydroobjects")
         # self.outflow_edges = self.outflow_edges[self.outflow_edges["order_no"]==2].copy()
 
@@ -375,6 +433,8 @@ class GeneratorOrderLevels(GeneratorBasis):
         logging.info(logging_message)
 
     def generate_order_code_for_hydroobjects(self, order_for_each_edge=False):
+        """Generates a code for each hydroobject based on the order level. Hydroobjects with a higher order level will get a longer code, that shows in to which hydroobject with a lower code it flows.
+        """
         logging.info(f"   x generate order code for edges")
         edges = (
             self.edges[
@@ -631,6 +691,15 @@ class GeneratorOrderLevels(GeneratorBasis):
         return self.edges
 
     def generate_order_no_order_code_for_other_waterlines(self):
+        """Generates order level for overige watergangen, based on their outflow point in the hydroobjects. 
+
+        Returns
+        -------
+        self.outflow_nodes_overige_watergangen: gpd.GeoDataFrame
+            Geodataframe containing the outflow points of the overige watergang in the hydroobjects
+        self.overige_watergangen_processed_4: gpd.GeoDataFrame
+            Geodataframe containing the processed overige watergangen, including the order levels and order codes
+        """
         logging.info(f"   x generate order code for overige watergangen")
         outflow_nodes_overige_watergangen = self.outflow_nodes_overige_watergangen[
             ["nodeID", "geometry"]
@@ -731,6 +800,30 @@ class GeneratorOrderLevels(GeneratorBasis):
         base_map: str = "Light Mode",
         order_labels: bool = True,
     ):
+        """Generate folium maps to display the results of the order level generator
+
+        Parameters
+        ----------
+        html_file_name : str, optional
+            _description_, by default None
+        include_areas : bool, optional
+            _description_, by default True
+        width_edges : float, optional
+            _description_, by default 10.0
+        opacity_edges : float, optional
+            _description_, by default 0.5
+        open_html : bool, optional
+            _description_, by default False
+        base_map : str, optional
+            _description_, by default "Light Mode"
+        order_labels : bool, optional
+            _description_, by default True
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         # Make figure
         outflow_nodes_4326 = self.outflow_nodes.to_crs(4326)
 

@@ -1015,7 +1015,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
         )
 
     def check_culverts_direction(self):
-        """Some culvert are generated in the wrong direction compared to the waterlines, if this is the case, they are flipped.
+        """Culverts can be generated in the wrong direction compared to the waterlines, if this is the case, they are flipped.
 
         Returns
         -------
