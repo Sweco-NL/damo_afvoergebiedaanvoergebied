@@ -1,11 +1,11 @@
 import logging
+import time
 import webbrowser
 from pathlib import Path
-import time
-from tqdm import tqdm
 
 import folium
 import geopandas as gpd
+import imod
 import numpy as np
 import pandas as pd
 import pyflwdir
@@ -16,7 +16,7 @@ from numba import njit
 from pydantic import ConfigDict
 from rasterio.enums import Resampling
 from scipy.ndimage import distance_transform_edt
-import imod
+from tqdm import tqdm
 
 from ..generator_basis import GeneratorBasis
 from ..utils.folium_utils import (
@@ -216,27 +216,31 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 number_new_filled_cells = new_filled_cells.sum()
 
                 if number_new_filled_cells == 0:
-                    print("     * break at iteration: ", i)
+                    print("     * break at iteration: ", i + iteration_start)
                     break
-                print1 = f"  * iteration: {i+iteration_start}"
+                print1 = f"  * iteration: {i + iteration_start}"
                 print2 = f" | number new cells: {number_new_filled_cells}"
                 print3 = f"({round(time.time()-time_start, 2)} seconds)"
                 print(print1 + print2 + print3, end="\r")
-            return drainage_units_flat
+            return drainage_units_flat, number_new_filled_cells
         
         logging.info(f"     - get upstream area of each waterway: {iterations} iterations")
         drainage_units_flat_new = flw._check_data(self.drainage_units_0.data, "data")
 
         time_start_groups = time.time()
         for i in range(0, iterations, iteration_group):
-            drainage_units_flat_new = get_upstream_values(
+            time_start_group = time.time()
+            drainage_units_flat_new, number_new_filled_cells = get_upstream_values(
                 flw_mask=flw.mask, 
                 flw_idxs_ds=flw.idxs_ds, 
                 drainage_units_flat=drainage_units_flat_new, 
                 iterations=min(iterations-i, iteration_group),
                 iteration_start=i
             )
-            print(f"iteration ({i}/{iterations}): ({round(time.time()-time_start_groups, 2)} s)")
+            print("")
+            print(f"iteration ({i+iteration_group}/{iterations}): {round(time.time()-time_start_group, 2)}s/{round(time.time()-time_start_groups, 2)}s")
+            if number_new_filled_cells == 0:
+                break
 
         self.drainage_units_0.data = drainage_units_flat_new.reshape(
             self.drainage_units_0.data.shape
@@ -244,6 +248,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
         self.drainage_units_0.data = self.drainage_units_0.data
         self.drainage_units_0.name = "drainage_units_0"
 
+        logging.info(f"     - polygonize rasters to polygons")
         self.drainage_units_1 = imod.prepare.polygonize(self.drainage_units_0)
         self.drainage_units_1 = self.drainage_units_1.rename(columns={"value": "drainage_unit_id"})
         self.drainage_units_1["drainage_unit_id"] = self.drainage_units_1["drainage_unit_id"].astype(int)
@@ -299,7 +304,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
             ind_new_drainage_unit_id_nan
         ].groupby('drainage_unit_id')['drainage_unit_id'].transform('first')
 
-        all_waterways_1 = all_waterways_1.dropna(subset="new_drainage_unit_id")
+        # all_waterways_1 = all_waterways_1.dropna(subset="new_drainage_unit_id")
         all_waterways_1["new_drainage_unit_id"] = all_waterways_1["new_drainage_unit_id"].astype(int)
 
         self.all_waterways_1 = all_waterways_1.copy()
@@ -310,22 +315,15 @@ class GeneratorDrainageUnits(GeneratorBasis):
             )
 
         logging.info(f"     - aggregate sub drainage units: replace {len(all_waterways_1)} drainage_unit_ids")
-        drainage_units_2 = self.drainage_units_1.copy()
-
-        drainage_units_2 = drainage_units_2.merge(
-            all_waterways_1[["drainage_unit_id", "new_drainage_unit_id"]],
+        self.drainage_units_2 = self.drainage_units_1.dissolve("drainage_unit_id").merge(
+            self.all_waterways_1[["drainage_unit_id", "order_code"]],
             how="left",
             on="drainage_unit_id"
-        )
-        self.drainage_units_2 = drainage_units_2.copy()
+        ).dropna(subset="order_code").sort_values("order_code")
+
         if self.write_results:
             self.drainage_units_2.to_file(Path(self.dir_results, "drainage_units_2.gpkg"))
         
-        self.drainage_units_3 = self.drainage_units_2.copy()
-        self.drainage_units_3 = self.drainage_units_3.drop(columns="drainage_unit_id").dissolve("new_drainage_unit_id")
-        if self.write_results:
-            self.drainage_units_3.to_file(Path(self.dir_results, "drainage_units_3.gpkg"))
-
         return self.drainage_units_2
 
 

@@ -698,7 +698,6 @@ class GeneratorOrderLevels(GeneratorBasis):
             + "-X"
             + edges["order_code_no"].astype(str).str.zfill(4)
         )
-
         self.overige_watergangen_processed_4 = edges.copy()
         return (
             self.outflow_nodes_overige_watergangen,
@@ -723,6 +722,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             else:
                 logging.info(f"     - {layer} ({len(result)})")
                 result.to_file(Path(self.dir_results, f"{layer}.gpkg"))
+
 
     def generate_folium_map(
         self,
