@@ -70,9 +70,9 @@ class GeneratorDrainageUnits(GeneratorBasis):
     flw: pyflwdir.FlwdirRaster = None
     
     drainage_units_0: xarray.Dataset = None
-    drainage_units_1: gpd.GeoDataFrame = None
-    drainage_units_2: gpd.GeoDataFrame = None
-    drainage_units_3: gpd.GeoDataFrame = None
+    drainage_units_0_gdf: gpd.GeoDataFrame = None
+    drainage_units_1: xarray.Dataset = None
+    drainage_units_1_gdf: gpd.GeoDataFrame = None
 
     edges: gpd.GeoDataFrame = None
     nodes: gpd.GeoDataFrame = None
@@ -248,13 +248,6 @@ class GeneratorDrainageUnits(GeneratorBasis):
         self.drainage_units_0.data = self.drainage_units_0.data
         self.drainage_units_0.name = "drainage_units_0"
 
-        logging.info(f"     - polygonize rasters to polygons")
-        self.drainage_units_1 = imod.prepare.polygonize(self.drainage_units_0)
-        self.drainage_units_1 = self.drainage_units_1.rename(columns={"value": "drainage_unit_id"})
-        self.drainage_units_1["drainage_unit_id"] = self.drainage_units_1["drainage_unit_id"].astype(int)
-        self.drainage_units_1 = self.drainage_units_1[self.drainage_units_1["drainage_unit_id"] >= 0]
-        self.drainage_units_1 = self.drainage_units_1.set_crs(self.hydroobjecten.crs)
-
         if self.write_results:
             netcdf_file_path = Path(self.dir_results, "drainage_units_0.nc")
             encoding = {
@@ -268,11 +261,17 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 netcdf_file_path, 
                 encoding=encoding
             )
-            self.drainage_units_1.to_file(Path(self.dir_results, "drainage_units_1.gpkg"))
-        return self.drainage_units_1
+        return self.drainage_units_0_gdf
 
 
     def aggregate_drainage_units(self):
+        logging.info(f"     - polygonize rasters to polygons")
+        self.drainage_units_0_gdf = imod.prepare.polygonize(self.drainage_units_0[0])
+        self.drainage_units_0_gdf = self.drainage_units_0_gdf.rename(columns={"value": "drainage_unit_id"})
+        self.drainage_units_0_gdf["drainage_unit_id"] = self.drainage_units_0_gdf["drainage_unit_id"].astype(int)
+        self.drainage_units_0_gdf = self.drainage_units_0_gdf[self.drainage_units_0_gdf["drainage_unit_id"] >= 0]
+        self.drainage_units_0_gdf = self.drainage_units_0_gdf.set_crs(self.hydroobjecten.crs)
+
         logging.info("   x aggregation/lumping of drainage units: aggregate 'overige watergangen'")
         logging.info("     - define new drainage_unit_ids for all 'overige watergangen'")
 
@@ -315,16 +314,38 @@ class GeneratorDrainageUnits(GeneratorBasis):
             )
 
         logging.info(f"     - aggregate sub drainage units: replace {len(all_waterways_1)} drainage_unit_ids")
-        self.drainage_units_2 = self.drainage_units_1.dissolve("drainage_unit_id").merge(
+        self.drainage_units_1_gdf = self.drainage_units_0_gdf.dissolve("drainage_unit_id").merge(
             self.all_waterways_1[["drainage_unit_id", "order_code"]],
             how="left",
             on="drainage_unit_id"
         ).dropna(subset="order_code").sort_values("order_code")
 
+        drainage_units_1 = self.drainage_units_0.copy()
+        drainage_units_1[0] = imod.prepare.rasterize(
+            self.drainage_units_1_gdf.explode().reset_index(drop=True), 
+            column="drainage_unit_id",
+            like=self.drainage_units_0[0]
+        )
+        drainage_units_1.name = "drainage_units_1"
+        self.drainage_units_1 = drainage_units_1.copy()
+
         if self.write_results:
-            self.drainage_units_2.to_file(Path(self.dir_results, "drainage_units_2.gpkg"))
-        
-        return self.drainage_units_2
+            netcdf_file_path = Path(self.dir_results, "drainage_units_1.nc")
+            encoding = {
+                'drainage_units_1': {
+                    'dtype': 'float32',
+                    'zlib': True,
+                    'complevel': 9,
+                },
+            }
+            self.drainage_units_1.to_netcdf(
+                netcdf_file_path, 
+                encoding=encoding
+            )
+            self.drainage_units_0_gdf.to_file(Path(self.dir_results, "drainage_units_0_gdf.gpkg"))
+            self.drainage_units_1_gdf.to_file(Path(self.dir_results, "drainage_units_1_gdf.gpkg"))
+
+        return self.drainage_units_1_gdf
 
 
     def generate_folium_map(
@@ -454,7 +475,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
 
         show = True
         for drainage_units, drainage_units_name in zip(
-            [self.drainage_units_3, self.drainage_units_1],
+            [self.drainage_units_3, self.drainage_units_0_gdf],
             ["Afwateringseenheden (geaggregeerd)", "Afwateringseenheden (per watergangsdeel)"],
         ):
             if drainage_units is not None:
