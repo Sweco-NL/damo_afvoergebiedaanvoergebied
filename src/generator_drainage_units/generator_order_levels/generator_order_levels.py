@@ -38,6 +38,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
     hydroobjecten: gpd.GeoDataFrame = None
     hydroobjecten_processed_0: gpd.GeoDataFrame = None
+    hydroobjecten_processed_1: gpd.GeoDataFrame = None
 
     rws_wateren: gpd.GeoDataFrame = None
 
@@ -628,7 +629,9 @@ class GeneratorOrderLevels(GeneratorBasis):
                 ),
                 axis=1,
             )
-        return self.edges
+        
+        self.hydroobjecten_processed_1 = self.edges.copy()
+        return self.hydroobjecten_processed_1
 
     def generate_order_no_order_code_for_other_waterlines(self):
         logging.info(f"   x generate order code for overige watergangen")
@@ -712,6 +715,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             "outflow_edges",
             "outflow_nodes",
             "outflow_nodes_overige_watergangen",
+            "hydroobjecten_processed_1",
             "overige_watergangen_processed_4",
             "edges",
             "nodes",
@@ -722,7 +726,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             else:
                 logging.info(f"     - {layer} ({len(result)})")
                 result.to_file(Path(self.dir_results, f"{layer}.gpkg"))
-
+        
 
     def generate_folium_map(
         self,

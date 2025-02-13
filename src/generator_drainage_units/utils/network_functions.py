@@ -72,13 +72,13 @@ def find_predecessors_graph_with_splits(
         e = pred_edge[i]
 
         # if edge_id in ["WL_88", "WL_86", "WL_284"]: #"WL_269", "WL_106618-0", "WL_271-8"]:
-        logging.debug("xxxxxxxxxxxx")
-        logging.debug(edge_id)
-        logging.debug(from_node)
-        logging.debug(pred_node)
-        logging.debug(pred_edge)
-        logging.debug(split_node_edge_ids2)
-        logging.debug("xxxxxxxxxxxx")
+        # logging.debug("xxxxxxxxxxxx")
+        # logging.debug(edge_id)
+        # logging.debug(from_node)
+        # logging.debug(pred_node)
+        # logging.debug(pred_edge)
+        # logging.debug(split_node_edge_ids2)
+        # logging.debug("xxxxxxxxxxxx")
 
         if (
             split_node_edge_ids2 is not None
