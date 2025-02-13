@@ -172,7 +172,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         logging.info("   x generating order code for all outflow points")
         rws_wateren = self.rws_wateren.copy()
-        rws_wateren.geometry = rws_wateren.geometry.buffer(buffer_rws_water)
+        rws_wateren.geometry = rws_wateren.geometry.buffer(buffer_rws)
 
         outflow_edges = (
             dead_end_edges.sjoin(rws_wateren[["geometry", "rws_code"]])

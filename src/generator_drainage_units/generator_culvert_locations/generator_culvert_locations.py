@@ -335,23 +335,13 @@ class GeneratorCulvertLocations(GeneratorBasis):
         )
         return self.potential_culverts_0
 
-    def check_intersections_potential_culverts(
-        self,
-        read_results=None,
-    ) -> gpd.GeoDataFrame:
-        """Check intersections of culverts with other objects like roads, etc
+    def check_intersections_potential_culverts(self, read_results=None) -> gpd.GeoDataFrame:
+        """Check intersections of culverts with other objects like roads, etc"""
 
-        Returns
-        -------
-        gpd.GeoDataFrame: potential culverts without impossible intersections
-        """
-        # Crossing objects
         if isinstance(read_results, bool):
             self.read_results = read_results
         if self.read_results and self.potential_culverts_1 is not None:
-            logging.info(
-                f"   x {len(self.potential_culverts_1)} potential culverts already generated"
-            )
+            logging.info(f"   x {len(self.potential_culverts_1)} potential culverts already generated")
             return self.potential_culverts_1
 
         crossing_objects = [
@@ -364,26 +354,26 @@ class GeneratorCulvertLocations(GeneratorBasis):
             "spoorwegen",
         ]
 
-        # Set culverts gdf
+        # Work directly on the original culverts
         culverts = self.potential_culverts_0.copy()
 
         logging.info("   x check intersections culverts with objects")
         for crossing_object in crossing_objects:
             crossing_gdf = getattr(self, crossing_object)
-
-            # Merge operation
-            culverts = culverts.merge(
-                gpd.sjoin(
-                    culverts,
-                    crossing_gdf[["code", "geometry"]].rename(
-                        columns={"code": f"{crossing_object}_code"}
-                    ),
-                    predicate="crosses",
-                )[f"{crossing_object}_code"],
-                how="left",
-                left_index=True,
-                right_index=True,
+            
+            # Perform spatial join
+            joined = gpd.sjoin(
+                culverts,
+                crossing_gdf[["code", "geometry"]].rename(columns={"code": f"{crossing_object}_code"}),
+                predicate="crosses",
             )
+
+            # Aggregate to avoid duplicates
+            joined = joined.groupby(joined.index)[f"{crossing_object}_code"].first()
+
+            # Merge without creating duplicates
+            culverts = culverts.merge(joined, how="left", left_index=True, right_index=True)
+            
             if crossing_object in ["hydroobjecten", "overige_watergangen"]:
                 # Step 1: Create a copy with only the relevant columns
                 culverts_copy = culverts[
@@ -416,36 +406,22 @@ class GeneratorCulvertLocations(GeneratorBasis):
                     culverts_copy[mask_combined].index, f"{crossing_object}_code"
                 ] = np.nan
 
-            # Set true in new column for features with crossing objects.
-            culverts[f"crossings_{crossing_object}"] = culverts[
-                f"{crossing_object}_code"
-            ].notna()
+            culverts[f"crossings_{crossing_object}"] = culverts[f"{crossing_object}_code"].notna()
 
-            no_intersections = len(
-                culverts[culverts[f"crossings_{crossing_object}"] == True]
-            )
-            logging.info(f"     - {crossing_object} ({no_intersections} crossings)")
+            logging.info(f"     - {crossing_object} ({culverts[f'crossings_{crossing_object}'].sum()} crossings)")
 
-        # Remove potential culverts crossing: main road, railways, barriers,
-        # hydroobjects and other waterways. (Drop columns for these objects).
-        for crossing_object in crossing_objects:
-            if crossing_object in [
-                "hydroobjecten",
-                "overige_watergangen",
-                "keringen",
-                "snelwegen",
-                "spoorwegen",
-            ]:
-                culverts = culverts[culverts[f"crossings_{crossing_object}"] == False]
+        # Remove unwanted culverts directly
+        culverts = culverts.loc[
+            culverts[["crossings_hydroobjecten", "crossings_overige_watergangen",
+                    "crossings_keringen", "crossings_snelwegen", "crossings_spoorwegen"]].any(axis=1) == False
+        ]
 
-        # Write data
+        logging.info(f"     - {len(culverts)} potential culverts remaining")
+
+        # Avoid unnecessary file writes if not needed
         self.potential_culverts_1 = culverts.copy()
-        self.potential_culverts_1.to_file(
-            Path(self.dir_results, "potential_culverts_1.gpkg")
-        )
-        logging.info(
-            f"     - {len(self.potential_culverts_1)} potential culverts remaining"
-        )
+        self.potential_culverts_1.to_file(Path(self.dir_results, "potential_culverts_1.gpkg"))
+
         return self.potential_culverts_1
 
     def assign_scores_to_potential_culverts(
@@ -909,7 +885,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
             lambda row: frozenset([row["dangling_code"], row["code"]]), axis=1
         )
 
-        culverts = culverts.loc[culverts.groupby("code_pair")["length"].idxmin()]
+        culverts = culverts.loc[culverts.groupby("code_pair")["fictive_length"].idxmin()]
 
         # Define the filter function
         def should_remove(row):
