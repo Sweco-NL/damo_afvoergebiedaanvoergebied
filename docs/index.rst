@@ -6,9 +6,9 @@ Generator Drainage Units
 ============================================================================================================================
 
 Workflows voor hydrologische basisdata waterschappen
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Aa en Maas en Vallei & Veluwe met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. We bundelen hierbij de workflows in een public repository inclusief testdata, voorbeeld-scripts en documentatie.
+Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Aa en Maas en Vallei & Veluwe met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. We bundelen hierbij de workflows in een public repository inclusief voorbeeld-scripts en documentatie.
 De python-package bevat o.a. workflows voor voorbewerking van de datasets voor het waternetwerk, verbinden van de c-watergangen middels duikers, automatische toekennen van orde-codering en het afleiden van afwateringseenheden en (deel)stroomgebieden. Voor meer informatie: 
 
 - **Waterschap Vallei & Veluwe**: Harmen van de Werfhorst
@@ -77,14 +77,14 @@ Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide
 
 
 Waterschap Aa & Maas
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te genereren.
 
 - `GeneratorNetworkLumping <description_workflows.html#generatornetworklumping-workflow-aggregeren-deel-stroomgebieden>`_: workflow om voor opgegeven uitstroompunten het bovenstroomse watersysteem inclusief afwateringseenheden te lumpen (aggregeren) om stroomgebieden of deelstroomgebieden te genereren. Hierbij wordt overlap gedetecteerd en kan men aangeven hoe de deelgebieden verdeeld worden.
 
 
 Waterschap Vallei & Veluwe
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 De vraag om afvoergebieden af te leiden tot op het diepste detailniveau op basis van een raster met een hoogtemodel (maaiveld of in dit geval grondwaterstand GHG) en een gegeven waternetwerk. Deze afvoergebiedjes worden ook wel afwateringseenheden of hydrologische eenheden genoemd. Middels netwerk-analyse en codering is het mogelijk om deze te aggregeren tot elk gewenst niveau:
 
 - `GeneratorCulvertLocations <description_workflows.html#generatorculvertlocations-workflow-duiker-locaties>`_: workflow die voortbouwt op een al bestaande 'duikergenerator' van het waterschap waarin de locaties van duikers voor de C-watergangen worden gezocht. Dit om na te gaan hoe het water naar de hoofdwatergangen (A/B) stroomt. Het zoeken gebeurt op basis van rekenregels, waarbij gekeken wordt naar kruisingen met (spoor)wegen en peilgebiedsgrenzen, de lengte van de duiker (hoe korter, hoe beter) en de richting van de duiker ten opzichte van de watergang. 
@@ -95,10 +95,11 @@ De vraag om afvoergebieden af te leiden tot op het diepste detailniveau op basis
 
 
 Inhoud
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 .. toctree::
    :maxdepth: 2
    
    Installatie en gebruik <getting_started>
    Beschrijving workflows <description_workflows>
    API documentatie <api_docs>
+

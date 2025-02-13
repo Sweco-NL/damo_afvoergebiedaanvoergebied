@@ -5,8 +5,8 @@ Voorbewerkingen op de basisdata (preprocessing)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 De voorbewerkingen die zijn uitgevoerd op de basisdata bestaan uit twee types:
 
-* Handmatige aanpassingen: Een los script met twee geopackages wordt gebruikt om vooraf elementen uit de basisdata te verwijderen, aan te passen of toe te voegen. Dit blijkt nodig te zijn, omdat sommige watergangen in de praktijk niet verbonden zijn met deelnetwerken of omdat de richting van A-/B-watergangen verkeerd geregistreerd staat. Dit is automatisch niet (of lastig) te herleiden en aan te passen.
-* Automatische checks en aanpassingen: Bij verrassend veel A-/B-watergangen sluiten de ingetekende lijnelementen niet exact op elkaar aan en liggen de uiteindes centimeters of millimeters van elkaar af. Er wordt een correctie toegepast op de lijnelementen (snapping) om dit op te lossen en een sluitend netwerk te maken. Dit gaat voornamelijk om de hydroobjecten: de aanpassingen worden opgeslagen in hydroobjecten_snapped.gpkg.
+* Handmatige aanpassingen: Een los script met twee geopackages wordt gebruikt om vooraf elementen uit de basisdata te verwijderen, aan te passen of toe te voegen. Dit blijkt nodig te zijn, omdat sommige watergangen in de praktijk niet verbonden zijn met deelnetwerken of omdat de richting van A-/B-watergangen verkeerd geregistreerd staat. Dit is niet (of lastig) automatisch te herleiden en aan te passen.
+* Automatische checks en aanpassingen: Bij verrassend veel A-/B-watergangen sluiten de ingetekende lijnelementen niet exact op elkaar aan en liggen de uiteinden centimeters of millimeters van elkaar af. Er wordt een correctie toegepast op de lijnelementen (snapping) om dit op te lossen en een sluitend netwerk te maken. Dit gaat voornamelijk om de hydroobjecten: de aanpassingen worden opgeslagen in hydroobjecten_snapped.gpkg.
 
 De automatische voorbewerkingen (snapping) worden nu nog uitgevoerd binnen de GeneratorCulvertLocations.
 
