@@ -60,7 +60,6 @@ html_static_path = ['_static']
 html_css_files = [
     'custom.css',
     'https://cdn.swecogroup.com/sweco-digital-platforms/5.1.2/fonts/fonts.css',
-    'https://cdn.swecogroup.com/sweco-digital-platforms/5.1.2/css/sweco-bootstrap.css'
 ]
 
 # add a logo
