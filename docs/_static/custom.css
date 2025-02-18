@@ -1,3 +1,11 @@
 .wy-nav-content {
     max-width: 800px;
 }
+
+.wy-nav-side {
+    max-width: 400px;
+}
+
+.wy-side-nav-search {
+    background-color: #7a9b62;
+}
