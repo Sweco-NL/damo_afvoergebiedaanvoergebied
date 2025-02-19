@@ -8,12 +8,10 @@ Generator Drainage Units
 Basisdata waterschappen op orde?
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het waternetwerk en alle kunstwerken inclusief tabellen met bijbehorende karakteristieken. 
-Deze data wordt gebruikt voor de opbouw van (geo)hydrologische en hydraulische modellen. Data van goede kwaliteit is  nauwkeurig, volledig, consistent, geldig, bevat geen dubbelingen en is up-to-date. 
+De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het waternetwerk en alle kunstwerken inclusief tabellen met bijbehorende karakteristieken. Deze data wordt gebruikt voor het beheer en voor de opbouw van (geo)hydrologische en hydraulische modellen. 
 
 Binnen het waterbeheer wordt het (Hy)DAMO datamodel gebruikt om de karakteristieken van de hydrologisch relevante objecten gestructureerd bij te houden. Veel waterschappen zijn hier al ver mee. 
-Wat nog mist in HyDAMO is een check op de geometrie van de data en of alles wel goed aansluit. 
-Er zijn nog geen geautomatiseerde methodes vastgesteld om het watersysteem te analyseren, te coderen en om afvoergebieden te genereren, ondanks dat er goede plannen liggen.
+Wat nog mist zijn geautomatiseerde methodes om de geometrie van de data te checken en vooral of het netwerk wel klopt en goed aansluit. Het gaat dan om het analyseren van het watersysteem, automatisch coderen en het genereren van afvoergebieden.
 
 Workflows voor hydrologische basisdata waterschappen
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -21,7 +19,7 @@ Workflows voor hydrologische basisdata waterschappen
 Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Aa en Maas en Vallei & Veluwe met als doel om op basis van de hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. 
 Hierbij wordt het onderliggende netwerk van sloten ook meegenomen, welke niet in beheer van het waterschap zijn.
 
-We bundelen de workflows in een public repository inclusief voorbeeld-scripts en documentatie. De python-package bevat o.a. workflows voor voorbewerking van de datasets voor het waternetwerk, verbinden van de c-watergangen middels duikers, automatische toekennen van orde-codering en het afleiden van afwateringseenheden en (deel)stroomgebieden. Voor meer informatie: 
+De workflows zijn gebundeld in een public repository inclusief scripts en documentatie. De python-package bevat momenteel o.a. workflows voor voorbewerking van de datasets voor het waternetwerk, verbinden van de c-watergangen middels duikers, automatische toekennen van orde-codering en het afleiden van afwateringseenheden en (deel)stroomgebieden. Voor meer informatie: 
 
 - **Waterschap Vallei & Veluwe**: Harmen van de Werfhorst
 - **Waterschap Aa & Maas**: Joachim Hunink
