@@ -18,7 +18,7 @@ Workflows voor hydrologische basisdata waterschappen
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Aa en Maas en Vallei & Veluwe met als doel om op basis van de hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. 
-Hierbij wordt het onderliggende netwerk van sloten (de watergangen niet in beheer van het waterschap waarvan beperkt data is) ook meegenomen om te bepalen welk gebieden waarnaar toe stromen.
+Hierbij wordt het onderliggende netwerk van sloten ook meegenomen, welke niet in beheer van het waterschap zijn.
 
 We bundelen de workflows in een public repository inclusief voorbeeld-scripts en documentatie. De python-package bevat o.a. workflows voor voorbewerking van de datasets voor het waternetwerk, verbinden van de c-watergangen middels duikers, automatische toekennen van orde-codering en het afleiden van afwateringseenheden en (deel)stroomgebieden. Voor meer informatie: 
 
