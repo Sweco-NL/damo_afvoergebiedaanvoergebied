@@ -1,20 +1,17 @@
 import logging
-import warnings
 from pathlib import Path
 
 import folium
 import geopandas as gpd
 import rioxarray
-import numpy as np
-import pandas as pd
 from pydantic import BaseModel, ConfigDict
-from shapely.geometry import LineString, Point
 
 
 class GeneratorBasis(BaseModel):
-    """_summary_
-
-    _extended_summary_
+    """Basis class for all Generators
+    
+    Basis class for reading all basis datasets (based on attributes) 
+    from the subdirectory basisdata (dir_basisdata) and optionally read results
 
     Parameters
     ----------

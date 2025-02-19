@@ -75,6 +75,22 @@ class GeneratorNetworkLumping(GeneratorBasis):
     folium_html_path: str = None
 
     def create_graph_from_network(self, water_lines=["hydroobjecten"]):
+        """Turns a linestring layer containing waterlines into a graph of edges and nodes. 
+
+        Parameters
+        ----------
+        water_lines : list, optional
+            List of waterline files names used to create graph, must refer to geopackages containing linestrings, by default ["hydroobjecten"]
+
+        Returns
+        -------
+        self.nodes: gpd.GeoDataFrame
+            Geodataframe containing nodes between waterlines
+        self.edges: gpd.GeoDataFrame
+            Geodataframe containing edges (waterlines)
+        self.graph: nx.DiGraph
+            Networkx graph containing the edges and nodes
+        """
         edges = None
         for water_line in water_lines:
             gdf_water_line = getattr(self, water_line)
@@ -93,6 +109,25 @@ class GeneratorNetworkLumping(GeneratorBasis):
     def find_upstream_downstream_nodes_edges(
         self, direction: str = "upstream", no_inflow_outflow_points: int = None
     ):
+        """_summary_
+
+        Parameters
+        ----------
+        direction : str, optional
+            _description_, by default "upstream"
+        no_inflow_outflow_points : int, optional
+            _description_, by default None
+
+        Returns
+        -------
+        _type_
+            _description_
+
+        Raises
+        ------
+        ValueError
+            _description_
+        """
         if direction not in ["upstream", "downstream"]:
             raise ValueError(f" x direction needs to be 'upstream' or 'downstream'")
         self.direction = direction

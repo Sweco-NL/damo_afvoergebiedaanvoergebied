@@ -30,11 +30,11 @@ def run_generator_drainage_units(
     Parameters
     ----------
     path : Path
-        _description_
-    dir_basisdata : Path
-        _description_
-    dir_results : Path, optional
-        _description_, by default None
+        Path to the case directory. Directory name is used as name for the case
+    dir_basisdata : str | pathlib.Path
+        String representing subfolder with basisdata
+    dir_results : str | pathlib.Path
+        String representing subfolder with results
     ghg_file_name : str, optional
         _description_, by default None
     preprocess : bool, optional
@@ -53,12 +53,6 @@ def run_generator_drainage_units(
         _description_, by default 25.0
     iterations : int, optional
         _description_, by default 2000
-    read_results : bool, optional
-        _description_, by default False
-    write_results : bool, optional
-        _description_, by default False
-    create_html_map : bool, optional
-        _description_, by default False
 
     Returns
     -------
