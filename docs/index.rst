@@ -5,11 +5,22 @@
 Generator Drainage Units
 ============================================================================================================================
 
+Basisdata waterschappen op orde?
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het waternetwerk en alle kunstwerken inclusief tabellen met bijbehorende karakteristieken. 
+Deze data wordt gebruikt voor de opbouw van (geo)hydrologische en hydraulische modellen. 
+Data van goede kwaliteit is  nauwkeurig, volledig, consistent, geldig, bevat geen dubbelingen en is up-to-date. 
+Binnen het waterbeheer wordt het (Hy)DAMO datamodel gebruikt om alle hydrologisch relevante objecten op orde te brengen en alle karakteristieken netjes bij te houden. Veel waterschappen zijn al ver met het op orde brengen van hun data conform het HyDAMO-datamodel. 
+Wat nu nog mist in HyDAMO is de geometrische check van de data om te kijken of alles wel goed op elkaar aansluit. Hiervoor blijken nog geen geautomatiseerde standaardmethodes te zijn om het watersysteem-netwerk te analyseren, coderen en om stroomgebieden te genereren, ondanks dat er goede ideeën liggen.
+
 Workflows voor hydrologische basisdata waterschappen
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Aa en Maas en Vallei & Veluwe met als doel om uit hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. We bundelen hierbij de workflows in een public repository inclusief voorbeeld-scripts en documentatie.
-De python-package bevat o.a. workflows voor voorbewerking van de datasets voor het waternetwerk, verbinden van de c-watergangen middels duikers, automatische toekennen van orde-codering en het afleiden van afwateringseenheden en (deel)stroomgebieden. Voor meer informatie: 
+Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Aa en Maas en Vallei & Veluwe met als doel om op basis van de hydrologische basisdata van de waterschappen netwerk-analyses uit te voeren. 
+Hierbij wordt het onderliggende netwerk van sloten (de watergangen niet in beheer van het waterschap waarvan beperkt data is) ook meegenomen om te bepalen welk gebieden waarnaar toe stromen.
+
+We bundelen de workflows in een public repository inclusief voorbeeld-scripts en documentatie. De python-package bevat o.a. workflows voor voorbewerking van de datasets voor het waternetwerk, verbinden van de c-watergangen middels duikers, automatische toekennen van orde-codering en het afleiden van afwateringseenheden en (deel)stroomgebieden. Voor meer informatie: 
 
 - **Waterschap Vallei & Veluwe**: Harmen van de Werfhorst
 - **Waterschap Aa & Maas**: Joachim Hunink
