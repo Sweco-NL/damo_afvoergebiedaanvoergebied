@@ -147,12 +147,12 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
         return self.nodes
 
-    def generate_rws_code_for_all_outflow_points(self, buffer_rws=10.0):
+    def generate_rws_code_for_all_outflow_points(self, buffer_rws_water=10.0):
         """Generates an RWS code for al outflow points into rws water bodies. These are the points where the water flows out of the management area of the water board and therefore the start of the orde codes of the edges.
 
         Parameters
         ----------
-        buffer_rws : float, optional
+        buffer_rws_water : float, optional
             buffers around the RWS water polygons, ensures that outflow points intersect with the RWS water, by default 10.0
 
         Returns
@@ -173,7 +173,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         logging.info("   x generating order code for all outflow points")
         rws_wateren = self.rws_wateren.copy()
-        rws_wateren.geometry = rws_wateren.geometry.buffer(buffer_rws)
+        rws_wateren.geometry = rws_wateren.geometry.buffer(buffer_rws_water)
 
         outflow_edges = (
             dead_end_edges.sjoin(rws_wateren[["geometry", "rws_code"]])
@@ -739,11 +739,11 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         self.outflow_nodes_overige_watergangen = (
             self.outflow_nodes_overige_watergangen.drop(
-                columns=["downstream_order_no", "downstream_order_code"],
+                columns=["downstream_edges", "downstream_order_no", "downstream_order_code"],
                 errors="ignore",
             ).merge(
                 outflow_nodes[
-                    ["nodeID", "downstream_order_no", "downstream_order_code"]
+                    ["nodeID", "downstream_edges", "downstream_order_no", "downstream_order_code"]
                 ],
                 how="left",
                 on="nodeID",
@@ -752,7 +752,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         edges = self.overige_watergangen_processed_3.merge(
             self.outflow_nodes_overige_watergangen[
-                ["nodeID", "downstream_order_no", "downstream_order_code"]
+                ["nodeID", "downstream_edges", "downstream_order_no", "downstream_order_code"]
             ],
             how="left",
             left_on="outflow_node",
@@ -851,7 +851,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         if "order_no" in self.edges.columns:
             edges = self.edges[self.edges["order_no"] > 1][
-                ["code", "order_no", "geometry"]
+                ["code", "order_no", "order_code", "geometry"]
             ].sort_values("order_no", ascending=False)
 
             add_categorized_lines_to_map(
@@ -888,8 +888,6 @@ class GeneratorOrderLevels(GeneratorBasis):
                     control=True,
                     show=False,
                 ).add_to(m)
-
-                self.edges["order_code"].fill = ""
 
                 add_labels_to_points_lines_polygons(
                     gdf=edges,

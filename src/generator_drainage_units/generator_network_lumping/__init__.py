@@ -1,3 +1,5 @@
+import logging
+import time
 from pathlib import Path
 import geopandas as gpd
 
@@ -10,6 +12,7 @@ def run_generator_network_lumping(
     dir_results: str = "1_resultaat",
     direction: str = "upstream",
     water_lines: list[str] = None,
+    drainage_units_from_results: str = "drainage_units_1_gdf.gpkg",
     include_areas_based_on_id: bool = False,
     include_areas_based_on_length: bool = False,
     no_inflow_outflow_points: int = None,
@@ -23,6 +26,7 @@ def run_generator_network_lumping(
     opacity_edges: float = 0.5,
     create_html_map: bool = False,
 ):
+    start_time = time.time()
     network = GeneratorNetworkLumping(
         path=path,
         dir_basisdata=dir_basisdata,
@@ -35,14 +39,10 @@ def run_generator_network_lumping(
         no_inflow_outflow_points=no_inflow_outflow_points,
     )
     if network.afwateringseenheden is None:
-        path_drainage_units = Path(network.dir_results, "drainage_units_1_gdf.gpkg")
+        path_drainage_units = Path(network.dir_results, drainage_units_from_results)
         if path_drainage_units.exists():
             network.afwateringseenheden = gpd.read_file(path_drainage_units)
-        network.afwateringseenheden = network.afwateringseenheden.merge(
-            network.hydroobjecten[["code", "order_code"]],
-            how="left",
-            on="order_code"
-        ) 
+
     network.calculate_angles_of_edges_at_nodes()
     network.select_downstream_upstream_edges(min_difference_angle=20.0)
 
@@ -67,4 +67,6 @@ def run_generator_network_lumping(
             html_include_units=html_include_units,
             include_areas=include_areas_based_on_id or include_areas_based_on_length,
         )
+
+    logging.info(f"   x Case finished in {round(time.time()-start_time, 3)} seconds")
     return network

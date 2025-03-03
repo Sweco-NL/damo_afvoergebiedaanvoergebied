@@ -56,7 +56,7 @@ class GeneratorBasis(BaseModel):
             self.check_case_path_directory(path=self.path)
             self.read_data_from_case()
             self.read_required_data_from_case()
-            self.use_processed_hydroobjecten()
+            # self.use_processed_hydroobjecten(processed_file="processed")
 
 
     def check_case_path_directory(self, path: Path):
