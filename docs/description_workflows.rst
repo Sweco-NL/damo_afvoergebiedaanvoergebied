@@ -46,9 +46,11 @@ Figuur: Afleiden welke C-watergangen bij welke uitstroompunten in de A-/B-waterg
 
 GeneratorOrderLevels (workflow Orde-codering)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Doel van deze workflow is het bepalen van orde-nummers en de orde-codering voor iedere watergang, zodat de codes vervolgens gekoppeld kunnen worden aan de afwateringseenheden/afvoergebieden die aan de watergang gelinkt zijn. 
-Hiervoor wordt voor de A-/B-watergangen uitgegaan van de methode beschreven in de `Leidraad Harmoniseren Afvoergebieden <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_. 
-De watergangen die uitstromen in RWS-wateren zijn van de 2e orde, de watergangen die daarop instromen zijn dan weer van de 3e orde. De orde-codering is als volgt opgebouwd:
+De `Leidraad Harmoniseren Afvoergebieden <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_ schrijft voor hoe afvoergebieden gecodeerd kunnen worden.
+De methode is gericht op afvoergebieden, maar omdat het systeem van watergangen hierin bepalend is, kan de orde-codering daarvoor bepaald worden. De orde-code van iedere watergang kan eenvoudig later gekoppeld worden aan de bijbehorende afwateringseenheid of afvoergebied.
+
+Doel van deze workflow is het bepalen van orde-nummers en de orde-codering voor iedere watergang, zodat de codes vervolgens gekoppeld kunnen worden aan de afwateringseenheden/afvoergebieden. 
+De watergangen die uitstromen in RWS-wateren zijn van de 2e orde, de watergangen die daarop instromen zijn dan van de 3e orde, enz. De orde-codering is als volgt opgebouwd:
 
 .. image:: _static/order_code_explanation.jpg
     :alt: Order codering
@@ -95,12 +97,13 @@ Figuur: Orde nummer van de A-/B-watergangen voor het gehele beheergebied van wat
 
 GeneratorDrainageUnits (workflow Afwateringseenheden)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Doel van deze workflow is het genereren van afwateringseenheden (polygonen): op basis van een GHG raster 25x25m wordt de afvoerrichting bepaald en vervolgens per waterdeel welk gebied erop afstroomt (welke cellen liggen bovenstrooms). 
-Er is voor gekozen om te werken met een berekend GHG raster (GHG: gemiddelde hoogste wintergrondwaterstand) omdat dit voor de afwatering representatiever is dan het gebruik van het maaiveld. Reden hiervoor is dat er voor het beheergebied van waterschap Vallei en Veluwe vooral sprake is van infiltratie en niet van oppervlakkige afstroming. 
-Voor de analyse wordt gebruik gemaakt van een andere open source package `PyFlwDir van Deltares <https://github.com/Deltares/pyflwdir>`_ (Deltares). 
+Doel van deze workflow is het genereren van afwateringseenheden (polygonen): op basis van een hoogte-raster wordt de afvoerrichting van iedere rastercel bepaald en vervolgens wordt per waterdeel bepaald welk gebied erop afstroomt. 
+In plaats van te kiezen voor een raster met de maaiveldhoogte, wordt gerekend met een GHG raster (GHG: gemiddelde hoogste wintergrondwaterstand) omdat dit voor de afwateringsrichting representatiever is, zeker op zandgebieden zoals de Veluwe. Daar is veel meer sprake van infiltratie en grondwaterstroming dan van oppervlakkige afstroming. 
+
+Voor het bepalen van de afvoerrichting wordt gebruik gemaakt de open source package `PyFlwDir van Deltares <https://github.com/Deltares/pyflwdir>`_ (Deltares), waaraan wat aanpassingen zijn gedaan. 
 De workflow bestaat (op dit moment) uit de volgende stappen:
 
-* Grof GHG raster wordt gedownscaled naar een opgegeven resolutie.
+* Grof GHG raster wordt gedownscaled naar een opgegeven resolutie. Omdat watergangen soms vlak lang elkaar liggen (bijvoorbeeld beide kanten van een weg), wordt gerekend met 2x2 meter.
 * Watergangen (lijnen) worden verrasterd. Om te zorgen dat afvoer realistisch richting de watergangen afstroomt wordt het fijne GHG-raster ter hoogte van de watergangen verdiept met 0.20 meter. Deze verlaging wordt minder hoe verder van de watergang.
 * Voor het resulterende fijne GHG-raster wordt per cel bepaald welke stroomrichting het water in die cel heeft (local drainage direction);
 * Per watergangsdeel wordt berekend welke cellen er bovenstrooms van liggen. Op de Veluwe kunnen cellen op wel 10-20km afstand liggen en alsnog op een watergang afwateren.
