@@ -108,32 +108,7 @@ De workflow bestaat (op dit moment) uit de volgende stappen:
 * Voor het resulterende fijne GHG-raster wordt per cel bepaald welke stroomrichting het water in die cel heeft (local drainage direction);
 * Per watergangsdeel wordt berekend welke cellen er bovenstrooms van liggen. Op de Veluwe kunnen cellen op wel 10-20km afstand liggen en alsnog op een watergang afwateren.
 
-.. image:: _static/generator_drainage_units_1.jpg
-    :alt: Generator Drainage Units (workflow afwateringseenheden)
-    :width: 800px
-    :align: center
-
-Figuur: afleiden afwateringseenheden - laaggelegen/polder
-
-.. image:: _static/generator_drainage_units_2.jpg
-    :alt: Generator Drainage Units (workflow afwateringseenheden)
-    :width: 800px
-    :align: center
-
-Figuur: afleiden afwateringseenheden - hogergelegen gebied / vrij-afwaterend
-
-In principe werkt de methode om per watergang het afwaterende gebied te bepalen, alleen de methode kan nog verbeterd worden.
-De gebruikte python-package PyFlwDir (net als PCRASTER en vergelijkbare methodes) maakt gebruik van de D8-methode om per cel de afstroomrichting te bepalen aan de hand van de laagste naastliggende cel.
-
-.. image:: _static/ldd_d8.png
-    :alt: Generator Drainage Units (ldd d8)
-    :width: 300px
-    :align: center
-
-Omdat de acht stroomrichtingen slechts beperkt detail geven in de richting die het water op kan stromen, is er weinig detail terug te zien in de gegenereerde afwaterende eenheden op aflopende gebieden/hellingen. Voorbeeld: Bij de Leuvenumsebeek (zie onderstaande figuur) loopt het water voornamelijk in rechte lijnen richting het noordwesten.
-Er wordt momenteel nog gekeken naar mogelijkheden om hier meer detail in aan te brengen.
-
-Zie ook `Issue #50 <https://github.com/Sweco-NL/generator_drainage_units/issues/50>`_: Aanpassen D8-methode.
+Het resultaat voor het proefgebied Leuvenumsebeek is te zien in onderstaande figuur:
 
 .. image:: _static/ghg_drainage_units_leuvenumsebeek.jpg
     :alt: Generator Drainage Units (ghg_leuvenumsebeek)
@@ -141,6 +116,40 @@ Zie ook `Issue #50 <https://github.com/Sweco-NL/generator_drainage_units/issues/
     :align: center
 
 Figuur: Leuvenumsebeek, GHG (links) en afwateringseenheden per watergangsdeel (rechts)
+
+De afgeleide afwateringseenheden kunnen gekoppeld worden aan de hierboven beschreven orde-codering. Op basis van de orde-codering kan dan eenvoudig geaggregeerd worden:
+
+.. image:: _static/generator_drainage_units_1.jpg
+    :alt: Generator Drainage Units (workflow afwateringseenheden)
+    :width: 800px
+    :align: center
+
+Figuur: Afwateringseenheden - per watergangdeel (ook C-watergangen)
+
+.. image:: _static/generator_drainage_units_2.jpg
+    :alt: Generator Drainage Units (workflow afwateringseenheden)
+    :width: 800px
+    :align: center
+
+Figuur: Afwateringseenheden - per deel hoofdwatergang (A/B-watergangen)
+
+.. image:: _static/generator_drainage_units_3.jpg
+    :alt: Generator Drainage Units (workflow afwateringseenheden)
+    :width: 800px
+    :align: center
+
+Figuur: Afwateringseenheden - per orde-codering
+
+.. image:: _static/generator_drainage_units_4.jpg
+    :alt: Generator Drainage Units (workflow afwateringseenheden)
+    :width: 800px
+    :align: center
+
+Figuur: Afwateringseenheden - per stroomgebied (uitstroompunt in RWS-water)
+
+De gebruikte python-package PyFlwDir (net als PCRASTER en vergelijkbare methodes) maakt gebruik van de D8-methode om per cel de afstroomrichting te bepalen aan de hand van de laagste naastliggende cel.
+Omdat de acht stroomrichtingen slechts beperkt detail geven in de richting die het water op kan stromen, zie je dat terug in de afwateringseenheden.
+Bij de Leuvenumsebeek (zie figuur helemaal boven) loopt de GHG helling ongeveer in noord-noordwestelijke richting naar de randmeren, daardoor lopen alle afwateringseenheden in noordwestelijke richting.
 
 
 GeneratorNetworkLumping (workflow aggregeren (deel)stroomgebieden)
