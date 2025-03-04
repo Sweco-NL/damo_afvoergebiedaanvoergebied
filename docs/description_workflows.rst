@@ -119,28 +119,28 @@ Figuur: Leuvenumsebeek, GHG (links) en afwateringseenheden per watergangsdeel (r
 
 Ieder watergangdeel heeft een orde-codering en hierbij dus ook een afwateringseenheid. Door deze te koppelen kan er geaggregeerd worden puur op basis van de orde-codering:
 
-* Afwateringseenheden - per watergangdeel (A/B/C-watergangen)
+Figuur: Afwateringseenheden - per watergangdeel (A/B/C-watergangen)
 
 .. image:: _static/generator_drainage_units_1.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
 
-* Afwateringseenheden - per deel hoofdwatergang (na aggregeren C-watergangen)
+Figuur: Afwateringseenheden - per deel hoofdwatergang (na aggregeren C-watergangen)
 
 .. image:: _static/generator_drainage_units_2.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
 
-* Afwateringseenheden - aggregeren op basis van orde-codering
+Figuur: Afwateringseenheden - aggregeren op basis van orde-codering
 
 .. image:: _static/generator_drainage_units_3.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
 
-* Afwateringseenheden - aggregeren op basis van orde-codering naar stroomgebied
+Figuur: Afwateringseenheden - aggregeren op basis van orde-codering naar stroomgebied
 
 .. image:: _static/generator_drainage_units_4.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
