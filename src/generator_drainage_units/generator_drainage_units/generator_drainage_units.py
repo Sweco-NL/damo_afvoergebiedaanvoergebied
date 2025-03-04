@@ -76,6 +76,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
     drainage_units_1_gdf: gpd.GeoDataFrame = None
     drainage_units_2: xarray.Dataset = None
     drainage_units_2_gdf: gpd.GeoDataFrame = None
+    drainage_units_3: xarray.Dataset = None
     drainage_units_3_gdf: gpd.GeoDataFrame = None
 
     edges: gpd.GeoDataFrame = None
@@ -394,14 +395,22 @@ class GeneratorDrainageUnits(GeneratorBasis):
             "drainage_units_2"
         )
 
+        self.drainage_units_3 = self.drainage_units_0.copy()
+        self.drainage_units_3 = dataarray_from_gdf(
+            self.drainage_units_3, 
+            self.drainage_units_3_gdf, 
+            "drainage_units_3"
+        )
+
         if self.write_results:
             self.drainage_units_0_gdf.to_file(Path(self.dir_results, "drainage_units_0_gdf.gpkg"))
             self.drainage_units_1_gdf.to_file(Path(self.dir_results, "drainage_units_1_gdf.gpkg"))
             self.drainage_units_2_gdf.to_file(Path(self.dir_results, "drainage_units_2_gdf.gpkg"))
+            self.drainage_units_3_gdf.to_file(Path(self.dir_results, "drainage_units_3_gdf.gpkg"))
 
             for raster_name, raster in zip(
-                ["drainage_units_1", "drainage_units_2"],
-                [self.drainage_units_1, self.drainage_units_2]
+                ["drainage_units_1", "drainage_units_2", "drainage_units_3"],
+                [self.drainage_units_1, self.drainage_units_2, self.drainage_units_3]
             ):
                 netcdf_file_path = Path(self.dir_results, f"{raster_name}.nc")
                 encoding = {
@@ -513,8 +522,8 @@ class GeneratorDrainageUnits(GeneratorBasis):
             folium.GeoJson(
                 self.overige_watergangen.geometry,
                 name="C-Watergangen - Zonder duikers",
-                color="blue",
-                weight=1,
+                color="lightblue",
+                weight=2,
                 z_index=0,
             ).add_to(m)
 
@@ -523,7 +532,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 self.potential_culverts_5.geometry,
                 name="C-Watergangen - Gevonden Duikers",
                 color="red",
-                weight=2,
+                weight=3,
                 z_index=1,
             ).add_to(m)
 
@@ -608,6 +617,25 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 control=True,
                 vmin=0,
                 vmax=int(self.drainage_units_2.data.max()),
+                legend=False,
+                opacity=1.0,
+                show=show_drainage_units,
+                dx=dx,
+                dy=dy,
+            )
+            show_drainage_units = False
+
+        if self.drainage_units_3 is not None:
+            drainage_units_3 = self.drainage_units_3.where(self.drainage_units_3 > -1.0)
+            drainage_units_3 = drainage_units_3.rio.write_crs(self.crs)
+            add_graduated_raster_to_map(
+                m=m,
+                raster=drainage_units_3,
+                layer_name="Afwateringseenheden (stroomgebied)",
+                unit="unique id",
+                control=True,
+                vmin=0,
+                vmax=int(self.drainage_units_3.data.max()),
                 legend=False,
                 opacity=1.0,
                 show=show_drainage_units,

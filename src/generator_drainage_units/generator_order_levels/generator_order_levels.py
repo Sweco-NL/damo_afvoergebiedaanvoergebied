@@ -46,10 +46,8 @@ class GeneratorOrderLevels(GeneratorBasis):
     write_results: bool = False
 
     required_results: list[str] = [
-        "hydroobjecten",
         "hydroobjecten_processed_0", 
         "rws_wateren",
-        "overige_watergangen",
         "overige_watergangen_processed_3", 
         "outflow_nodes_overige_watergangen",
     ]
@@ -69,7 +67,7 @@ class GeneratorOrderLevels(GeneratorBasis):
     folium_map: folium.Map = None
     folium_html_path: Path = None
 
-    def create_graph_from_network(self, water_lines=["hydroobjecten"]):
+    def create_graph_from_network(self, water_lines=["hydroobjecten"], processed="processed"):
         """Turns a linestring layer containing waterlines into a graph of edges and nodes. 
 
         Parameters
@@ -86,9 +84,18 @@ class GeneratorOrderLevels(GeneratorBasis):
         self.graph: nx.DiGraph
             Networkx graph containing the edges and nodes
         """
+        
         edges = None
         for water_line in water_lines:
             gdf_water_line = getattr(self, water_line)
+            for i in range(10):
+                if not hasattr(self, f"{water_line}_{processed}_{i}"):
+                    break
+                gdf_water_line_processed = getattr(self, f"{water_line}_{processed}_{i}")
+                if gdf_water_line_processed is None:
+                    break
+                else:
+                    gdf_water_line = gdf_water_line_processed.copy()
             if gdf_water_line is None:
                 continue
             if edges is None:
