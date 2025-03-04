@@ -522,7 +522,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
             folium.GeoJson(
                 self.overige_watergangen.geometry,
                 name="C-Watergangen - Zonder duikers",
-                color="lightblue",
+                color="3A5D9C",
                 weight=2,
                 z_index=0,
             ).add_to(m)
