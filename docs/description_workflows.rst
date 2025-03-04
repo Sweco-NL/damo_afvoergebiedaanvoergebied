@@ -117,35 +117,35 @@ Het resultaat voor het proefgebied Leuvenumsebeek is te zien in onderstaande fig
 
 Figuur: Leuvenumsebeek, GHG (links) en afwateringseenheden per watergangsdeel (rechts)
 
-De afgeleide afwateringseenheden kunnen gekoppeld worden aan de hierboven beschreven orde-codering. Op basis van de orde-codering kan dan eenvoudig geaggregeerd worden:
+Ieder watergangdeel heeft een orde-codering en hierbij dus ook een afwateringseenheid. Door deze te koppelen kan er geaggregeerd worden puur op basis van de orde-codering:
+
+* Afwateringseenheden - per watergangdeel (A/B/C-watergangen)
 
 .. image:: _static/generator_drainage_units_1.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
 
-Figuur: Afwateringseenheden - per watergangdeel (ook C-watergangen)
+* Afwateringseenheden - per deel hoofdwatergang (na aggregeren C-watergangen)
 
 .. image:: _static/generator_drainage_units_2.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
 
-Figuur: Afwateringseenheden - per deel hoofdwatergang (A/B-watergangen)
+* Afwateringseenheden - aggregeren op basis van orde-codering
 
 .. image:: _static/generator_drainage_units_3.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
 
-Figuur: Afwateringseenheden - per orde-codering
+* Afwateringseenheden - aggregeren op basis van orde-codering naar stroomgebied
 
 .. image:: _static/generator_drainage_units_4.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
-
-Figuur: Afwateringseenheden - per stroomgebied (uitstroompunt in RWS-water)
 
 De gebruikte python-package PyFlwDir (net als PCRASTER en vergelijkbare methodes) maakt gebruik van de D8-methode om per cel de afstroomrichting te bepalen aan de hand van de laagste naastliggende cel.
 Omdat de acht stroomrichtingen slechts beperkt detail geven in de richting die het water op kan stromen, zie je dat terug in de afwateringseenheden.
@@ -159,8 +159,8 @@ De workflow bestaat (op dit moment) uit de volgende stappen:
 
 * Inladen netwerk van het watersysteem en de bijbehorende afwateringseenheden;
 * Definiëren (interne) uitstroomlocaties en harde knips in het netwerk;
-* Per uitstroompunt zoeken naar gebied bovenstrooms op basis van het netwerk en de richting van de watergangen (deelstroomgebieden);
+* Per uitstroompunt zoeken naar gebied bovenstrooms op basis van het netwerk en de richting van de watergangen (deel-watersystemen);
 * Detecteren van overlap tussen deelstroomgebieden en bij welke splitsingen deze gebieden samen komen;
 * Voor deze splitsingen bepalen welke richting prioriteit heeft;
-* Deelstroomgebieden afronden door afwateringseenheden eraan te koppelen.
+* Deel-watersystemen omzetten naar deelstroomgebieden door het koppelen van de afwateringseenheden.
 
