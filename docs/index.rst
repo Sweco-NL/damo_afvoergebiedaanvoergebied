@@ -50,14 +50,6 @@ Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide
 
       GeneratorOrderLevels - Bepalen van orde-nummers
 
-   .. figure:: _static/generator_order_levels_2.jpg
-      :height: 400px
-      :align: center
-
-      ..
-
-      GeneratorOrderLevels - Bepalen van orde-codering
-
    .. figure:: _static/order_levels_west_oost.jpg
       :height: 400px
       :align: center
@@ -66,6 +58,14 @@ Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide
 
       GeneratorOrderLevels - Orde-nummers van de watergangen voor waterschap Vallei & Veluwe
 
+   .. figure:: _static/generator_order_levels_2.jpg
+      :height: 400px
+      :align: center
+
+      ..
+
+      GeneratorOrderLevels - Bepalen van orde-codering
+
    .. figure:: _static/generator_drainage_units_1.jpg
       :height: 400px
       :align: center
@@ -73,6 +73,14 @@ Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide
       ..
 
       GeneratorDrainageUnits - Afleiden afwateringseenheden per watergang
+
+   .. figure:: _static/generator_drainage_units_2.jpg
+      :height: 400px
+      :align: center
+
+      ..
+
+      GeneratorDrainageUnits - Aggregeren afwateringseenheden naar hoofdwatergangen
 
    .. figure:: _static/ghg_drainage_units_leuvenumsebeek.jpg
       :height: 400px

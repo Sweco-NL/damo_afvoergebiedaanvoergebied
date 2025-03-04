@@ -63,7 +63,7 @@ html_css_files = [
 ]
 
 # add a logo
-html_logo = "_static/order_levels_oost.jpg"
+html_logo = "_static/order_levels_west.jpg"
 
 # Allow errors in notebooks, so we can see the error online
 nbsphinx_allow_errors = True

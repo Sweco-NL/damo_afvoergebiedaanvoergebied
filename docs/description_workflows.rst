@@ -13,9 +13,9 @@ De automatische voorbewerkingen (snapping) worden nu nog uitgevoerd binnen de Ge
 
 GeneratorCulvertLocations (workflow Duiker Locaties)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Doel van deze workflow is het verbinden van de C-watergangen met de A-/B-watergangen: dit om te bepalen welke gebieden waar aansluiten op de hoofdwatergangen van het waterschap. 
+Doel van deze workflow is het verbinden van de C-watergangen met de A-/B-watergangen. Dit om te bepalen welke gebieden waar aansluiten op de hoofdwatergangen van het waterschap. 
 De C-watergangen zijn in beheer van gemeentes of perceeleigenaren en hiervan is vaak beperkt data beschikbaar. 
-Ook vormen de greppels en sloten vaak een verweven netwerk en wil men graag weten welke delen nu waar naartoe afstromen. 
+De greppels en sloten vormen vaak een verweven netwerk en wil men graag weten welke delen nu waar naartoe afstromen. 
 
 De workflow bestaat uit de volgende stappen:
 
@@ -49,7 +49,7 @@ GeneratorOrderLevels (workflow Orde-codering)
 De `Leidraad Harmoniseren Afvoergebieden <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_ schrijft voor hoe afvoergebieden gecodeerd kunnen worden.
 De methode is gericht op afvoergebieden, maar omdat het systeem van watergangen hierin bepalend is, kan de orde-codering daarvoor bepaald worden. De orde-code van iedere watergang kan eenvoudig later gekoppeld worden aan de bijbehorende afwateringseenheid of afvoergebied.
 
-Doel van deze workflow is het bepalen van orde-nummers en de orde-codering voor iedere watergang, zodat de codes vervolgens gekoppeld kunnen worden aan de afwateringseenheden/afvoergebieden. 
+Doel van deze workflow is het bepalen van orde-nummers en de orde-codering voor iedere watergang. De orde-codes kunnen vervolgens gekoppeld worden aan de afwateringseenheden/afvoergebieden. 
 De watergangen die uitstromen in RWS-wateren zijn van de 2e orde, de watergangen die daarop instromen zijn dan van de 3e orde, enz. De orde-codering is als volgt opgebouwd:
 
 .. image:: _static/order_code_explanation.jpg
@@ -97,8 +97,9 @@ Figuur: Orde nummer van de A-/B-watergangen voor het gehele beheergebied van wat
 
 GeneratorDrainageUnits (workflow Afwateringseenheden)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Doel van deze workflow is het genereren van afwateringseenheden (polygonen): op basis van een hoogte-raster wordt de afvoerrichting van iedere rastercel bepaald en vervolgens wordt per waterdeel bepaald welk gebied erop afstroomt. 
-In plaats van te kiezen voor een raster met de maaiveldhoogte, wordt gerekend met een GHG raster (GHG: gemiddelde hoogste wintergrondwaterstand) omdat dit voor de afwateringsrichting representatiever is, zeker op zandgebieden zoals de Veluwe. Daar is veel meer sprake van infiltratie en grondwaterstroming dan van oppervlakkige afstroming. 
+Doel van deze workflow is het genereren van afwateringseenheden in de vorm van polygonen. De afwateringseenheden worden bepaald alle watergangen (ook de C-watergangen), zodat ze daarna geaggregeerd kunnen worden naar een hoger niveau.
+Op basis van een hoogte-raster wordt de afvoerrichting van iedere rastercel bepaald en vervolgens wordt per waterdeel bepaald welk gebied erop afstroomt. 
+In plaats van te kiezen voor een raster met de maaiveldhoogte, wordt gerekend met een GHG raster (GHG: gemiddelde hoogste wintergrondwaterstand). Binnen het beheersgebied van Vallei & Veluwe is vooral sprake van infiltratie (veelal zandbodems) en minder van oppervlakkige afstroming, dus dit is voor de afwateringsrichting dan representatiever. 
 
 Voor het bepalen van de afvoerrichting wordt gebruik gemaakt de open source package `PyFlwDir van Deltares <https://github.com/Deltares/pyflwdir>`_ (Deltares), waaraan wat aanpassingen zijn gedaan. 
 De workflow bestaat (op dit moment) uit de volgende stappen:
