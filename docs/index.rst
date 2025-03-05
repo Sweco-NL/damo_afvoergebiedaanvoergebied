@@ -10,7 +10,7 @@ Basisdata waterschappen op orde?
 
 De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het waternetwerk en alle kunstwerken inclusief tabellen met bijbehorende karakteristieken. Deze data wordt gebruikt voor het beheer en voor de opbouw van (geo)hydrologische en hydraulische modellen. Binnen het waterbeheer wordt het (Hy)DAMO datamodel gebruikt om de karakteristieken van de hydrologisch relevante objecten gestructureerd bij te houden. Veel waterschappen zijn hier al ver mee. 
 
-Wat nog mist zijn geautomatiseerde methodes om de geometrie van de data te checken en vooral of het netwerk wel klopt en om daar vervolgens netwerk-analyses op uit te voeren. Het gaat dan om het watersysteem checken, automatisch coderen en het genereren van afvoergebieden. Hiervoor zijn niet alleen de hoofdwatergangen (in beheer bij het waterschap) van belang, maar ook het onderliggende netwerk van sloten en beekjes.
+Wat nog mist zijn geautomatiseerde methodes om de geometrie van de data te checken, te zorgen voor een sluitend netwerk en om daar vervolgens netwerk-analyses op uit te voeren. Het gaat dan om het watersysteem checken, automatisch coderen en het genereren van afvoergebieden. Hiervoor zijn niet alleen de hoofdwatergangen (in beheer bij het waterschap) van belang, maar ook het onderliggende netwerk van sloten en beekjes.
 
 Workflows voor hydrologische basisdata waterschappen
 ^^^^^^^^^^^^^^^^^^^^^^^^^
