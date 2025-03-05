@@ -16,13 +16,14 @@ from pydantic import BaseModel, ConfigDict
 
 from ..generator_basis import GeneratorBasis
 from ..utils.create_graph import create_graph_from_edges
-from ..utils.folium_utils import add_basemaps_to_folium_map
+from ..utils.folium_utils import add_basemaps_to_folium_map, add_labels_to_points_lines_polygons
 from ..utils.general_functions import (
     find_edge_smallest_angle_difference,
     remove_holes_from_polygons,
 )
 from ..utils.network_functions import (
     calculate_angles_of_edges_at_nodes,
+    select_downstream_upstream_edges,
     define_list_upstream_downstream_edges_ids,
     find_nodes_edges_for_direction,
 )
@@ -40,11 +41,17 @@ class GeneratorNetworkLumping(GeneratorBasis):
     read_results: bool = False
     write_results: bool = False
 
+    required_results: list[str] = [
+        "hydroobjecten",
+        "hydroobjecten_processed_1"
+    ]
+
     hydroobjecten: gpd.GeoDataFrame = None
     hydroobjecten_extra: gpd.GeoDataFrame = None
     rivieren: gpd.GeoDataFrame = None
 
-    hydroobjecten_processed: gpd.GeoDataFrame = None
+    hydroobjecten_processed_0: gpd.GeoDataFrame = None
+    hydroobjecten_processed_1: gpd.GeoDataFrame = None
 
     afwateringseenheden: gpd.GeoDataFrame = None
 
@@ -345,6 +352,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
                 Path(self.dir_results, file_detected_points)
             )
 
+
     def calculate_angles_of_edges_at_nodes(self):
         logging.info("   x calculate angles of edges to nodes")
         self.inflow_outflow_nodes, self.inflow_outflow_edges = (
@@ -353,6 +361,15 @@ class GeneratorNetworkLumping(GeneratorBasis):
             )
         )
         return self.inflow_outflow_nodes
+
+
+    def select_downstream_upstream_edges(self, min_difference_angle: str = 20.0):
+        logging.info("   x find downstream upstream edges")
+        self.inflow_outflow_nodes = select_downstream_upstream_edges(
+            self.inflow_outflow_nodes, min_difference_angle=min_difference_angle
+        )
+        return self.inflow_outflow_nodes
+
 
     def select_directions_for_splits_based_on_angle(self):
         self.inflow_outflow_splits_1 = self.inflow_outflow_splits_0.copy()
@@ -515,14 +532,16 @@ class GeneratorNetworkLumping(GeneratorBasis):
             )
         return self.inflow_outflow_areas
 
-    def dissolve_assigned_drainage_units(self):
+    def dissolve_assigned_drainage_units(self, smooth_area=False):
         if self.inflow_outflow_areas is None:
             return None
         inflow_outflow_areas = None
-        for node in list(self.inflow_outflow_points["representative_node"].unique()):
+        list_nodes = list(self.inflow_outflow_points["representative_node"].unique())
+        for i_node, node in enumerate(list_nodes):
             filtered_areas = self.inflow_outflow_areas[
                 self.inflow_outflow_areas[f"{self.direction}_node_{node}"]
             ].copy()
+            logging.info(f"     - node {i_node+1}/{len(list_nodes)}: {len(filtered_areas)} drainage units")
             # Step 2: Dissolve the filtered geometries
             dissolved_areas = filtered_areas[["geometry"]].dissolve().explode()
             dissolved_areas["inflow_outflow_point"] = node
@@ -536,13 +555,17 @@ class GeneratorNetworkLumping(GeneratorBasis):
                 ).reset_index(drop=True)
 
         self.inflow_outflow_areas = inflow_outflow_areas.copy()
+
+        logging.info(f"     - remove holes and smooth")
         self.inflow_outflow_areas.geometry = remove_holes_from_polygons(
             inflow_outflow_areas.geometry, min_area=50
         )
-        self.inflow_outflow_areas.geometry = self.inflow_outflow_areas.geometry.buffer(
-            0.1
-        ).buffer(-0.1)
+        if smooth_area:
+            self.inflow_outflow_areas.geometry = self.inflow_outflow_areas.geometry.buffer(
+                0.1
+            ).buffer(-0.1)
         return self.inflow_outflow_areas
+
 
     def export_results_all(
         self,
@@ -581,6 +604,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
         include_areas: bool = True,
         width_edges: float = 10.0,
         opacity_edges: float = 0.5,
+        html_include_units: bool = True,
         open_html: bool = False,
         base_map: str = "OpenStreetMap",
     ):
@@ -632,8 +656,9 @@ class GeneratorNetworkLumping(GeneratorBasis):
                 z_index=1,
             ),
         ).add_to(fg)
+        
 
-        if self.afwateringseenheden is not None and include_areas:
+        if self.afwateringseenheden is not None and include_areas and html_include_units:
             folium.GeoJson(
                 self.afwateringseenheden[["geometry"]].explode(ignore_index=True),
                 fill_opacity=0.0,
@@ -661,7 +686,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             folium.GeoJson(
                 self.inflow_outflow_nodes.iloc[[node_selection]],
                 marker=folium.Circle(
-                    radius=width_edges * 7.5,
+                    radius=width_edges * 2.5,
                     fill_color=c,
                     fill_opacity=1.0,
                     color=c,
@@ -670,6 +695,14 @@ class GeneratorNetworkLumping(GeneratorBasis):
                     z_index=10,
                 ),
             ).add_to(fg)
+
+            add_labels_to_points_lines_polygons(
+                gdf=self.inflow_outflow_nodes,
+                column="order_code",
+                label_fontsize=8,
+                label_decimals=0,
+                fg=fg,
+            )
 
         for i, node_selection in enumerate(nodes_selection):
             c = matplotlib.colors.rgb2hex(nodes_colors[i])
@@ -713,7 +746,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             folium.GeoJson(
                 self.inflow_outflow_nodes.iloc[[node_selection]],
                 marker=folium.Circle(
-                    radius=width_edges * 7.5,
+                    radius=width_edges * 2.5,
                     fill_color=c,
                     fill_opacity=1.0,
                     color=c,
@@ -732,7 +765,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
                     .index
                 ],
                 marker=folium.Circle(
-                    radius=width_edges * 7.5,
+                    radius=width_edges * 2.5,
                     fill_color="black",
                     fill_opacity=0.1,
                     color="black",
@@ -753,7 +786,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
                     self.inflow_outflow_splits_1[f"{search_direction}_edge"].isna()
                 ],
                 marker=folium.Circle(
-                    radius=width_edges * 7.5,
+                    radius=width_edges * 2.5,
                     fill_color="red",
                     fill_opacity=0.1,
                     color="red",
@@ -771,7 +804,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
         self.folium_map = m
 
         if html_file_name is None:
-            html_file_name = self.name
+            html_file_name = self.name + "_network_lumping"
 
         self.folium_html_path = Path(self.path, f"{html_file_name}.html")
         m.save(self.folium_html_path)

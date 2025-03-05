@@ -38,6 +38,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
     hydroobjecten: gpd.GeoDataFrame = None
     hydroobjecten_processed_0: gpd.GeoDataFrame = None
+    hydroobjecten_processed_1: gpd.GeoDataFrame = None
 
     rws_wateren: gpd.GeoDataFrame = None
 
@@ -45,10 +46,8 @@ class GeneratorOrderLevels(GeneratorBasis):
     write_results: bool = False
 
     required_results: list[str] = [
-        "hydroobjecten",
         "hydroobjecten_processed_0", 
         "rws_wateren",
-        "overige_watergangen",
         "overige_watergangen_processed_3", 
         "outflow_nodes_overige_watergangen",
     ]
@@ -68,7 +67,7 @@ class GeneratorOrderLevels(GeneratorBasis):
     folium_map: folium.Map = None
     folium_html_path: Path = None
 
-    def create_graph_from_network(self, water_lines=["hydroobjecten"]):
+    def create_graph_from_network(self, water_lines=["hydroobjecten"], processed="processed"):
         """Turns a linestring layer containing waterlines into a graph of edges and nodes. 
 
         Parameters
@@ -85,9 +84,18 @@ class GeneratorOrderLevels(GeneratorBasis):
         self.graph: nx.DiGraph
             Networkx graph containing the edges and nodes
         """
+        
         edges = None
         for water_line in water_lines:
             gdf_water_line = getattr(self, water_line)
+            for i in range(10):
+                if not hasattr(self, f"{water_line}_{processed}_{i}"):
+                    break
+                gdf_water_line_processed = getattr(self, f"{water_line}_{processed}_{i}")
+                if gdf_water_line_processed is None:
+                    break
+                else:
+                    gdf_water_line = gdf_water_line_processed.copy()
             if gdf_water_line is None:
                 continue
             if edges is None:
@@ -146,12 +154,12 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
         return self.nodes
 
-    def generate_rws_code_for_all_outflow_points(self, buffer_rws=10.0):
+    def generate_rws_code_for_all_outflow_points(self, buffer_rws_water=10.0):
         """Generates an RWS code for al outflow points into rws water bodies. These are the points where the water flows out of the management area of the water board and therefore the start of the orde codes of the edges.
 
         Parameters
         ----------
-        buffer_rws : float, optional
+        buffer_rws_water : float, optional
             buffers around the RWS water polygons, ensures that outflow points intersect with the RWS water, by default 10.0
 
         Returns
@@ -172,7 +180,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         logging.info("   x generating order code for all outflow points")
         rws_wateren = self.rws_wateren.copy()
-        rws_wateren.geometry = rws_wateren.geometry.buffer(buffer_rws)
+        rws_wateren.geometry = rws_wateren.geometry.buffer(buffer_rws_water)
 
         outflow_edges = (
             dead_end_edges.sjoin(rws_wateren[["geometry", "rws_code"]])
@@ -688,7 +696,9 @@ class GeneratorOrderLevels(GeneratorBasis):
                 ),
                 axis=1,
             )
-        return self.edges
+        
+        self.hydroobjecten_processed_1 = self.edges.copy()
+        return self.hydroobjecten_processed_1
 
     def generate_order_no_order_code_for_other_waterlines(self):
         """Generates order level for overige watergangen, based on their outflow point in the hydroobjects. 
@@ -736,11 +746,11 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         self.outflow_nodes_overige_watergangen = (
             self.outflow_nodes_overige_watergangen.drop(
-                columns=["downstream_order_no", "downstream_order_code"],
+                columns=["downstream_edges", "downstream_order_no", "downstream_order_code"],
                 errors="ignore",
             ).merge(
                 outflow_nodes[
-                    ["nodeID", "downstream_order_no", "downstream_order_code"]
+                    ["nodeID", "downstream_edges", "downstream_order_no", "downstream_order_code"]
                 ],
                 how="left",
                 on="nodeID",
@@ -749,7 +759,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         edges = self.overige_watergangen_processed_3.merge(
             self.outflow_nodes_overige_watergangen[
-                ["nodeID", "downstream_order_no", "downstream_order_code"]
+                ["nodeID", "downstream_edges", "downstream_order_no", "downstream_order_code"]
             ],
             how="left",
             left_on="outflow_node",
@@ -767,7 +777,6 @@ class GeneratorOrderLevels(GeneratorBasis):
             + "-X"
             + edges["order_code_no"].astype(str).str.zfill(4)
         )
-
         self.overige_watergangen_processed_4 = edges.copy()
         return (
             self.outflow_nodes_overige_watergangen,
@@ -782,6 +791,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             "outflow_edges",
             "outflow_nodes",
             "outflow_nodes_overige_watergangen",
+            "hydroobjecten_processed_1",
             "overige_watergangen_processed_4",
             "edges",
             "nodes",
@@ -792,6 +802,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             else:
                 logging.info(f"     - {layer} ({len(result)})")
                 result.to_file(Path(self.dir_results, f"{layer}.gpkg"))
+        
 
     def generate_folium_map(
         self,
@@ -847,7 +858,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         if "order_no" in self.edges.columns:
             edges = self.edges[self.edges["order_no"] > 1][
-                ["code", "order_no", "geometry"]
+                ["code", "order_no", "order_code", "geometry"]
             ].sort_values("order_no", ascending=False)
 
             add_categorized_lines_to_map(
@@ -884,8 +895,6 @@ class GeneratorOrderLevels(GeneratorBasis):
                     control=True,
                     show=False,
                 ).add_to(m)
-
-                self.edges["order_code"].fill = ""
 
                 add_labels_to_points_lines_polygons(
                     gdf=edges,
