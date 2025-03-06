@@ -6,6 +6,6 @@
     background-color: #7a9b62;
 }
 
-.scbs-carousel {
-    margin-bottom: auto;
+.rst-content section>.scbs-carousel {
+    margin-bottom: 0px;
 }
