@@ -48,16 +48,16 @@ De vraag om afvoergebieden af te leiden tot op het diepste detailniveau op basis
 **`GeneratorCulvertLocations <description_workflows.html#generatorculvertlocations-workflow-duiker-locaties>`_**
 Workflow die voortbouwt op een al bestaande 'duikergenerator' van het waterschap waarin de locaties van duikers voor de C-watergangen worden gezocht. Dit om na te gaan hoe het water naar de hoofdwatergangen (A/B) stroomt. Het zoeken gebeurt op basis van rekenregels, waarbij gekeken wordt naar kruisingen met (spoor)wegen en peilgebiedsgrenzen, de lengte van de duiker (hoe korter, hoe beter) en de richting van de duiker ten opzichte van de watergang. 
 
+GeneratorCulvertLocations - Zoeken missende duikers om te achterhalen waar het water naartoe stroomt
 .. image:: _static/generator_culvert_locations_1.jpg
    :width: 600px
    :align: center
-
-Figuur: GeneratorCulvertLocations - Zoeken missende duikers om te achterhalen waar het water naartoe stroomt
 
 
 **`GeneratorOrderLevels <description_workflows.html#generatororderlevels-workflow-orde-codering>`_**
 Workflow voor het bepalen van orde nummers en de orde-codering van de watergangen en de daaraan gelegen afvoergebieden. De `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_ vormt hierin de basis. De C-watergangen (niet hoofdwatergangen) worden apart meegenomen in de analyse.
 
+GeneratorOrderLevels - Orde-nummer en Orde-codering van watergangen (en later afwateringseenheden)
 .. carousel::
    :show_controls:
    :show_indicators:
@@ -87,11 +87,11 @@ Workflow voor het bepalen van orde nummers en de orde-codering van de watergange
 
       GeneratorOrderLevels - Bepalen van orde-codering
 
-Figuur: GeneratorOrderLevels - Orde-nummer en Orde-codering van watergangen (en later afwateringseenheden)
 
 **`GeneratorDrainageUnits <description_workflows.html#generatordrainageunits-workflow-afwateringseenheden>`_**
 Workflow voor het genereren van afwateringseenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van andere open source packages zoals `pyflwdir  <https://github.com/Deltares/pyflwdir>`_ en `imod-python <https://github.com/Deltares/imod-python>`_ van Deltares.
 
+GeneratorDrainageUnits - Afleiden afwateringseenheden en stroomgebieden
 .. carousel::
    :show_controls:
    :show_indicators:
@@ -120,8 +120,6 @@ Workflow voor het genereren van afwateringseenheden: op basis van een GHG raster
       ..
 
       GeneratorDrainageUnits - Afleiden afwateringseenheden Leuvenumsebeek op basis van de grondwaterstand (GHG)
-
-Figuur: GeneratorDrainageUnits - Afleiden afwateringseenheden en stroomgebieden
 
 
 Inhoud
