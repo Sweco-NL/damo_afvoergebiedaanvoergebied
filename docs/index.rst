@@ -20,8 +20,6 @@ Workflows voor hydrologische basisdata waterschappen
 Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Aa en Maas en Vallei & Veluwe. 
 De public repository bevat de workflows inclusief voorbeeld-scripts en documentatie. Momenteel bevat het o.a. workflows voor voorbewerking van het waternetwerk, verbinden van de C-watergangen middels duikers, automatische toekennen van orde-codering en het afleiden van afwateringseenheden en (deel)stroomgebieden. Naast de data van het waterschap worden andere openbare datasets ook gebruikt. 
 
-Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_. Voor vragen en opmerkingen: kijk onder Issues in de `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units>`_.
-
 Voor meer informatie: 
 
 - **Waterschap Vallei & Veluwe**: Harmen van de Werfhorst
@@ -33,6 +31,7 @@ Voor meer informatie:
    :width: 600px
    :align: center
 
+Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_. Voor vragen en opmerkingen: kijk onder Issues in de `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units>`_.
 
 Waterschap Aa & Maas
 ^^^^^^^^^^^^^^^^^^^^^^^^
