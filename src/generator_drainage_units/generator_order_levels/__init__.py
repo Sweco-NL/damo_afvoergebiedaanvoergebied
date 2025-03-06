@@ -1,6 +1,7 @@
 from pathlib import Path
 import geopandas as gpd
 import logging
+import time
 from .generator_order_levels import GeneratorOrderLevels
 
 
@@ -22,6 +23,7 @@ def run_generator_order_levels(
     create_html_map: bool = False,
     open_html: bool = False,
 ) -> GeneratorOrderLevels:
+    start_time = time.time()
     order = GeneratorOrderLevels(
         path=path,
         dir_basisdata=dir_basisdata,
@@ -60,4 +62,6 @@ def run_generator_order_levels(
 
     if create_html_map:
         order.generate_folium_map(open_html=open_html)
+
+    logging.info(f"   x Case finished in {round(time.time()-start_time, 3)} seconds")
     return order

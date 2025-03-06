@@ -856,6 +856,16 @@ class GeneratorOrderLevels(GeneratorBasis):
             z_index=0,
         ).add_to(m)
 
+        folium.GeoJson(
+            self.hydroobjecten.geometry,
+            name="AB-Watergangen",
+            color="black",
+            fill_color="black",
+            zoom_on_click=True,
+            show=True,
+            z_index=2,
+        ).add_to(m)
+
         if "order_no" in self.edges.columns:
             edges = self.edges[self.edges["order_no"] > 1][
                 ["code", "order_no", "order_code", "geometry"]
@@ -874,6 +884,8 @@ class GeneratorOrderLevels(GeneratorBasis):
                 z_index=1,
             )
 
+            edges_labels = edges.drop_duplicates(subset="order_code", keep="first")
+
             if order_labels and "order_no" in self.edges.columns:
                 fg = folium.FeatureGroup(
                     name=f"AB-watergangen - Orde-nummer (labels)",
@@ -882,7 +894,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                 ).add_to(m)
 
                 add_labels_to_points_lines_polygons(
-                    gdf=edges,
+                    gdf=edges_labels,
                     column="order_no",
                     label_fontsize=8,
                     label_decimals=0,
@@ -897,22 +909,12 @@ class GeneratorOrderLevels(GeneratorBasis):
                 ).add_to(m)
 
                 add_labels_to_points_lines_polygons(
-                    gdf=edges,
+                    gdf=edges_labels,
                     column="order_code",
                     label_fontsize=8,
                     center=True,
                     fg=fg,
                 )
-
-        folium.GeoJson(
-            self.hydroobjecten.geometry,
-            name="AB-Watergangen",
-            color="blue",
-            fill_color="blue",
-            zoom_on_click=True,
-            show=False,
-            z_index=2,
-        ).add_to(m)
 
         fg = folium.FeatureGroup(
             name=f"Uitstroompunten in RWS-water", control=True
