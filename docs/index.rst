@@ -19,6 +19,7 @@ Workflows voor hydrologische basisdata waterschappen
 
 Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Aa en Maas en Vallei & Veluwe. 
 De public repository bevat de workflows inclusief voorbeeld-scripts en documentatie. Momenteel bevat het o.a. workflows voor voorbewerking van het waternetwerk, verbinden van de C-watergangen middels duikers, automatische toekennen van orde-codering en het afleiden van afwateringseenheden en (deel)stroomgebieden. Naast de data van het waterschap worden andere openbare datasets ook gebruikt. 
+
 Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_. Voor vragen en opmerkingen: kijk onder Issues in de `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units>`_.
 
 Voor meer informatie: 
@@ -37,7 +38,7 @@ Waterschap Aa & Maas
 ^^^^^^^^^^^^^^^^^^^^^^^^
 De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te genereren.
 
-**`GeneratorNetworkLumping <description_workflows.html#generatornetworklumping-workflow-aggregeren-deel-stroomgebieden>`**
+`GeneratorNetworkLumping <description_workflows.html#generatornetworklumping-workflow-aggregeren-deel-stroomgebieden>`_
 
 Workflow om voor opgegeven uitstroompunten het bovenstroomse watersysteem inclusief afwateringseenheden te lumpen (aggregeren) om stroomgebieden of deelstroomgebieden te genereren. Hierbij wordt overlap gedetecteerd en kan men aangeven hoe de deelgebieden verdeeld worden.
 
@@ -46,7 +47,7 @@ Waterschap Vallei & Veluwe
 ^^^^^^^^^^^^^^^^^^^^^^^^
 De vraag om afvoergebieden af te leiden tot op het diepste detailniveau op basis van een raster met een hoogtemodel (maaiveld of in dit geval grondwaterstand GHG) en een gegeven waternetwerk. Deze afvoergebiedjes worden ook wel afwateringseenheden of hydrologische eenheden genoemd. Middels netwerk-analyse en codering is het mogelijk om deze te aggregeren tot elk gewenst niveau:
 
-**`GeneratorCulvertLocations <description_workflows.html#generatorculvertlocations-workflow-duiker-locaties>`**
+`GeneratorCulvertLocations <description_workflows.html#generatorculvertlocations-workflow-duiker-locaties>`_
 
 Workflow die voortbouwt op een al bestaande 'duikergenerator' van het waterschap waarin de locaties van duikers voor de C-watergangen worden gezocht. Dit om na te gaan hoe het water naar de hoofdwatergangen (A/B) stroomt. Het zoeken gebeurt op basis van rekenregels, waarbij gekeken wordt naar kruisingen met (spoor)wegen en peilgebiedsgrenzen, de lengte van de duiker (hoe korter, hoe beter) en de richting van de duiker ten opzichte van de watergang. 
 
@@ -57,7 +58,7 @@ GeneratorCulvertLocations - Zoeken missende duikers om te achterhalen waar het w
    :align: center
 
 
-**`GeneratorOrderLevels <description_workflows.html#generatororderlevels-workflow-orde-codering>`**
+`GeneratorOrderLevels <description_workflows.html#generatororderlevels-workflow-orde-codering>`_
 
 Workflow voor het bepalen van orde nummers en de orde-codering van de watergangen en de daaraan gelegen afvoergebieden. De `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_ vormt hierin de basis. De C-watergangen (niet hoofdwatergangen) worden apart meegenomen in de analyse.
 
@@ -93,7 +94,7 @@ GeneratorOrderLevels - Orde-nummer en Orde-codering van watergangen (en later af
       GeneratorOrderLevels - Bepalen van orde-codering
 
 
-**`GeneratorDrainageUnits <description_workflows.html#generatordrainageunits-workflow-afwateringseenheden>`**
+`GeneratorDrainageUnits <description_workflows.html#generatordrainageunits-workflow-afwateringseenheden>`_
 
 Workflow voor het genereren van afwateringseenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van andere open source packages zoals `pyflwdir  <https://github.com/Deltares/pyflwdir>`_ en `imod-python <https://github.com/Deltares/imod-python>`_ van Deltares.
 
