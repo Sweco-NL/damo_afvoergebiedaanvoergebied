@@ -10,14 +10,14 @@ Generator Drainage Units
 Basisdata waterschappen op orde?
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het netwerk van watergangen, alle waterregulerende kunstwerken en de afvoergebieden. Aan alle objecten zijn tabellen met karakteristieken toegevoegd. Deze data wordt gebruikt voor het beheer en voor de opbouw van (geo)hydrologische en hydraulische modellen. Binnen het waterbeheer wordt het (Hy)DAMO datamodel gebruikt om de karakteristieken van de objecten te structureren. 
+De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het netwerk van watergangen, dwarsprofielen, alle waterregulerende kunstwerken en de afvoergebieden. Aan alle objecten zijn tabellen met karakteristieken toegevoegd. Deze data wordt gebruikt voor het beheer en voor de opbouw van (geo)hydrologische en hydraulische modellen. Binnen het waterbeheer wordt het (Hy)DAMO datamodel gebruikt om de karakteristieken van de objecten te structureren, waarvoor ook een validatietool beschikbaar is. 
 
-Wat nog mist zijn geautomatiseerde methodes om de geometrie van de data te checken, te zorgen voor een sluitend netwerk en generieke netwerk-analyses uit te voeren. Het gaat dan specifiek ook om het bepalen welke gebieden waar naar toe stromen (afvoergebieden en afwateringseenheden) en het automatisch coderen van de watergangen en afvoergebieden. Deze analyses kunnen naast de hoofdwatergangen (in beheer bij het waterschap), ook het onderliggende netwerk van sloten meenemen.
+Waar nog geen standaard voor is, is het checken van de geometrie van de data, te zorgen voor een sluitend netwerk en generieke netwerk-analyses uit te voeren. Specifiek gaat het dan om het afleiden van afvoergebieden (en afwateringseenheden) en het automatisch coderen van de watergangen en bijbehorende afvoergebieden. In deze analyses kunnen naast de hoofdwatergangen (in beheer bij het waterschap), ook het onderliggende netwerk van sloten meenemen.
 
 Workflows voor hydrologische basisdata waterschappen
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap Aa en Maas en Vallei & Veluwe. 
+Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap `Aa en Maas <https://www.aaenmaas.nl/>`_ en `Vallei & Veluwe <https://www.vallei-veluwe.nl/>`_. 
 De public repository bevat de workflows inclusief voorbeeld-scripts en documentatie. Momenteel bevat het o.a. workflows voor voorbewerking van het waternetwerk, verbinden van de C-watergangen middels duikers, automatische toekennen van orde-codering en het afleiden van afwateringseenheden en (deel)stroomgebieden. Naast de data van het waterschap worden andere openbare datasets ook gebruikt. 
 
 Voor meer informatie: 
