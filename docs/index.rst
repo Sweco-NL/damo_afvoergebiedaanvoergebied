@@ -108,6 +108,13 @@ De vraag om afvoergebieden af te leiden tot op het diepste detailniveau op basis
 
       GeneratorDrainageUnits - Aggregeren afwateringseenheden naar hoofdwatergangen
 
+   .. image:: _static/generator_drainage_units_3.jpg
+      :alt: Generator Drainage Units (workflow afwateringseenheden)
+      :width: 800px
+      :align: center
+
+      GeneratorDrainageUnits - Aggregeren op basis van orde-codering
+
    .. figure:: _static/ghg_drainage_units_leuvenumsebeek.jpg
       :height: 400px
       :align: center
