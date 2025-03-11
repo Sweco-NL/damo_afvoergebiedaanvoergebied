@@ -94,6 +94,12 @@ Figuur: Afleiden orde codering van de A-/B-watergangen
 
 Figuur: Orde nummer van de A-/B-watergangen voor het gehele beheergebied van waterschap Vallei & Veluwe
 
+.. image:: _static/generator_order_levels_flaws.jpg
+    :width: 800px
+    :align: center
+
+Figuur: De zwarte watergangen zijn niet verbonden of verkeerde richting
+
 
 GeneratorDrainageUnits (workflow Afwateringseenheden)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
