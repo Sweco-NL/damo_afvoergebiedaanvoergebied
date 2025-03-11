@@ -12,7 +12,8 @@ Leggerdata waterschappen sluitend en geschikt voor netwerk-analyses?
 
 De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het netwerk van watergangen, dwarsprofielen, alle waterregulerende kunstwerken en de afvoergebieden. Aan alle objecten zijn tabellen met karakteristieken toegevoegd. Deze data wordt gebruikt voor het beheer en voor de opbouw van (geo)hydrologische en hydraulische modellen. Binnen het waterbeheer wordt het (Hy)DAMO datamodel gebruikt om de karakteristieken van de objecten te structureren, waarvoor ook een validatietool beschikbaar is. 
 
-Waar nog geen standaard methode voor is, is het checken van de geometrie van de data, te zorgen voor een sluitend netwerk en generieke netwerk-analyses uit te voeren. Specifiek gaat het dan om het afleiden van afvoergebieden (en afwateringseenheden) en het automatisch coderen van de watergangen en bijbehorende afvoergebieden. In deze analyses kan ook het onderliggende netwerk van sloten worden meegenomen, als aanvulling op de hoofdwatergangen in beheer bij het waterschap.
+Voor het afleiden van de afvoergebieden is een methode ontwikkeld door hydrologen van veel waterschappen: De `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_. 
+Hier was echter nog geen automatische workflow voor, net als dat die er niet is voor het checken van de geometrie van de data, het zorgen voor een sluitend netwerk en het uitvoeren van generieke netwerk-analyses. Specifiek gaat het dan om het afleiden van afvoergebieden (en afwateringseenheden) en het automatisch coderen van de watergangen en bijbehorende afvoergebieden. In deze analyses kan ook het onderliggende netwerk van sloten worden meegenomen, als aanvulling op de hoofdwatergangen die in het beheer bij het waterschap zijn.
 
 Automatische workflows voor netwerk-analyses
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -53,7 +54,7 @@ De vraag om afvoergebieden af te leiden tot op het diepste detailniveau op basis
 
 *GeneratorCulvertLocations - Zoeken missende duikers om te achterhalen waar het water naartoe stroomt*
 
-`GeneratorOrderLevels <description_workflows.html#generatororderlevels-workflow-orde-codering>`_ - Workflow voor het bepalen van orde nummers en de orde-codering van de watergangen en de daaraan gelegen afvoergebieden. De `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_ vormt hierin de basis. De C-watergangen (niet hoofdwatergangen) worden apart meegenomen in de analyse.
+`GeneratorOrderLevels <description_workflows.html#generatororderlevels-workflow-orde-codering>`_ - Workflow voor het bepalen van orde nummers en de orde-codering van de watergangen en de daaraan gelegen afvoergebieden. De Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) vormt hierin de basis. De C-watergangen (niet hoofdwatergangen) worden apart meegenomen in de analyse.
 
 .. carousel::
    :show_controls:
