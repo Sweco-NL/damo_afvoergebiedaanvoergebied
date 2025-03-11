@@ -2,19 +2,19 @@
    sphinx-quickstart on Wed Dec 18 09:19:01 2024.
 
 
-Generator Drainage Units
+Afleiden afwateringseenheden en afvoergebieden (Generator Drainage Units)
 ============================================================================================================================
 
 `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units>`_
 
-Basisdata waterschappen op orde?
+Leggerdata waterschappen sluitend en geschikt voor netwerk-analyses?
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het netwerk van watergangen, dwarsprofielen, alle waterregulerende kunstwerken en de afvoergebieden. Aan alle objecten zijn tabellen met karakteristieken toegevoegd. Deze data wordt gebruikt voor het beheer en voor de opbouw van (geo)hydrologische en hydraulische modellen. Binnen het waterbeheer wordt het (Hy)DAMO datamodel gebruikt om de karakteristieken van de objecten te structureren, waarvoor ook een validatietool beschikbaar is. 
 
 Waar nog geen standaard methode voor is, is het checken van de geometrie van de data, te zorgen voor een sluitend netwerk en generieke netwerk-analyses uit te voeren. Specifiek gaat het dan om het afleiden van afvoergebieden (en afwateringseenheden) en het automatisch coderen van de watergangen en bijbehorende afvoergebieden. In deze analyses kan ook het onderliggende netwerk van sloten worden meegenomen, als aanvulling op de hoofdwatergangen in beheer bij het waterschap.
 
-Workflows voor hydrologische basisdata waterschappen
+Automatische workflows voor netwerk-analyses
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap `Aa en Maas <https://www.aaenmaas.nl/>`_ en `Vallei & Veluwe <https://www.vallei-veluwe.nl/>`_. 
@@ -83,6 +83,14 @@ De vraag om afvoergebieden af te leiden tot op het diepste detailniveau op basis
       ..
 
       GeneratorOrderLevels - Bepalen van orde-codering
+
+   .. figure:: _static/generator_order_levels_flaws.jpg
+      :height: 400px
+      :align: center
+      
+      ..
+
+      GeneratorOrderLevels - De zwarte watergangen zijn niet verbonden of verkeerde richting
 *GeneratorOrderLevels - Orde-nummer en Orde-codering van watergangen (en later afwateringseenheden)*
 
 `GeneratorDrainageUnits <description_workflows.html#generatordrainageunits-workflow-afwateringseenheden>`_ - Workflow voor het genereren van afwateringseenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van andere open source packages zoals `pyflwdir  <https://github.com/Deltares/pyflwdir>`_ en `imod-python <https://github.com/Deltares/imod-python>`_ van Deltares.
@@ -108,9 +116,8 @@ De vraag om afvoergebieden af te leiden tot op het diepste detailniveau op basis
 
       GeneratorDrainageUnits - Aggregeren afwateringseenheden naar hoofdwatergangen
 
-   .. image:: _static/generator_drainage_units_3.jpg
-      :alt: Generator Drainage Units (workflow afwateringseenheden)
-      :width: 800px
+   .. figure:: _static/generator_drainage_units_3.jpg
+      :height: 400px
       :align: center
 
       GeneratorDrainageUnits - Aggregeren op basis van orde-codering
