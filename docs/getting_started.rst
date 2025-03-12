@@ -65,9 +65,9 @@ De verschillende workflows kunnen los gedraaid worden, maar er zit ook een volgo
 
 Om de analyses uit te voeren zijn voor iedere analyse losse functies geschreven:
 
-- run_generator_culvert_locations()
-- run_generator_order_levels()
-- run_generator_drainage_units()
-- run_generator_network_lumping()
+- `run_generator_culvert_locations() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#generator_drainage_units.generator_culvert_locations.run_generator_culvert_locations>`_
+- `run_generator_order_levels() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#generator_drainage_units.generator_order_levels.run_generator_order_levels>`_
+- `run_generator_drainage_units() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#generator_drainage_units.generator_network_lumping.run_generator_network_lumping>`_
+- `run_generator_network_lumping() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#generator_drainage_units.generator_network_lumping.run_generator_network_lumping>`_
 
 Alle functies hebben eigenlijk alleen het path nodig waar de map met basisdata staat. De resultaatmap wordt automatisch aangemaakt. Indien gewenst kunnen extra parameters worden meegegeven voor het draaien van de functies.
