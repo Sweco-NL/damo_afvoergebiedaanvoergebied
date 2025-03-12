@@ -7,7 +7,7 @@ Afleiden afwateringseenheden en afvoergebieden (Generator Drainage Units)
 
 `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units>`_
 
-Data waterschappen sluitend en geschikt voor afleiden afvoergebieden?
+Verschillende type afvoergebieden
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het netwerk van watergangen, dwarsprofielen, alle waterregulerende kunstwerken en verschillende typen afvoergebieden. De data wordt gebruikt voor het beheer, voor analyses en voor de opbouw van (geo)hydrologische en hydraulische modellen. 
@@ -16,7 +16,7 @@ Er zijn verschillende typen afvoergebieden: 1=bemalingsgebied, 2=afvoergebied, 3
 Voor het genereren van deze verschillende gebieden waren nog geen automatische workflows. 
 Er bestaat wel een methode voor het ordenen van de afvoergebieden: De `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_, ontwikkeld door hydrologen van meerdere waterschappen.
 
-Nieuw: workflows afwateringseenheden en afvoergebieden
+Nieuw: workflows afwateringseenheden / afvoergebieden
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap `Aa en Maas <https://www.aaenmaas.nl/>`_ en `Vallei & Veluwe <https://www.vallei-veluwe.nl/>`_. 
