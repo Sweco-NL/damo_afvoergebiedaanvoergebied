@@ -7,21 +7,24 @@ Afleiden afwateringseenheden en afvoergebieden (Generator Drainage Units)
 
 `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units>`_
 
-Leggerdata waterschappen sluitend en geschikt voor netwerk-analyses?
+Data waterschappen sluitend en geschikt voor afleiden afvoergebieden?
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het netwerk van watergangen, dwarsprofielen, alle waterregulerende kunstwerken en verschillende typen afvoergebieden. De data wordt gebruikt voor het beheer en voor de opbouw van (geo)hydrologische en hydraulische modellen. Binnen het waterbeheer wordt het (Hy)DAMO datamodel gebruikt om de data te structurere.  
+De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het netwerk van watergangen, dwarsprofielen, alle waterregulerende kunstwerken en verschillende typen afvoergebieden. De data wordt gebruikt voor het beheer, voor analyses en voor de opbouw van (geo)hydrologische en hydraulische modellen. 
 
-Voor het afleiden van de afvoergebieden is een methode ontwikkeld door hydrologen van meerdere waterschappen: De `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_. 
 Er zijn verschillende typen afvoergebieden: 1=bemalingsgebied, 2=afvoergebied, 3=deelstroomgebied, 4=afwateringsgebied en 5=afwateringseenheid. 
+Voor het genereren van deze verschillende gebieden waren nog geen automatische workflows. 
+Er bestaat wel een methode voor het ordenen van de afvoergebieden: De `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_, ontwikkeld door hydrologen van meerdere waterschappen.
 
-Voor het genereren van deze gebieden was nog geen automatische workflow voor. Belangrijk hierin is het netwerk van hoofdwatergangen (in beheer bij het waterschap) dat volledig sluitend moet zijn en waarbij de watergangen in de juiste (afvoer)richting lopen. Daarnaast is het onderliggende netwerk van kleine sloten ook van belang om precies te bepalen waar wat heen afwatert.
-
-Workflows voor het afleiden van de afvoergebieden
+Nieuw: workflows afwateringseenheden en afvoergebieden
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap `Aa en Maas <https://www.aaenmaas.nl/>`_ en `Vallei & Veluwe <https://www.vallei-veluwe.nl/>`_. 
-De public repository bevat de workflows inclusief voorbeeld-scripts en documentatie. Momenteel bevat het o.a. workflows voor voorbewerking van het waternetwerk, verbinden van de C-watergangen middels duikers, automatische toekennen van orde-codering en het afleiden van afwateringseenheden en (deel)stroomgebieden. Naast de data van het waterschap worden andere openbare datasets ook gebruikt. 
+De public repository bevat de workflows inclusief voorbeeld-scripts en documentatie. 
+Uitgangspunt bij workflows voor de afvoergebieden is het netwerk van hoofdwatergangen (in beheer bij het waterschap) dat volledig sluitend moet zijn en waarbij de watergangen in de juiste (afvoer)richting lopen. Daarnaast is het onderliggende netwerk van kleine sloten ook van belang om precies te bepalen waar wat heen afwatert. 
+Momenteel bevat de python-package workflows voor het checken en voorbewerken van het waternetwerk, verbinden van de C-watergangen middels duikers, afleiden van afwateringseenheden en het automatische toekennen van orde-codering aan de verschillende afvoergebieden. 
+
+Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_. Voor vragen en opmerkingen: kijk onder Issues in de `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units>`_.
 
 Voor meer informatie: 
 
@@ -33,8 +36,6 @@ Voor meer informatie:
    :alt: V&V + A&M + Sweco
    :width: 600px
    :align: center
-
-Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_. Voor vragen en opmerkingen: kijk onder Issues in de `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units>`_.
 
 Waterschap Aa & Maas
 ^^^^^^^^^^^^^^^^^^^^^^^^
