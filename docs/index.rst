@@ -17,7 +17,7 @@ Er zijn verschillende typen afvoergebieden: 1=bemalingsgebied, 2=afvoergebied, 3
 
 Voor het genereren van deze gebieden was nog geen automatische workflow voor. Belangrijk hierin is het netwerk van hoofdwatergangen (in beheer bij het waterschap) dat volledig sluitend moet zijn en waarbij de watergangen in de juiste (afvoer)richting lopen. Daarnaast is het onderliggende netwerk van kleine sloten ook van belang om precies te bepalen waar wat heen afwatert.
 
-Automatische workflows voor afleiden Afvoergebieden
+Workflows voor het afleiden van de afvoergebieden
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap `Aa en Maas <https://www.aaenmaas.nl/>`_ en `Vallei & Veluwe <https://www.vallei-veluwe.nl/>`_. 
