@@ -10,12 +10,14 @@ Afleiden afwateringseenheden en afvoergebieden (Generator Drainage Units)
 Leggerdata waterschappen sluitend en geschikt voor netwerk-analyses?
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het netwerk van watergangen, dwarsprofielen, alle waterregulerende kunstwerken en de afvoergebieden. Aan alle objecten zijn tabellen met karakteristieken toegevoegd. Deze data wordt gebruikt voor het beheer en voor de opbouw van (geo)hydrologische en hydraulische modellen. Binnen het waterbeheer wordt het (Hy)DAMO datamodel gebruikt om de data te structureren, waarvoor ook een validatietool beschikbaar is. 
+De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het netwerk van watergangen, dwarsprofielen, alle waterregulerende kunstwerken en verschillende typen afvoergebieden. De data wordt gebruikt voor het beheer en voor de opbouw van (geo)hydrologische en hydraulische modellen. Binnen het waterbeheer wordt het (Hy)DAMO datamodel gebruikt om de data te structurere.  
 
-Voor het afleiden van de afvoergebieden is een methode ontwikkeld door hydrologen van veel waterschappen: De `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_. 
-Hier was echter nog geen automatische workflow voor, net als dat die er niet is voor het checken van de geometrie van de data, het zorgen voor een sluitend netwerk en het uitvoeren van generieke netwerk-analyses. Specifiek gaat het dan om het afleiden van afvoergebieden (en afwateringseenheden) en het automatisch coderen van de watergangen en bijbehorende afvoergebieden. In deze analyses kan ook het onderliggende netwerk van sloten worden meegenomen, als aanvulling op de hoofdwatergangen die in het beheer bij het waterschap zijn.
+Voor het afleiden van de afvoergebieden is een methode ontwikkeld door hydrologen van meerdere waterschappen: De `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_. 
+Er zijn verschillende typen afvoergebieden: 1=bemalingsgebied, 2=afvoergebied, 3=deelstroomgebied, 4=afwateringsgebied en 5=afwateringseenheid. 
 
-Automatische workflows voor netwerk-analyses
+Voor het genereren van deze gebieden was nog geen automatische workflow voor. Belangrijk hierin is het netwerk van hoofdwatergangen (in beheer bij het waterschap) dat volledig sluitend moet zijn en waarbij de watergangen in de juiste (afvoer)richting lopen. Daarnaast is het onderliggende netwerk van kleine sloten ook van belang om precies te bepalen waar wat heen afwatert.
+
+Automatische workflows voor afleiden Afvoergebieden
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Deze python-package is opgezet door Sweco Nederland binnen twee losse opdrachten voor waterschap `Aa en Maas <https://www.aaenmaas.nl/>`_ en `Vallei & Veluwe <https://www.vallei-veluwe.nl/>`_. 
