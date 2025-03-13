@@ -44,6 +44,7 @@ De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te
 
 `GeneratorNetworkLumping <description_workflows.html#generatornetworklumping-workflow-aggregeren-deel-stroomgebieden>`_ - Workflow om voor opgegeven uitstroompunten het bovenstroomse watersysteem inclusief afwateringseenheden te lumpen (aggregeren) om stroomgebieden of deelstroomgebieden te genereren. Hierbij wordt overlap gedetecteerd en kan men aangeven hoe de deelgebieden verdeeld worden.
 
+FIGUUR WORDT NOG AANGEVULD (BEZIG MET BUG)
 *GeneratorNetworkLumping - Afleiden (deel)stroomgebieden op basis van uitstroompunten*
 
 Waterschap Vallei & Veluwe
