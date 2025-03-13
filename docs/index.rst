@@ -7,23 +7,24 @@ Afleiden afwateringseenheden en afvoergebieden (Generator Drainage Units)
 
 `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units>`_
 
-Verschillende type afvoergebieden
+Verschillende soorten afvoergebieden
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het netwerk van watergangen, dwarsprofielen, alle waterregulerende kunstwerken en verschillende typen afvoergebieden. De data wordt gebruikt voor het beheer, voor analyses rondom wateroverlast / droogte / waterkwaliteit en voor de opbouw van (geo)hydrologische en hydraulische modellen. 
 
-Er zijn verschillende typen afvoergebieden gedefinieerd in de HyDAMO-datamodel: 1=bemalingsgebied, 2=afvoergebied, 3=deelstroomgebied, 4=afwateringsgebied en 5=afwateringseenheid, waarmee de afvoergebieden op verschillende niveaus worden beschreven. Ook valt aanvoergebieden hieronder, maar daar kijken we voor nu nog niet naar.
-Er bestaat een methode voor het ordenen en coderen van afvoergebieden: De `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_, ontwikkeld door hydrologen van meerdere waterschappen.
+In het HyDAMO-datamodel dat beschrijft hoe de data opgeslagen dient te worden zijn er verschillende categorieën afvoergebieden: 1=bemalingsgebied, 2=afvoergebied, 3=deelstroomgebied, 4=afwateringsgebied en 5=afwateringseenheid, waarmee de afvoergebieden op verschillende niveaus worden beschreven. 
+Volgens het datamodel gaat het om AanvoergebiedAfvoergebied, want ook aanvoergebieden vallen hieronder (die beschouwen wij hier voorlopig niet).
+Er is een methode bedacht door hydrologen van meerdere waterschappen voor het ordenen en coderen van afvoergebieden: De `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_. 
 
 
 Nieuw: workflows afwateringseenheden / afvoergebieden
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Voor het genereren van deze verschillende type afvoergebieden waren nog geen automatische workflows, daar is door Sweco Nederland binnen losse opdrachten voor waterschap `Aa en Maas <https://www.aaenmaas.nl/>`_ en `Vallei & Veluwe <https://www.vallei-veluwe.nl/>`_ aan gewerkt. 
-Uitgangspunt bij workflows voor de afvoergebieden is het netwerk van hoofdwatergangen (in beheer bij het waterschap) dat volledig sluitend moet zijn en waarbij de watergangen in de juiste (afvoer)richting lopen. Daarnaast kan het onderliggende netwerk van kleinere watergangen gebruikt worden om precies te bepalen welk gebied waar naartoe afwatert. 
+Voor het genereren van deze verschillende categorieën afvoergebieden waren nog geen automatische workflows, daar is door Sweco Nederland aan gewerkt binnen losse opdrachten voor waterschap `Aa en Maas <https://www.aaenmaas.nl/>`_ en `Vallei & Veluwe <https://www.vallei-veluwe.nl/>`_. 
+Uitgangspunt bij deze workflows is het netwerk van hoofdwatergangen (in beheer bij het waterschap), maar ook het onderliggende netwerk van kleinere watergangen kan gebruikt worden om precies te bepalen welk gebied waar naartoe afwatert. 
+De workflows vereisen wel dat het netwerk van hoofdwatergangen sluitend is, waarbij alle watergangen in de juiste (afvoer)richting lopen.
 
 De public repository bevat de workflows inclusief voorbeeld-scripts en documentatie. Momenteel bevat het de workflows voor het checken en voorbewerken van het waternetwerk, verbinden van de C-watergangen middels duikers, afleiden van afwateringseenheden en het automatische toekennen van orde-codering aan de verschillende afvoergebieden. 
-
 Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_. Voor vragen en opmerkingen: `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units/issues>`_.
 
 Voor meer informatie: 
