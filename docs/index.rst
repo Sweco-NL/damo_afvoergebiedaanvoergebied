@@ -7,13 +7,13 @@ Afleiden afwateringseenheden en afvoergebieden (Generator Drainage Units)
 
 `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units>`_
 
-Verschillende soorten afvoergebieden
+Verschillende categorieën afvoergebieden
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het netwerk van watergangen, dwarsprofielen, alle waterregulerende kunstwerken en verschillende typen afvoergebieden. De data wordt gebruikt voor het beheer, voor analyses rondom wateroverlast / droogte / waterkwaliteit en voor de opbouw van (geo)hydrologische en hydraulische modellen. 
 
 In het HyDAMO-datamodel dat beschrijft hoe de data opgeslagen dient te worden zijn er verschillende categorieën afvoergebieden: 1=bemalingsgebied, 2=afvoergebied, 3=deelstroomgebied, 4=afwateringsgebied en 5=afwateringseenheid, waarmee de afvoergebieden op verschillende niveaus worden beschreven. 
-Volgens het datamodel gaat het om AanvoergebiedAfvoergebied, want ook aanvoergebieden vallen hieronder (die beschouwen wij hier voorlopig niet).
+Volgens het datamodel gaat het overigens om het Watersysteem-object "AanvoergebiedAfvoergebied". Aanvoergebieden vallen hier ook onder, die beschouwen wij hier voorlopig niet.
 
 
 Nieuw: workflows afwateringseenheden / afvoergebieden
@@ -21,7 +21,7 @@ Nieuw: workflows afwateringseenheden / afvoergebieden
 
 Er waren nog geen automatische workflows voor het genereren van deze afvoergebieden en afwateringseenheden, daar is door Sweco Nederland aan gewerkt binnen losse opdrachten voor waterschap `Aa en Maas <https://www.aaenmaas.nl/>`_ en `Vallei & Veluwe <https://www.vallei-veluwe.nl/>`_. 
 
-Als basis is daar uitgegaan van de `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_ voor het ordenen en coderen van afvoergebieden, waar hydrologen van meerdere waterschappen aan hebben meegedacht/meegewerkt. 
+Als basis is daar uitgegaan van de `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_. Een methode voor het ordenen en coderen van afvoergebieden, waar hydrologen van meerdere waterschappen aan hebben meegewerkt. 
 
 De public repository bevat de workflows inclusief voorbeeld-scripts en documentatie. Momenteel bevat het de workflows voor het checken en voorbewerken van het waternetwerk, verbinden van de C-watergangen middels duikers, afleiden van afwateringseenheden en het automatische toekennen van orde-codering aan de verschillende afvoergebieden. 
 Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_. Voor vragen en opmerkingen: `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units/issues>`_. Voor meer informatie ook: 
@@ -97,7 +97,7 @@ De vraag om afvoergebieden af te leiden tot op het diepste detailniveau op basis
       ..
 
       GeneratorOrderLevels - Geen orde-code voor de zwarte watergangen, door verkeerde richting of ze zijn niet verbonden
-*GeneratorOrderLevels - Orde-nummer en Orde-codering van watergangen (en later afwateringseenheden)*
+*GeneratorOrderLevels - Orde-nummer en -codering van watergangen (later ook gekoppeld aan de afwateringseenheden)* (carousel)
 
 `GeneratorDrainageUnits <description_workflows.html#generatordrainageunits-workflow-afwateringseenheden>`_ - Workflow voor het genereren van afwateringseenheden: op basis van een GHG raster 25x25m de afvoerrichting bepalen en daarmee de afwaterende eenheden. Dit met behulp van andere open source packages zoals `pyflwdir  <https://github.com/Deltares/pyflwdir>`_ en `imod-python <https://github.com/Deltares/imod-python>`_ van Deltares.
 
@@ -135,7 +135,7 @@ De vraag om afvoergebieden af te leiden tot op het diepste detailniveau op basis
       ..
 
       GeneratorDrainageUnits - Afleiden afwateringseenheden Leuvenumsebeek op basis van de grondwaterstand (GHG)
-*GeneratorDrainageUnits - Afleiden afwateringseenheden en stroomgebieden*
+*GeneratorDrainageUnits - Afleiden afwateringseenheden en stroomgebieden* (carousel)
 
 Inhoud
 ^^^^^^^^^^^^^^^^^^^^^^^^
