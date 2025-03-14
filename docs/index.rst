@@ -14,15 +14,17 @@ De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het
 
 In het HyDAMO-datamodel dat beschrijft hoe de data opgeslagen dient te worden zijn er verschillende categorieën afvoergebieden: 1=bemalingsgebied, 2=afvoergebied, 3=deelstroomgebied, 4=afwateringsgebied en 5=afwateringseenheid, waarmee de afvoergebieden op verschillende niveaus worden beschreven. 
 Volgens het datamodel gaat het om AanvoergebiedAfvoergebied, want ook aanvoergebieden vallen hieronder (die beschouwen wij hier voorlopig niet).
-Er is een methode bedacht door hydrologen van meerdere waterschappen voor het ordenen en coderen van afvoergebieden: De `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_. 
 
 
 Nieuw: workflows afwateringseenheden / afvoergebieden
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Voor het genereren van deze verschillende categorieën afvoergebieden waren nog geen automatische workflows, daar is door Sweco Nederland aan gewerkt binnen losse opdrachten voor waterschap `Aa en Maas <https://www.aaenmaas.nl/>`_ en `Vallei & Veluwe <https://www.vallei-veluwe.nl/>`_. 
+Er waren nog geen automatische workflows voor het genereren van deze categorieën afvoergebieden, daar is door Sweco Nederland aan gewerkt binnen losse opdrachten voor waterschap `Aa en Maas <https://www.aaenmaas.nl/>`_ en `Vallei & Veluwe <https://www.vallei-veluwe.nl/>`_. 
+
+Als basis is daar uitgegaan van de methode bedacht door hydrologen van meerdere waterschappen voor het ordenen en coderen van afvoergebieden: De `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_. 
+
 Uitgangspunt bij deze workflows is het netwerk van hoofdwatergangen (in beheer bij het waterschap), maar ook het onderliggende netwerk van kleinere watergangen kan gebruikt worden om precies te bepalen welk gebied waar naartoe afwatert. 
-De workflows vereisen wel dat het netwerk van hoofdwatergangen sluitend is, waarbij alle watergangen in de juiste (afvoer)richting lopen.
+Eis is hierbij dat het netwerk van watergangen sluitend is, en de watergangen in de juiste (afvoer)richting lopen. Dat vereist mogelijk diverse handmatige aanpassingen.
 
 De public repository bevat de workflows inclusief voorbeeld-scripts en documentatie. Momenteel bevat het de workflows voor het checken en voorbewerken van het waternetwerk, verbinden van de C-watergangen middels duikers, afleiden van afwateringseenheden en het automatische toekennen van orde-codering aan de verschillende afvoergebieden. 
 Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_. Voor vragen en opmerkingen: `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units/issues>`_.
