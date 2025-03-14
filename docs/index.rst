@@ -24,9 +24,7 @@ Er waren nog geen automatische workflows voor het genereren van deze afvoergebie
 Als basis is daar uitgegaan van de `Leidraad Nederlandse Methodiek Afvoergebieden (Bakker et al, 2017) <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_ voor het ordenen en coderen van afvoergebieden, waar hydrologen van meerdere waterschappen aan hebben meegedacht/meegewerkt. 
 
 De public repository bevat de workflows inclusief voorbeeld-scripts en documentatie. Momenteel bevat het de workflows voor het checken en voorbewerken van het waternetwerk, verbinden van de C-watergangen middels duikers, afleiden van afwateringseenheden en het automatische toekennen van orde-codering aan de verschillende afvoergebieden. 
-Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_. Voor vragen en opmerkingen: `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units/issues>`_.
-
-Voor meer informatie: 
+Hier onder is kort beschreven welke workflows zijn opgezet. Voor een uitgebreide uitleg zie `beschrijving workflows <description_workflows.html>`_. Voor vragen en opmerkingen: `GitHub-repository <https://github.com/Sweco-NL/generator_drainage_units/issues>`_. Voor meer informatie ook: 
 
 - **Waterschap Vallei & Veluwe**: Harmen van de Werfhorst
 - **Waterschap Aa & Maas**: Joachim Hunink
