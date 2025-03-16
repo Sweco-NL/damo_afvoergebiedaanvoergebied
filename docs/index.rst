@@ -135,7 +135,7 @@ De vraag om afvoergebieden af te leiden tot op het diepste detailniveau op basis
       ..
 
       GeneratorDrainageUnits - Afleiden afwateringseenheden Leuvenumsebeek op basis van de grondwaterstand (GHG)
-*GeneratorDrainageUnits - Afleiden afwateringseenheden en stroomgebieden* (carousel)
+*GeneratorDrainageUnits - Afleiden afwateringseenheden en aggregeren op basis van orde-code* (carousel)
 
 Inhoud
 ^^^^^^^^^^^^^^^^^^^^^^^^
