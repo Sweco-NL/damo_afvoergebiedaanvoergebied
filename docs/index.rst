@@ -13,7 +13,7 @@ Verschillende categorieën afvoergebieden
 De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het netwerk van watergangen, dwarsprofielen, alle waterregulerende kunstwerken en verschillende typen afvoergebieden. De data wordt gebruikt voor het beheer, voor analyses rondom wateroverlast / droogte / waterkwaliteit en voor de opbouw van (geo)hydrologische en hydraulische modellen. 
 
 In het HyDAMO-datamodel dat beschrijft hoe de data opgeslagen dient te worden zijn er verschillende categorieën afvoergebieden: 1=bemalingsgebied, 2=afvoergebied, 3=deelstroomgebied, 4=afwateringsgebied en 5=afwateringseenheid, waarmee de afvoergebieden op verschillende niveaus worden beschreven. 
-Volgens het datamodel gaat het overigens om het Watersysteem-object "AanvoergebiedAfvoergebied". Aanvoergebieden vallen hier ook onder, die beschouwen wij hier voorlopig niet.
+Volgens het datamodel gaat het om het watersysteem-object "AanvoergebiedAfvoergebied", alleen aanvoergebieden beschouwen wij hier (nog) niet.
 
 
 Nieuw: workflows afwateringseenheden / afvoergebieden
