@@ -83,7 +83,7 @@ def find_predecessors_graph_with_splits(
         if (
             split_node_edge_ids2 is not None
             and from_node in split_node_edge_ids2
-            and split_node_edge_ids2[from_node] != e
+            and not e.startswith(split_node_edge_ids2[from_node])
         ):
             # logging.debug(e)
             new_outflow_edges = new_outflow_edges + [e]
@@ -101,7 +101,7 @@ def find_predecessors_graph_with_splits(
         if (
             split_node_edge_ids is None
             or p not in split_node_edge_ids
-            or split_node_edge_ids[p] == e
+            or e.startswith(split_node_edge_ids[p])
         ):
             pred_nodes, pred_edges, new_outflow_edges = (
                 find_predecessors_graph_with_splits(

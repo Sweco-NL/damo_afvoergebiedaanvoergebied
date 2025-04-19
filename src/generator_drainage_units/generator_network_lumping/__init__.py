@@ -33,6 +33,7 @@ def run_generator_network_lumping(
         dir_results=dir_results,
     )
     network.create_graph_from_network(water_lines=water_lines)
+    network.inflow_outflow_points = network.inflow_outflow_points.iloc[[11]]
 
     network.find_upstream_downstream_nodes_edges(
         direction=direction,
@@ -43,8 +44,8 @@ def run_generator_network_lumping(
         if path_drainage_units.exists():
             network.afwateringseenheden = gpd.read_file(path_drainage_units)
 
-    network.calculate_angles_of_edges_at_nodes()
-    network.select_downstream_upstream_edges(min_difference_angle=20.0)
+    # network.calculate_angles_of_edges_at_nodes()
+    # network.select_downstream_upstream_edges(min_difference_angle=20.0)
 
     if include_areas_based_on_id:
         network.assign_drainage_units_to_outflow_points_based_on_id()

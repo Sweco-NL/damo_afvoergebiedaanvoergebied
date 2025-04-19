@@ -262,11 +262,10 @@ class GeneratorNetworkLumping(GeneratorBasis):
 
             # checked if all columns are equal
             edges = upstream_edges.drop_duplicates(subset=inflow_outflow_points_columns)
-            if len(edges) > 1:
-                if inflow_outflow_edges is None:
-                    inflow_outflow_edges = edges.copy()
-                else:
-                    inflow_outflow_edges = pd.concat([inflow_outflow_edges, edges])
+            if inflow_outflow_edges is None:
+                inflow_outflow_edges = edges.copy()
+            else:
+                inflow_outflow_edges = pd.concat([inflow_outflow_edges, edges])
 
         for col in inflow_outflow_points_columns:
             if inflow_outflow_edges is not None and col in inflow_outflow_edges.columns:
@@ -290,11 +289,13 @@ class GeneratorNetworkLumping(GeneratorBasis):
             self.inflow_outflow_splits_1 = self.inflow_outflow_splits_0.copy()
         else:
             inflow_outflow_splits = self.inflow_outflow_splits.copy()
+            display(inflow_outflow_splits)
             inflow_outflow_splits = define_list_upstream_downstream_edges_ids(
                 inflow_outflow_splits.nodeID.unique(),
                 inflow_outflow_splits,
                 self.inflow_outflow_edges,
             )
+            display(inflow_outflow_splits)
             for edge in [f"{search_direction}_edge", f"{opposite_direction}_edge"]:
                 inflow_outflow_splits[edge] = inflow_outflow_splits.apply(
                     lambda x: x[edge]
