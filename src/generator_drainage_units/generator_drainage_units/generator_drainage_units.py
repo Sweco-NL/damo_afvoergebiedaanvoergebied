@@ -27,6 +27,17 @@ from ..utils.folium_utils import (
 )
 
 
+def get_resolution_2d_array(dataarray, x: str = 'x', y: str = 'y', decimals=2):
+    # Access the coordinates, e.g., 'x' and 'y' for a 2D grid
+    x_coords = dataarray.coords[x].values
+    y_coords = dataarray.coords[y].values
+
+    # Calculate the resolution
+    x_resolution = round(abs(x_coords[1] - x_coords[0]), decimals)
+    y_resolution = round(abs(y_coords[1] - y_coords[0]), decimals)
+    return x_resolution, y_resolution
+
+
 class GeneratorDrainageUnits(GeneratorBasis):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -69,6 +80,12 @@ class GeneratorDrainageUnits(GeneratorBasis):
     ghg_processed: xarray.Dataset = None
 
     flw: pyflwdir.FlwdirRaster = None
+
+    flow_direction: xarray.Dataset = None
+    flow_direction_d8: xarray.Dataset = None
+    flow_direction_d16: xarray.Dataset = None
+    flow_direction_d8_ind: xarray.Dataset = None
+    flow_direction_d16_ind: xarray.Dataset = None
     
     drainage_units_0: xarray.Dataset = None
     drainage_units_0_gdf: gpd.GeoDataFrame = None
@@ -106,12 +123,13 @@ class GeneratorDrainageUnits(GeneratorBasis):
         self.ghg.name = "GHG_2000-2010_L1"
         return self.ghg
 
-
+    
     def preprocess_ghg(self, resolution=2.0, depth_waterways=1.0, buffer_waterways=2.5, smooth_distance=25.0):
         # resample to new resolution (m)
         logging.info("   x preprocessing GHG data")
         logging.info("     - resampling data to new resolution")
-        old_resolution = 25.0
+        
+        old_resolution, _ = get_resolution_2d_array(self.ghg)
         upscale_factor = old_resolution / resolution
         new_width = int(np.ceil(self.ghg.rio.width * upscale_factor))
         new_height = int(np.ceil(self.ghg.rio.height * upscale_factor))
@@ -167,15 +185,17 @@ class GeneratorDrainageUnits(GeneratorBasis):
         return self.ghg_processed
 
 
-    def generate_drainage_units(self, iterations=2000, iteration_group=100):
+    def generate_drainage_units(self, iterations=2000, iteration_group=100, method="d8"):
         logging.info("   x generate drainage units for each waterway")
         # create raster with unique id of each waterway
         logging.info("     - give each waterway an unique id")
         if self.all_waterways_0 is None or self.ghg_processed is None:
             raise ValueError("   x run preprocess_ghg to preprocess the data")
-        
+
+        all_waterways_0 = self.all_waterways_0.copy()
+        all_waterways_0["geometry"] = all_waterways_0["geometry"].buffer(get_resolution_2d_array(self.ghg_processed)[0])
         self.drainage_units_0 = make_geocube(
-            vector_data=self.all_waterways_0,
+            vector_data=all_waterways_0,
             measurements=["drainage_unit_id"],
             like=self.ghg_processed,
         )["drainage_unit_id"].fillna(-1)
@@ -195,6 +215,10 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 encoding=encoding
             )
 
+        if method == "d8":
+            iterations_d8 = iterations
+        else:
+            iterations_d8 = 2
         # create pyflwdir object
         logging.info("     - create pyflwdir object to calculate downstream direction")
         flw = pyflwdir.from_dem(
@@ -205,7 +229,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
         )
 
         # get upstream values
-        def get_upstream_values(
+        def get_upstream_values_d8(
             flw_mask: np.ndarray, 
             flw_idxs_ds: np.ndarray, 
             drainage_units_flat: np.ndarray, 
@@ -235,19 +259,173 @@ class GeneratorDrainageUnits(GeneratorBasis):
         drainage_units_flat_new = flw._check_data(self.drainage_units_0.data, "data")
 
         time_start_groups = time.time()
-        for i in range(0, iterations, iteration_group):
+        for i in range(0, iterations_d8, iteration_group):
             time_start_group = time.time()
-            drainage_units_flat_new, number_new_filled_cells = get_upstream_values(
+            drainage_units_flat_new, number_new_filled_cells = get_upstream_values_d8(
                 flw_mask=flw.mask, 
                 flw_idxs_ds=flw.idxs_ds, 
                 drainage_units_flat=drainage_units_flat_new, 
-                iterations=min(iterations-i, iteration_group),
+                iterations=min(iterations_d8-i, iteration_group),
                 iteration_start=i
             )
             print("")
             print(f"iteration ({i+iteration_group}/{iterations}): {round(time.time()-time_start_group, 2)}s/{round(time.time()-time_start_groups, 2)}s")
             if number_new_filled_cells == 0:
                 break
+
+        if method == "d-infinity":
+            # create dinf object
+            logging.info("     - create d-infinity object to calculate downstream direction")
+
+            # use fill depressions from pyflwdir
+            ghg_processed = self.ghg_processed.copy()
+            ghg_processed.data[0] = pyflwdir.fill_depressions(
+                self.ghg_processed.data[0],
+                nodata=self.ghg_processed._FillValue,
+            )[0]
+            ghg_processed.data[ghg_processed.data<-10.0] = np.nan
+            self.ghg_processed = ghg_processed.copy()
+
+            def define_flowdirection_raster(raster):
+                list_dxdy_factorxfactory = [
+                    [1, 1, 1/2**0.5, -1/2**0.5],
+                    [0, 1, 0.0, -1.0],
+                    [-1, 1, -1/2**0.5, -1/2**0.5],
+                    [-1, 0, -1.0, 0.0],
+                    [-1, -1, -1/2**0.5, 1/2**0.5],
+                    [0, -1, 0.0, 1.0],
+                    [1, -1, 1/2**0.5, 1/2**0.5],
+                    [1, 0, 1.0, 0.0],
+                ]
+
+                flow = raster.copy()
+                flow.data[flow.data<-10.0] = np.nan
+                flow_x = None
+                flow_y = None
+
+                for [dx, dy, factorx, factory] in list_dxdy_factorxfactory:
+                    dflow = flow.shift(x=dx, y=dy)
+                    if flow_x is None:
+                        flow_x = dflow * factorx
+                    else:
+                        flow_x += dflow * factorx
+                    if flow_y is None:
+                        flow_y = dflow * factory
+                    else:
+                        flow_y += dflow * factory
+
+                flow_direction = flow.copy()
+                flow_direction.data = np.arctan2(flow_x.data, flow_y.data) * 180 / np.pi
+                flow_direction.data = flow_direction.data % 360
+                return flow_direction, flow_x, flow_y            
+
+            def find_flow_direction_indices(flow_direction, level=1):
+                if level == 1:
+                    min_angles = [360.0 / 8.0 * (-1.5 + float(i)) for i in range(8)]
+                    max_angles = [360.0 / 8.0 * (-0.5 + float(i)) for i in range(8)]
+                    dxs = [-1, 0, 1, 1, 1, 0, -1, -1]
+                    dys = [-1, -1, -1, 0, 1, 1, 1, 0]
+                    d_infinities = [int(i)+1 for i in range(8)]
+                elif level == 2:
+                    min_angles = [360.0 / 16.0 * (-2.5 + float(i)) for i in range(16)]
+                    max_angles = [360.0 / 16.0 * (-1.5 + float(i)) for i in range(16)]
+                    dxs = [-2, -1, 0, 1, 2, 2, 2, 2, 2, 1, 0, -1, -2, -2, -2, -2]
+                    dys = [-2, -2, -2, -2, -2, -1, 0, 1, 2, 2, 2, 2, 2, 1, 0, -1]
+                    d_infinities = [int(i)+1 for i in range(16)]
+                else:
+                    raise ValueError(f"   x level {level} not implemented")
+
+                dindices = [dy*len(flow_direction.x) + dx for dx, dy in zip(dxs, dys)]
+
+                flow_direction_dinf = flow_direction.copy()
+                flow_direction_ind = flow_direction.copy()
+
+                for min_angle, max_angle, dindex, dinf in zip(min_angles, max_angles, dindices, d_infinities):
+                    mask = (flow_direction.data >= min_angle) & (flow_direction.data < max_angle)
+                    flow_direction_ind.data[mask] = dindex
+                    flow_direction_dinf.data[mask] = dinf
+                
+                return flow_direction_dinf, flow_direction_ind
+            
+            # get upstream values
+            def get_upstream_values_d_infinity(
+                flw_mask: np.ndarray, 
+                flw_idxs_ds: np.ndarray, 
+                drainage_units_flat: np.ndarray, 
+                iterations: int,
+                iteration_start: int
+            ):
+                for i in range(iterations):
+                    time_start = time.time()
+                    upstream_values = drainage_units_flat.copy()
+                    upstream_values[flw_mask] = upstream_values[flw_idxs_ds[flw_mask]]
+                    
+                    new_filled_cells = (drainage_units_flat == -1.0) & (upstream_values != -1.0)
+                    drainage_units_flat = np.where(new_filled_cells, upstream_values, drainage_units_flat)
+
+                    number_new_filled_cells = new_filled_cells.sum()
+
+                return drainage_units_flat, number_new_filled_cells
+
+            flow_direction, _, _ = define_flowdirection_raster(ghg_processed)
+            self.flow_direction = flow_direction.copy()
+
+            flow_direction.data[flow_direction > 360 - 360.0 / 8.0 * 1.5] = \
+                flow_direction.data[flow_direction > 360 - 360.0 / 8.0 * 1.5] - 360.0
+            flow_direction_d8, flow_direction_d8_ind = find_flow_direction_indices(flow_direction, level=1)
+            flow_direction.data[flow_direction > 360 - 360.0 / 16.0 * 2.5] = \
+                flow_direction.data[flow_direction > 360 - 360.0 / 16.0 * 2.5] - 360.0
+            flow_direction_d16, flow_direction_d16_ind = find_flow_direction_indices(flow_direction, level=2)
+            
+            # import matplotlib.pyplot as plt
+            # fig, axs = plt.subplots(1, 2, figsize=(20, 10))
+            # flow_direction_d8.plot(ax=axs[0])
+            # flow_direction_d8_ind.plot(ax=axs[1])
+            # plt.show()
+
+            drainage_units_flat_d8_index = np.arange(drainage_units_flat_new.size) + flow_direction_d8_ind.data.ravel()
+            drainage_units_flat_d8_index[np.isnan(drainage_units_flat_d8_index)] = -1.0
+            drainage_units_flat_d8_index = drainage_units_flat_d8_index.astype(int)
+            # self.flow_direction_d8 = flow_direction_d8.copy()
+            self.flow_direction_d8_ind = flow_direction_d8_ind.copy()
+
+            drainage_units_flat_d16_index = np.arange(drainage_units_flat_new.size) + flow_direction_d16_ind.data.ravel()
+            drainage_units_flat_d16_index[np.isnan(drainage_units_flat_d16_index)] = -1.0
+            drainage_units_flat_d16_index = drainage_units_flat_d16_index.astype(int)
+            # self.flow_direction_d16 = flow_direction_d16.copy()
+            self.flow_direction_d16_ind = flow_direction_d16_ind.copy()
+            
+            time_start_groups = time.time()
+            for i in range(0, iterations, iteration_group):
+                time_start_group = time.time()
+                
+                for j in range(iteration_group):
+                    drainage_units_flat_new, number_new_filled_cells = get_upstream_values_d_infinity(
+                        flw_mask=(self.ghg_processed.data[0] > -1000000.0).ravel(), 
+                        flw_idxs_ds=drainage_units_flat_d8_index, 
+                        drainage_units_flat=drainage_units_flat_new, 
+                        iterations=1,
+                        iteration_start=0
+                    )
+
+                    drainage_units_flat_new, number_new_filled_cells = get_upstream_values_d_infinity(
+                        flw_mask=(self.ghg_processed.data[0] > -1000000.0).ravel(), 
+                        flw_idxs_ds=drainage_units_flat_d16_index, 
+                        drainage_units_flat=drainage_units_flat_new, 
+                        iterations=1,
+                        iteration_start=0
+                    )
+                    if number_new_filled_cells == 0:
+                        print("     * break at iteration: ", i + j)
+                        break
+                    print1 = f"  * iteration: {i + j}"
+                    print2 = f" | number new cells: {number_new_filled_cells}"
+                    print3 = f"({round(time.time()-time_start_group, 2)} seconds)"
+                    print(print1 + print2 + print3, end="\r")
+                print("")
+                print(f"iteration ({i+iteration_group}/{iterations}): {round(time.time()-time_start_group, 2)}s/{round(time.time()-time_start_groups, 2)}s")
+                if number_new_filled_cells == 0:
+                    break
 
         self.drainage_units_0.data = drainage_units_flat_new.reshape(
             self.drainage_units_0.data.shape
@@ -279,7 +457,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
         self.drainage_units_2_gdf = None
 
         logging.info(f"     - polygonize rasters to polygons")
-        gdf = imod.prepare.polygonize(self.drainage_units_0[0])
+        gdf = imod.prepare.polygonize(self.drainage_units_0)
         gdf = gdf.rename(columns={"value": "drainage_unit_id"})
         gdf["drainage_unit_id"] = gdf["drainage_unit_id"].astype(int)
         gdf = gdf.dissolve(by="drainage_unit_id", aggfunc="first").reset_index()
@@ -367,10 +545,10 @@ class GeneratorDrainageUnits(GeneratorBasis):
 
         # rasterize gdfs
         def dataarray_from_gdf(raster, gdf, raster_name):
-            raster.data[0] = imod.prepare.rasterize(
+            raster.data = imod.prepare.rasterize(
                 gdf.reset_index(drop=True), 
                 column="color_id",
-                like=raster[0]
+                like=raster
             )
             raster.name = raster_name
             raster = raster.fillna(-1)
@@ -525,6 +703,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 color="#0287c3",
                 weight=2,
                 z_index=0,
+                show=False,
             ).add_to(m)
 
         if self.potential_culverts_5 is not None:
@@ -534,6 +713,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 color="red",
                 weight=3,
                 z_index=1,
+                show=False,
             ).add_to(m)
 
         if self.overige_watergangen_processed_4 is not None:
@@ -547,14 +727,14 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 lines=True,
                 line_color_column="outflow_node",
                 line_color_cmap=None,
-                show=False,
+                show=True,
                 z_index=3,
             )
 
         if self.ghg is not None:
             add_graduated_raster_to_map(
                 m=m,
-                raster=self.ghg,
+                raster=self.ghg_processed,
                 layer_name="GHG",
                 unit="m NAP",
                 control=True,
@@ -568,7 +748,6 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 dy=dy,
             )
 
-        show_drainage_units = False
         if self.drainage_units_0 is not None:
             drainage_units_0 = self.drainage_units_0.where(self.drainage_units_0 > -1.0)
             drainage_units_0 = drainage_units_0.rio.write_crs(self.crs)
@@ -582,7 +761,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 vmax=int(self.drainage_units_0.data.max()),
                 legend=False,
                 opacity=1.0,
-                show=show_drainage_units,
+                show=True,
                 dx=dx,
                 dy=dy,
             )
@@ -600,11 +779,10 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 vmax=int(self.drainage_units_1.data.max()),
                 legend=False,
                 opacity=1.0,
-                show=show_drainage_units,
+                show=False,
                 dx=dx,
                 dy=dy,
             )
-            show_drainage_units = False
         
         if self.drainage_units_2 is not None:
             drainage_units_2 = self.drainage_units_2.where(self.drainage_units_2 > -1.0)
@@ -619,11 +797,10 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 vmax=int(self.drainage_units_2.data.max()),
                 legend=False,
                 opacity=1.0,
-                show=show_drainage_units,
+                show=False,
                 dx=dx,
                 dy=dy,
             )
-            show_drainage_units = False
 
         if self.drainage_units_3 is not None:
             drainage_units_3 = self.drainage_units_3.where(self.drainage_units_3 > -1.0)
@@ -638,11 +815,10 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 vmax=int(self.drainage_units_3.data.max()),
                 legend=False,
                 opacity=1.0,
-                show=show_drainage_units,
+                show=False,
                 dx=dx,
                 dy=dy,
             )
-            show_drainage_units = False
 
         m = add_basemaps_to_folium_map(m=m, base_map=base_map)
         folium.LayerControl(collapsed=False).add_to(m)

@@ -19,6 +19,7 @@ def run_generator_drainage_units(
     smooth_distance: float = 25.0,
     iterations: int = 2000,
     iteration_group: int = 100,
+    method: str = "d8",
     read_results: bool = False,
     write_results: bool = False,
     create_html_map: bool = False,
@@ -53,6 +54,8 @@ def run_generator_drainage_units(
         _description_, by default 25.0
     iterations : int, optional
         _description_, by default 2000
+    method : str, optional
+        _description_, by default "d8"
 
     Returns
     -------
@@ -85,7 +88,8 @@ def run_generator_drainage_units(
         if process:
             gdu.generate_drainage_units(
                 iterations=iterations,
-                iteration_group=iteration_group
+                iteration_group=iteration_group,
+                method=method
             )
 
         if postprocess:

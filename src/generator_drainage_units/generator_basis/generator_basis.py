@@ -124,7 +124,7 @@ class GeneratorBasis(BaseModel):
         logging.info(f"   x read basisdata")
         if self.dir_basisdata is not None and self.dir_basisdata.exists():
             read_attributes_from_folder(self.dir_basisdata)
-
+        
         if self.read_results:
             logging.info(f"   x read results")
             if self.dir_results is not None and self.dir_results.exists():
@@ -143,6 +143,8 @@ class GeneratorBasis(BaseModel):
         """
         for required_dataset in self.required_results:
             for f in self.dir_results.glob("**/*"):
+                if f.stem != required_dataset:
+                    continue
                 if hasattr(self, f.stem) and getattr(self, f.stem) is None:
                     logging.info(f"     - get dataset {f.stem.upper()}")
                     if f.suffix == ".gpkg":
