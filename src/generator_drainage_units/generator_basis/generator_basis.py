@@ -119,7 +119,8 @@ class GeneratorBasis(BaseModel):
                     if f.suffix == ".gpkg":
                         setattr(self, f.stem, gpd.read_file(f, layer=f.stem))
                     if f.suffix in [".nc", ".NC"]:
-                        setattr(self, f.stem, rioxarray.open_rasterio(f))
+                        with rioxarray.open_rasterio(f) as raster:
+                            setattr(self, f.stem, raster.load())
 
         logging.info(f"   x read basisdata")
         if self.dir_basisdata is not None and self.dir_basisdata.exists():
