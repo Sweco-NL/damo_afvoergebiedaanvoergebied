@@ -421,6 +421,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
 
         return self.inflow_outflow_splits_1
 
+
     def select_directions_for_splits(self, fillna_with_random=False):
         # check whether to use inflow_outflow_splits_1 or inflow_outflow_splits_0
         if (
@@ -574,29 +575,20 @@ class GeneratorNetworkLumping(GeneratorBasis):
         opacity_edges: float = 0.5,
     ):
         """Export results to geopackages and folium html"""
-        self.export_results_to_gpkg()
+        self.export_results_to_gpkg_or_nc(
+            list_layers=[
+                "inflow_outflow_points",
+                "inflow_outflow_edges",
+                "inflow_outflow_nodes",
+                "inflow_outflow_areas",
+            ]
+        )
         self.generate_folium_map(
             html_file_name=html_file_name,
             width_edges=width_edges,
             opacity_edges=opacity_edges,
         )
 
-    def export_results_to_gpkg(self):
-        """Export results to geopackages in folder 1_tussenresultaat"""
-        results_dir = Path(self.path, self.dir_results)
-        logging.info(f"   x export results")
-        for layer in [
-            "inflow_outflow_points",
-            "inflow_outflow_edges",
-            "inflow_outflow_nodes",
-            "inflow_outflow_areas",
-        ]:
-            result = getattr(self, layer)
-            if result is None:
-                logging.info(f"     - {layer} not available")
-            else:
-                logging.info(f"     - {layer} ({len(result)})")
-                result.to_file(Path(results_dir, f"{layer}.gpkg"))
 
     def generate_folium_map(
         self,

@@ -4,6 +4,7 @@ from pathlib import Path
 import folium
 import geopandas as gpd
 import rioxarray
+import xarray
 from pydantic import BaseModel, ConfigDict
 
 
@@ -119,7 +120,8 @@ class GeneratorBasis(BaseModel):
                     if f.suffix == ".gpkg":
                         setattr(self, f.stem, gpd.read_file(f, layer=f.stem))
                     if f.suffix in [".nc", ".NC"]:
-                        setattr(self, f.stem, rioxarray.open_rasterio(f))
+                        with rioxarray.open_rasterio(f) as raster:
+                            setattr(self, f.stem, raster.load())
 
         logging.info(f"   x read basisdata")
         if self.dir_basisdata is not None and self.dir_basisdata.exists():
@@ -188,3 +190,32 @@ class GeneratorBasis(BaseModel):
                 )
                 setattr(self, watergang, gpd.read_file(watergang_processed_file))
 
+
+    def export_results_to_gpkg_or_nc(self, list_layers: list[str] = None, dir_output: str | Path = None):
+        """Export results to geopackages in folder 1_resultaat"""
+        if dir_output is None:
+            dir_output = self.dir_results
+
+        logging.info(f"   x export results")
+        if list_layers is None:
+            return
+        for layer in list_layers:
+            result = getattr(self, layer)
+            if result is None:
+                logging.info(f"     - {layer} not available")
+            elif isinstance(result, gpd.GeoDataFrame):
+                logging.info(f"     - {layer} ({len(result)})")
+                result.to_file(Path(dir_output, f"{layer}.gpkg"))
+            elif isinstance(result, xarray.DataArray) or isinstance(result, xarray.Dataset):
+                logging.info(f"     - {layer} (netcdf)")
+                netcdf_file_path = Path(dir_output, f"{layer}.nc")
+                encoding = {
+                    layer: {
+                        'dtype': str(result.dtype),
+                        'zlib': True,
+                        'complevel': 9,
+                    },
+                }
+                result.to_netcdf(netcdf_file_path, encoding=encoding)
+            else:
+                raise ValueError("type not exportable")

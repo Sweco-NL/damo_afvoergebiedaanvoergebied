@@ -9,17 +9,18 @@ def run_generator_drainage_units(
     path: Path,
     dir_basisdata: Path,
     dir_results: Path = None,
+    method: str = "pyflwdir",
+    flow_method: str = "d8",
     ghg_file_name: str = None,
-    preprocess: bool = True,
-    process: bool = True,
-    postprocess: bool = True,
+    preprocess: bool = False,
+    process: bool = False,
+    postprocess: bool = False,
     resolution: float = 2.0,
     depth_waterways: float = 1.0,
     buffer_waterways: float = 2.5,
     smooth_distance: float = 25.0,
     iterations: int = 2000,
     iteration_group: int = 100,
-    method: str = "d8",
     read_results: bool = False,
     write_results: bool = False,
     create_html_map: bool = False,
@@ -74,6 +75,8 @@ def run_generator_drainage_units(
         dir_results=dir_results,
         read_results=read_results, 
         write_results=write_results,
+        method=method,
+        flow_method=flow_method,
     )
     if ghg_file_name is not None:
         gdu.read_ghg(ghg_file_name=ghg_file_name)
@@ -89,13 +92,12 @@ def run_generator_drainage_units(
             gdu.generate_drainage_units(
                 iterations=iterations,
                 iteration_group=iteration_group,
-                method=method
+                flow_method=flow_method,
             )
 
         if postprocess:
             gdu.aggregate_drainage_units()
 
-    # create map
     if create_html_map:
         gdu.generate_folium_map()
 

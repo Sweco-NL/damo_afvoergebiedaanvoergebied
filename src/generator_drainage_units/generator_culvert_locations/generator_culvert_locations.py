@@ -204,7 +204,11 @@ class GeneratorCulvertLocations(GeneratorBasis):
             self.write_results = write_results
 
         if self.write_results:
-            self.water_line_pnts.to_file(Path(self.dir_results, "water_line_pnts.gpkg"))
+            self.export_results_to_gpkg_or_nc(
+                list_layers=[
+                    "water_line_pnts"
+                ]
+            )
         return self.water_line_pnts, self.duplicates
 
     def find_potential_culvert_locations(
@@ -910,6 +914,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
             Path(self.dir_results, "potential_culverts_4.gpkg"),
         )
         return self.potential_culverts_4
+
 
     def splits_hydroobjecten_by_endpoints_of_culverts_and_combine(self):
         """Splits hydroobjects and overige_watergangen at the location where culverts are connected. This is done to create a complete and connected network.
