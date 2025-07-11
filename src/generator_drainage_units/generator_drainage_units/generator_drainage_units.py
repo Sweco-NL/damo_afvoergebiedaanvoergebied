@@ -129,6 +129,8 @@ class GeneratorDrainageUnits(GeneratorBasis):
         self.ghg_file_name = ghg_file_name
         self.ghg = rioxarray.open_rasterio(Path(self.path, self.dir_basisdata, ghg_file_name))
         self.ghg.name = "ghg"
+        if self.ghg.rio.crs is None:
+            self.ghg = self.ghg.rio.write_crs(28992)
         return self.ghg
     
 
@@ -171,10 +173,13 @@ class GeneratorDrainageUnits(GeneratorBasis):
 
         # add depth at location hydroobjects and other waterways (m)
         logging.info("     - add depth at waterways")
-        self.all_waterways_0 = pd.concat([
-            self.edges[["code", "geometry"]],
-            self.overige_watergangen_processed_4[["code", "geometry"]]
-        ]).reset_index(drop=True)
+        if self.overige_watergangen_processed_4 is None:
+            self.all_waterways_0 = self.edges[["code", "geometry"]].reset_index(drop=True)
+        else:
+            self.all_waterways_0 = pd.concat([
+                self.edges[["code", "geometry"]],
+                self.overige_watergangen_processed_4[["code", "geometry"]]
+            ]).reset_index(drop=True)
         
         logging.info("     - give each waterway an unique id")
         self.all_waterways_0["depth_waterways"] = depth_waterways
@@ -204,7 +209,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
 
         self.ghg_processed.data = self.ghg_processed.data - ghg_waterways.data
         self.ghg_processed.data[self.ghg_processed.data<-900.0] = -999.99
-
+        
         if self.write_results:
             self.export_results_to_gpkg_or_nc(
                 list_layers=[

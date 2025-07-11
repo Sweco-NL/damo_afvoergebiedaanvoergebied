@@ -154,7 +154,7 @@ class GeneratorBasis(BaseModel):
                     if f.suffix in [".nc", ".NC"]:
                         setattr(self, f.stem, rioxarray.open_rasterio(f))
             if getattr(self, required_dataset) is None:
-                raise ValueError(f" * dataset {required_dataset} is missing")
+                logging.info(f" * dataset {required_dataset} is missing - check if absolutely required")
 
 
     def use_processed_hydroobjecten(self, processed_file="processed"):
@@ -209,6 +209,8 @@ class GeneratorBasis(BaseModel):
             elif isinstance(result, xarray.DataArray) or isinstance(result, xarray.Dataset):
                 logging.info(f"     - {layer} (netcdf)")
                 netcdf_file_path = Path(dir_output, f"{layer}.nc")
+                if netcdf_file_path.exists():
+                   netcdf_file_path.unlink()
                 encoding = {
                     layer: {
                         'dtype': str(result.dtype),
@@ -216,6 +218,6 @@ class GeneratorBasis(BaseModel):
                         'complevel': 9,
                     },
                 }
-                result.to_netcdf(netcdf_file_path, encoding=encoding)
+                # result.to_netcdf(netcdf_file_path, mode='w', encoding=encoding)
             else:
                 raise ValueError("type not exportable")

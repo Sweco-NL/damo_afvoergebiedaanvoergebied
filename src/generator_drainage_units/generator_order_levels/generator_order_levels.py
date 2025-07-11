@@ -440,10 +440,11 @@ class GeneratorOrderLevels(GeneratorBasis):
         len_edges_without_order = len(self.edges[self.edges.order_no < 0])
         logging_message = f"     - order levels generated: {len_edges_with_order} edges - {len_edges_without_order} left"
         logging.info(logging_message)
-        self.export_results_to_gpkg_or_nc(list_layers=[
-            "outflow_edges",
-            "outflow_nodes",
-        ])
+        if self.write_results:
+            self.export_results_to_gpkg_or_nc(list_layers=[
+                "outflow_edges",
+                "outflow_nodes",
+            ])
 
 
     def generate_order_code_for_hydroobjects(self, order_for_each_edge=False):
@@ -705,11 +706,12 @@ class GeneratorOrderLevels(GeneratorBasis):
             )
         
         self.hydroobjecten_processed_1 = self.edges.copy()
-        self.export_results_to_gpkg_or_nc(list_layers=[
-            "hydroobjecten_processed_1",
-            "edges",
-            "nodes",
-        ])
+        if self.write_results:
+            self.export_results_to_gpkg_or_nc(list_layers=[
+                "hydroobjecten_processed_1",
+                "edges",
+                "nodes",
+            ])
         return self.hydroobjecten_processed_1
 
 
@@ -728,6 +730,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         def string_to_list(string, sep=",", type=int):
             return [type(i.strip()[1:-1]) if i!="" else -1 for i in string[1:-1].split(sep)]
 
+        # check if values are strings and change into lists
         for direction in ["upstream", "downstream"]:
             column = f"{direction}_order_no"
             if column in self.nodes.columns and isinstance(self.nodes[column].to_numpy()[0], str):
@@ -736,6 +739,9 @@ class GeneratorOrderLevels(GeneratorBasis):
             self.nodes[f"downstream_edges"] = self.nodes[f"downstream_edges"].apply(lambda x: string_to_list(x, sep=",", type=str))
         if isinstance(self.nodes[f"downstream_order_code"].values[0], str):
             self.nodes[f"downstream_order_code"] = self.nodes[f"downstream_order_code"].apply(lambda x: string_to_list(x, sep=",", type=str))
+        
+        if self.outflow_nodes_overige_watergangen is None:
+            return None, None
         
         outflow_nodes_overige_watergangen = self.outflow_nodes_overige_watergangen[
             ["nodeID", "geometry"]
@@ -805,12 +811,13 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
         self.overige_watergangen_processed_4 = edges.copy()
 
-        self.export_results_to_gpkg_or_nc(list_layers=[
-            "outflow_edges",
-            "outflow_nodes",
-            "outflow_nodes_overige_watergangen",
-            "overige_watergangen_processed_4",
-        ])
+        if self.write_results:
+            self.export_results_to_gpkg_or_nc(list_layers=[
+                "outflow_edges",
+                "outflow_nodes",
+                "outflow_nodes_overige_watergangen",
+                "overige_watergangen_processed_4",
+            ])
         return (
             self.outflow_nodes_overige_watergangen,
             self.overige_watergangen_processed_4,

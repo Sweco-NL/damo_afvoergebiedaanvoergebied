@@ -331,6 +331,18 @@ def calculate_angles_of_edges_at_nodes(
     edges["downstream_angle"] = edges["geometry"].apply(
         lambda x: calculate_angle(x, "downstream").round(2)
     )
+
+    def group_angles(x):
+        if isinstance(x, float):
+            if np.isnan(x):
+                return ""
+            else:
+                return str(x)
+        elif (isinstance(x[0], float) and np.isnan(x[0])):
+            return ",".join([str(a) for a in x])
+        else:
+            return ""
+
     for direction, opp_direction in zip(
         ["upstream", "downstream"], ["downstream", "upstream"]
     ):
@@ -347,9 +359,7 @@ def calculate_angles_of_edges_at_nodes(
             .agg({f"{opp_direction}_angle": list})
         )
         nodes[f"{direction}_angles"] = nodes[f"{direction}_angles"].apply(
-            lambda x: ",".join([str(a) for a in x])
-            if ~(isinstance(x[0], float) and np.isnan(x[0]))
-            else ",".join([])
+            lambda x: group_angles(x)
         )
     return nodes, edges
 
