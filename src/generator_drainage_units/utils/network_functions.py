@@ -331,30 +331,40 @@ def calculate_angles_of_edges_at_nodes(
     edges["downstream_angle"] = edges["geometry"].apply(
         lambda x: calculate_angle(x, "downstream").round(2)
     )
+
+    def group_angles(x):
+        if isinstance(x, float):
+            if np.isnan(x):
+                return ""
+            else:
+                return str(x)
+        elif (isinstance(x[0], float) and not np.isnan(x[0])):
+            return ",".join([str(a) for a in x])
+        else:
+            return ""
+
     for direction, opp_direction in zip(
         ["upstream", "downstream"], ["downstream", "upstream"]
     ):
         node_end = "node_end" if direction == "upstream" else "node_start"
-        nodes[f"{direction}_angles"] = (
-            nodes.merge(
-                edges[[node_end, f"{opp_direction}_angle"]].rename(
-                    columns={node_end: nodes_id_column}
-                ),
-                how="left",
-                on=nodes_id_column,
-            )
-            .groupby(nodes_id_column)
-            .agg({f"{opp_direction}_angle": list})
+        temp = nodes.merge(
+            edges[[node_end, f"{opp_direction}_angle"]].rename(
+                columns={node_end: nodes_id_column}
+            ),
+            how="left",
+            on=nodes_id_column,
         )
+        temp = temp.groupby(nodes_id_column)
+        temp = temp.agg({f"{opp_direction}_angle": list})
+        nodes[f"{direction}_angles"] = temp
         nodes[f"{direction}_angles"] = nodes[f"{direction}_angles"].apply(
-            lambda x: ",".join([str(a) for a in x])
-            if ~(isinstance(x[0], float) and np.isnan(x[0]))
-            else ",".join([])
+            lambda x: group_angles(x)
         )
     return nodes, edges
 
 
 def select_downstream_upstream_edges(nodes, min_difference_angle: str = 20.0):
+
     def select_downstream_upstream_edges_per_node(x, min_difference_angle: str = 20.0):
         upstream_edges = x["upstream_edges"] = [
             a for a in x["upstream_edges"].split(",") if a != ""
@@ -373,6 +383,7 @@ def select_downstream_upstream_edges(nodes, min_difference_angle: str = 20.0):
             [round(abs(au - ad), 2) for ad in downstream_angles]
             for au in upstream_angles
         ]
+
         smallest_angle1 = None
         smallest_angle2 = None
         selected_upstream_edge = None

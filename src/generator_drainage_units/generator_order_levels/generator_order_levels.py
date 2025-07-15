@@ -225,6 +225,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
         return self.outflow_edges
 
+
     def generate_order_level_for_hydroobjects(self):
         """Generates the order level of the hydroobjects. A hydroobject will get the same orde as the downstream edge. 
         When a hydroobject is split at a node, the edge with the larger angle difference will get the order number downstream +1.
@@ -439,9 +440,16 @@ class GeneratorOrderLevels(GeneratorBasis):
         len_edges_without_order = len(self.edges[self.edges.order_no < 0])
         logging_message = f"     - order levels generated: {len_edges_with_order} edges - {len_edges_without_order} left"
         logging.info(logging_message)
+        if self.write_results:
+            self.export_results_to_gpkg_or_nc(list_layers=[
+                "outflow_edges",
+                "outflow_nodes",
+            ])
+
 
     def generate_order_code_for_hydroobjects(self, order_for_each_edge=False):
-        """Generates a code for each hydroobject based on the order level. Hydroobjects with a higher order level will get a longer code, that shows in to which hydroobject with a lower code it flows.
+        """
+        Generates a code for each hydroobject based on the order level. Hydroobjects with a higher order level will get a longer code, that shows in to which hydroobject with a lower code it flows.
         """
         logging.info(f"   x generate order code for edges")
         edges = (
@@ -527,7 +535,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             order_no for order_no in edges.order_no.unique() if order_no > 0
         ]:
             order_outflow_edges = self.outflow_edges[
-                (self.outflow_edges.order_no == order_no)
+                self.outflow_edges.order_no == order_no
             ]
             logging_message = (
                 f"     - order {order_no}: {len(order_outflow_edges)} outflow edges"
@@ -684,7 +692,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                 lambda x: list(
                     self.edges.loc[
                         self.edges["code"].isin(x[f"{direction}_edges"]), "order_no"
-                    ].values
+                    ].astype(int).values
                 ),
                 axis=1,
             )
@@ -698,7 +706,14 @@ class GeneratorOrderLevels(GeneratorBasis):
             )
         
         self.hydroobjecten_processed_1 = self.edges.copy()
+        if self.write_results:
+            self.export_results_to_gpkg_or_nc(list_layers=[
+                "hydroobjecten_processed_1",
+                "edges",
+                "nodes",
+            ])
         return self.hydroobjecten_processed_1
+
 
     def generate_order_no_order_code_for_other_waterlines(self):
         """Generates order level for overige watergangen, based on their outflow point in the hydroobjects. 
@@ -711,6 +726,23 @@ class GeneratorOrderLevels(GeneratorBasis):
             Geodataframe containing the processed overige watergangen, including the order levels and order codes
         """
         logging.info(f"   x generate order code for overige watergangen")
+
+        def string_to_list(string, sep=",", type=int):
+            return [type(i.strip()[1:-1]) if i!="" else -1 for i in string[1:-1].split(sep)]
+
+        # check if values are strings and change into lists
+        for direction in ["upstream", "downstream"]:
+            column = f"{direction}_order_no"
+            if column in self.nodes.columns and isinstance(self.nodes[column].to_numpy()[0], str):
+                self.nodes[f"{direction}_order_no"] = self.nodes[f"{direction}_order_no"].apply(lambda x: string_to_list(x, sep=",", type=int))
+        if isinstance(self.nodes[f"downstream_edges"].values[0], str):
+            self.nodes[f"downstream_edges"] = self.nodes[f"downstream_edges"].apply(lambda x: string_to_list(x, sep=",", type=str))
+        if isinstance(self.nodes[f"downstream_order_code"].values[0], str):
+            self.nodes[f"downstream_order_code"] = self.nodes[f"downstream_order_code"].apply(lambda x: string_to_list(x, sep=",", type=str))
+        
+        if self.outflow_nodes_overige_watergangen is None:
+            return None, None
+        
         outflow_nodes_overige_watergangen = self.outflow_nodes_overige_watergangen[
             ["nodeID", "geometry"]
         ].sjoin(
@@ -744,8 +776,13 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
         outflow_nodes = outflow_nodes.groupby("nodeID").first().reset_index()
 
+        # filter out outflow_nodes without downstream_order_no
+        outflow_nodes_overige_watergangen = outflow_nodes_overige_watergangen[
+            ~outflow_nodes_overige_watergangen["downstream_order_no"].isnull()
+        ]
+
         self.outflow_nodes_overige_watergangen = (
-            self.outflow_nodes_overige_watergangen.drop(
+            outflow_nodes_overige_watergangen.drop(
                 columns=["downstream_edges", "downstream_order_no", "downstream_order_code"],
                 errors="ignore",
             ).merge(
@@ -755,7 +792,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                 how="left",
                 on="nodeID",
             )
-        )
+        ).drop(columns="index_right")
 
         edges = self.overige_watergangen_processed_3.merge(
             self.outflow_nodes_overige_watergangen[
@@ -767,7 +804,11 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
         edges = edges.sort_values("downstream_order_code").drop_duplicates(subset="geometry", keep="first")
 
-        edges["order_no"] = edges["downstream_order_no"] + 1
+        # filter out waterways with outflow_nodes without downstream_order_no
+        edges = edges[edges["downstream_order_no"] > 0]
+
+        # use order_no of downstream principal waterways
+        edges["order_no"] = edges["downstream_order_no"].astype(int) + 1
         edges["order_code_no"] = (
             edges.groupby("downstream_order_code").cumcount().fillna(-1000).astype(int)
             + 1
@@ -778,31 +819,19 @@ class GeneratorOrderLevels(GeneratorBasis):
             + edges["order_code_no"].astype(str).str.zfill(4)
         )
         self.overige_watergangen_processed_4 = edges.copy()
+        
+        if self.write_results:
+            self.export_results_to_gpkg_or_nc(list_layers=[
+                "outflow_edges",
+                "outflow_nodes",
+                "outflow_nodes_overige_watergangen",
+                "overige_watergangen_processed_4",
+            ])
         return (
             self.outflow_nodes_overige_watergangen,
             self.overige_watergangen_processed_4,
         )
 
-
-    def export_results_to_gpkg(self):
-        """Export results to geopackages in folder 1_resultaat"""
-        logging.info(f"   x export results")
-        for layer in [
-            "outflow_edges",
-            "outflow_nodes",
-            "outflow_nodes_overige_watergangen",
-            "hydroobjecten_processed_1",
-            "overige_watergangen_processed_4",
-            "edges",
-            "nodes",
-        ]:
-            result = getattr(self, layer)
-            if result is None:
-                logging.info(f"     - {layer} not available")
-            else:
-                logging.info(f"     - {layer} ({len(result)})")
-                result.to_file(Path(self.dir_results, f"{layer}.gpkg"))
-        
 
     def generate_folium_map(
         self,
@@ -868,8 +897,9 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         if "order_no" in self.edges.columns:
             edges = self.edges[self.edges["order_no"] > 1][
-                ["code", "order_no", "order_code", "geometry"]
-            ].sort_values("order_no", ascending=False)
+                ["code", "order_no", "order_code", "order_edge_no", "geometry"]
+            ].sort_values(["order_no", "order_edge_no"], ascending=[False, True])
+            edges_labels = edges.drop_duplicates(subset="order_code", keep="first")
 
             add_categorized_lines_to_map(
                 m=m,
@@ -883,8 +913,6 @@ class GeneratorOrderLevels(GeneratorBasis):
                 line_weight=5,
                 z_index=1,
             )
-
-            edges_labels = edges.drop_duplicates(subset="order_code", keep="first")
 
             if order_labels and "order_no" in self.edges.columns:
                 fg = folium.FeatureGroup(

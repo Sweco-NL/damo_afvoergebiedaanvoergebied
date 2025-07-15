@@ -58,7 +58,14 @@ def run_generator_network_lumping(
         network.export_detected_split_points()
 
     if write_results:
-        network.export_results_to_gpkg()
+        network.export_results_to_gpkg_or_nc(
+            list_layers=[
+                "inflow_outflow_points",
+                "inflow_outflow_edges",
+                "inflow_outflow_nodes",
+                "inflow_outflow_areas",
+            ]
+        )
     if create_html_map:
         network.generate_folium_map(
             html_file_name=html_file_name,

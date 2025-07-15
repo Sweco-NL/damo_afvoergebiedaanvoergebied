@@ -57,9 +57,6 @@ def run_generator_order_levels(
     if generate_order_code_sub_waterlines:
         order.generate_order_no_order_code_for_other_waterlines()
 
-    if write_results:
-        order.export_results_to_gpkg()
-
     if create_html_map:
         order.generate_folium_map(open_html=open_html)
 
