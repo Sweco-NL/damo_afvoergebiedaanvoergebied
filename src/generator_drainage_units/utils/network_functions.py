@@ -338,7 +338,7 @@ def calculate_angles_of_edges_at_nodes(
                 return ""
             else:
                 return str(x)
-        elif (isinstance(x[0], float) and np.isnan(x[0])):
+        elif (isinstance(x[0], float) and not np.isnan(x[0])):
             return ",".join([str(a) for a in x])
         else:
             return ""
@@ -347,17 +347,16 @@ def calculate_angles_of_edges_at_nodes(
         ["upstream", "downstream"], ["downstream", "upstream"]
     ):
         node_end = "node_end" if direction == "upstream" else "node_start"
-        nodes[f"{direction}_angles"] = (
-            nodes.merge(
-                edges[[node_end, f"{opp_direction}_angle"]].rename(
-                    columns={node_end: nodes_id_column}
-                ),
-                how="left",
-                on=nodes_id_column,
-            )
-            .groupby(nodes_id_column)
-            .agg({f"{opp_direction}_angle": list})
+        temp = nodes.merge(
+            edges[[node_end, f"{opp_direction}_angle"]].rename(
+                columns={node_end: nodes_id_column}
+            ),
+            how="left",
+            on=nodes_id_column,
         )
+        temp = temp.groupby(nodes_id_column)
+        temp = temp.agg({f"{opp_direction}_angle": list})
+        nodes[f"{direction}_angles"] = temp
         nodes[f"{direction}_angles"] = nodes[f"{direction}_angles"].apply(
             lambda x: group_angles(x)
         )
@@ -365,6 +364,7 @@ def calculate_angles_of_edges_at_nodes(
 
 
 def select_downstream_upstream_edges(nodes, min_difference_angle: str = 20.0):
+
     def select_downstream_upstream_edges_per_node(x, min_difference_angle: str = 20.0):
         upstream_edges = x["upstream_edges"] = [
             a for a in x["upstream_edges"].split(",") if a != ""
@@ -383,6 +383,7 @@ def select_downstream_upstream_edges(nodes, min_difference_angle: str = 20.0):
             [round(abs(au - ad), 2) for ad in downstream_angles]
             for au in upstream_angles
         ]
+
         smallest_angle1 = None
         smallest_angle2 = None
         selected_upstream_edge = None

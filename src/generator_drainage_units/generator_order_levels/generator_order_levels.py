@@ -692,7 +692,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                 lambda x: list(
                     self.edges.loc[
                         self.edges["code"].isin(x[f"{direction}_edges"]), "order_no"
-                    ].astype(str).values
+                    ].astype(int).values
                 ),
                 axis=1,
             )
@@ -776,8 +776,13 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
         outflow_nodes = outflow_nodes.groupby("nodeID").first().reset_index()
 
+        # filter out outflow_nodes without downstream_order_no
+        outflow_nodes_overige_watergangen = outflow_nodes_overige_watergangen[
+            ~outflow_nodes_overige_watergangen["downstream_order_no"].isnull()
+        ]
+
         self.outflow_nodes_overige_watergangen = (
-            self.outflow_nodes_overige_watergangen.drop(
+            outflow_nodes_overige_watergangen.drop(
                 columns=["downstream_edges", "downstream_order_no", "downstream_order_code"],
                 errors="ignore",
             ).merge(
@@ -787,7 +792,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                 how="left",
                 on="nodeID",
             )
-        )
+        ).drop(columns="index_right")
 
         edges = self.overige_watergangen_processed_3.merge(
             self.outflow_nodes_overige_watergangen[
@@ -798,7 +803,11 @@ class GeneratorOrderLevels(GeneratorBasis):
             right_on="nodeID",
         )
         edges = edges.sort_values("downstream_order_code").drop_duplicates(subset="geometry", keep="first")
-        
+
+        # filter out waterways with outflow_nodes without downstream_order_no
+        edges = edges[edges["downstream_order_no"] > 0]
+
+        # use order_no of downstream principal waterways
         edges["order_no"] = edges["downstream_order_no"].astype(int) + 1
         edges["order_code_no"] = (
             edges.groupby("downstream_order_code").cumcount().fillna(-1000).astype(int)
@@ -810,7 +819,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             + edges["order_code_no"].astype(str).str.zfill(4)
         )
         self.overige_watergangen_processed_4 = edges.copy()
-
+        
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
                 "outflow_edges",
@@ -888,8 +897,9 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         if "order_no" in self.edges.columns:
             edges = self.edges[self.edges["order_no"] > 1][
-                ["code", "order_no", "order_code", "geometry"]
-            ].sort_values("order_no", ascending=False)
+                ["code", "order_no", "order_code", "order_edge_no", "geometry"]
+            ].sort_values(["order_no", "order_edge_no"], ascending=[False, True])
+            edges_labels = edges.drop_duplicates(subset="order_code", keep="first")
 
             add_categorized_lines_to_map(
                 m=m,
@@ -903,8 +913,6 @@ class GeneratorOrderLevels(GeneratorBasis):
                 line_weight=5,
                 z_index=1,
             )
-
-            edges_labels = edges.drop_duplicates(subset="order_code", keep="first")
 
             if order_labels and "order_no" in self.edges.columns:
                 fg = folium.FeatureGroup(

@@ -171,18 +171,22 @@ class GeneratorDrainageUnits(GeneratorBasis):
         self.flow_direction_d8_fills = self.flow_direction_d8.where(self.ghg_fills>0.001).fillna(-1).astype(np.int32)
         self.flow_direction_d16_fills = change_flow_direction_d8_to_d16(self.flow_direction_d8_fills)
 
-        # add depth at location hydroobjects and other waterways (m)
-        logging.info("     - add depth at waterways")
-        if self.overige_watergangen_processed_4 is None:
-            self.all_waterways_0 = self.edges[["code", "geometry"]].reset_index(drop=True)
-        else:
+        logging.info("     - select waterways and add depth at waterways")
+        # combine all waterways and filter on order_no
+        edges = self.edges[["code", "order_no", "geometry"]].reset_index(drop=True)
+        # select only with order_no
+        edges = edges[edges["order_no"]>0]
+        self.all_waterways_0 = edges[["code", "geometry"]].reset_index(drop=True)
+        # do the same for the other waterways and combine
+        if self.overige_watergangen_processed_4 is not None:
             self.all_waterways_0 = pd.concat([
-                self.edges[["code", "geometry"]],
+                self.all_waterways_0,
                 self.overige_watergangen_processed_4[["code", "geometry"]]
             ]).reset_index(drop=True)
-        
-        logging.info("     - give each waterway an unique id")
+        # add depth
         self.all_waterways_0["depth_waterways"] = depth_waterways
+
+        logging.info("     - give each waterway an unique id")
         self.all_waterways_0["drainage_unit_id"] = self.all_waterways_0.index
         self.all_waterways_0["color_id"] = np.random.shuffle(np.arange(len(self.all_waterways_0)))
         self.all_waterways_0_buffer = self.all_waterways_0.copy()
@@ -498,8 +502,9 @@ class GeneratorDrainageUnits(GeneratorBasis):
 
         if "order_no" in self.edges.columns:
             edges = self.edges[self.edges["order_no"] > 1][
-                ["code", "order_no", "order_code", "geometry"]
-            ].sort_values("order_no", ascending=False)
+                ["code", "order_no", "order_code", "order_edge_no", "geometry"]
+            ].sort_values(["order_no", "order_edge_no"], ascending=[False, True])
+            edges_labels = edges.drop_duplicates(subset="order_code", keep="first")
 
             add_categorized_lines_to_map(
                 m=m,
@@ -522,10 +527,9 @@ class GeneratorDrainageUnits(GeneratorBasis):
                     show=False,
                 ).add_to(m)
 
+
                 add_labels_to_points_lines_polygons(
-                    gdf=self.edges[self.edges["order_no"] > 1][
-                        ["code", "order_code", "geometry"]
-                    ],
+                    gdf=edges_labels,
                     column="order_code",
                     label_fontsize=8,
                     label_decimals=0,
