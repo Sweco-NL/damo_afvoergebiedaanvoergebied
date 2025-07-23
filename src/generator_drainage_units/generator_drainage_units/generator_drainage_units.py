@@ -493,7 +493,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
         folium.GeoJson(
             self.hydroobjecten.geometry,
             name="AB-Watergangen",
-            color="blue",
+            color="black",
             weight=4,
             zoom_on_click=True,
             show=True,
@@ -511,7 +511,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 lines_gdf=edges,
                 layer_name="A/B Watergangen: orde-nummers",
                 control=True,
-                show=False,
+                show=True,
                 lines=True,
                 line_color_column="order_no",
                 line_color_cmap="hsv_r",
@@ -519,6 +519,22 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 line_weight=5,
                 z_index=1,
             )
+
+            if order_labels:
+                fg = folium.FeatureGroup(
+                    name=f"A/B Watergangen: orde-nummers (labels)",
+                    control=True,
+                    show=False,
+                ).add_to(m)
+
+
+                add_labels_to_points_lines_polygons(
+                    gdf=edges_labels,
+                    column="order_no",
+                    label_fontsize=8,
+                    label_decimals=0,
+                    fg=fg,
+                )
 
             if order_labels and "order_code" in self.edges.columns:
                 fg = folium.FeatureGroup(
@@ -567,7 +583,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 lines=True,
                 line_color_column="outflow_node",
                 line_color_cmap=None,
-                show=True,
+                show=False,
                 z_index=3,
             )
 
@@ -634,7 +650,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
                 vmax=int(self.drainage_units_0.data.max()),
                 legend=False,
                 opacity=1.0,
-                show=True,
+                show=False,
                 dx=dx,
                 dy=dy,
             )
