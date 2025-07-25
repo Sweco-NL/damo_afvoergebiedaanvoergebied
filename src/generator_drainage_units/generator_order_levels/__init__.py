@@ -8,11 +8,10 @@ from .generator_order_levels import GeneratorOrderLevels
 def run_generator_order_levels(
     path: Path,
     waterschap: str,
-    range_order_code_min: int,
-    range_order_code_max: int,
+    generate_new_outflow_nodes: bool = False,
     dir_basisdata: str = "0_basisdata",
     dir_results: str = "1_resultaat",
-    buffer_rws_water: float = 50.0,
+    search_range_outflow_nodes: float = 50.0,
     generate_order_no: bool = True,
     generate_order_code: bool = True,
     generate_order_code_sub_waterlines: bool = False,
@@ -29,8 +28,6 @@ def run_generator_order_levels(
         dir_basisdata=dir_basisdata,
         dir_results=dir_results,
         waterschap=waterschap,
-        range_order_code_min=range_order_code_min,
-        range_order_code_max=range_order_code_max,
         read_results=read_results,
         write_results=write_results,
     )
@@ -38,14 +35,18 @@ def run_generator_order_levels(
 
     if generate_order_no:
         order.create_graph_from_network(water_lines=water_lines)
-
         order.define_list_upstream_downstream_edges_ids()
-
         order.calculate_angles_of_edges_at_nodes()
-
         order.select_downstream_upstream_edges(min_difference_angle=20.0)
 
-        order.generate_rws_code_for_all_outflow_points(buffer_rws_water=buffer_rws_water)
+        if not generate_new_outflow_nodes and order.outflow_nodes is not None:
+            order.read_outflow_nodes_with_rws_code(
+                buffer_outflow_nodes=search_range_outflow_nodes
+            )
+        else:
+            order.generate_rws_code_for_outflow_points(
+                search_range_outflow_nodes=search_range_outflow_nodes
+            )
 
         order.generate_order_level_for_hydroobjects()
 
