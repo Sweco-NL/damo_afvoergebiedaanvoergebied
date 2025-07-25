@@ -15,12 +15,20 @@ from ..utils.folium_utils import (
     add_categorized_lines_to_map,
     add_labels_to_points_lines_polygons,
 )
+from ..assets import waterschappen_order_codes
 from ..utils.network_functions import (
     calculate_angles_of_edges_at_nodes,
     define_list_upstream_downstream_edges_ids,
     find_node_edge_ids_in_directed_graph,
     select_downstream_upstream_edges,
 )
+
+
+def get_dead_end_edges(edges):
+    """Finds edges that have dead ends, meaning they have no downstream edge."""
+    return edges[
+        ~edges.node_end.isin(edges.node_start.values)
+    ].copy()
 
 
 class GeneratorOrderLevels(GeneratorBasis):
@@ -33,8 +41,6 @@ class GeneratorOrderLevels(GeneratorBasis):
     dir_results: str | None = "1_resultaat"
 
     waterschap: str = None
-    range_order_code_min: int = None
-    range_order_code_max: int = None
 
     hydroobjecten: gpd.GeoDataFrame = None
     hydroobjecten_processed_0: gpd.GeoDataFrame = None
@@ -145,7 +151,7 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         Returns
         -------
-        self.nodes: gpd.GeoDataFrame
+        gpd.GeoDataFrame: self.nodes
             Geodataframe containing nodes between waterlines, including the selected upstream and downstream angles
         """
         logging.info("   x find downstream upstream edges")
@@ -154,12 +160,63 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
         return self.nodes
 
-    def generate_rws_code_for_all_outflow_points(self, buffer_rws_water=10.0):
+
+    def read_outflow_nodes_with_rws_code(self, outflow_nodes=None, buffer_outflow_nodes=50.0):
+        """Uses the outflow_nodes from the basisdata directory to search for closest outflow points of 
+        waterways. Only waterways outflow points within a certain distance (buffer_outflow_nodes) are used.
+
+        Args:
+            outflow_nodes (gpd.GeoDataFrame): 
+                outflow_nodes locations with columns: rws_code, rws_code_no, order_code, order_no
+            buffer_outflow_nodes (float, optional): 
+                maximum distance from node to waterway outflow point. Defaults to 50.0.
+
+        Returns:
+            gpd.GeoDataFrame: outflow_edges 
+            gpd.GeoDataFrame: outflow_nodes
+        """
+        if outflow_nodes is not None:
+            self.outflow_nodes = outflow_nodes
+
+        logging.info("   x find final end nodes hydroobjects (dead ends)")
+        # get dead end nodes
+        dead_end_edges = get_dead_end_edges(self.edges)
+        dead_end_edges = dead_end_edges.rename(columns={"code": "edge_code"})
+
+        dead_end_nodes = dead_end_edges.copy()
+        dead_end_nodes.geometry = dead_end_nodes.geometry.apply(lambda x: Point(x.coords[-1]))
+
+        # For each point, find the closest endpoint
+        def closest_point(base_point, points):
+            distances = points.geometry.distance(base_point)
+            points.loc[:, "distance"] = distances
+            return points.loc[distances.idxmin()]
+
+        logging.info("   x get dead ends (nodes/edges) closest to outflow_nodes")
+        dead_end_nodes["distance"] = 0.0
+        self.outflow_nodes[["edge_code", "node_end", "distance", "geometry"]] = self.outflow_nodes.geometry.apply(
+            lambda x: closest_point(x, dead_end_nodes[["edge_code", "node_end", "distance", "geometry"]])
+        )
+        if self.outflow_nodes["distance"].max() > buffer_outflow_nodes:
+            no_outflow_nodes = self.outflow_nodes.loc[
+                self.outflow_nodes["distance"]>buffer_outflow_nodes, 
+                "order_code"
+            ].values
+            logging.info(f"   x no dead ends close to outflow_nodes {no_outflow_nodes}")
+            self.outflow_nodes = self.outflow_nodes[self.outflow_nodes["distance"] <= buffer_outflow_nodes]
+
+        self.outflow_edges = self.edges[["node_end", "geometry"]].merge(
+            self.outflow_nodes.drop(columns=["geometry"]),
+        )
+        return self.outflow_edges, self.outflow_nodes
+
+
+    def generate_rws_code_for_outflow_points(self, search_range_outflow_nodes=50.0):
         """Generates an RWS code for al outflow points into rws water bodies. These are the points where the water flows out of the management area of the water board and therefore the start of the orde codes of the edges.
 
         Parameters
         ----------
-        buffer_rws_water : float, optional
+        search_range_outflow_nodes : float, optional
             buffers around the RWS water polygons, ensures that outflow points intersect with the RWS water, by default 10.0
 
         Returns
@@ -167,63 +224,74 @@ class GeneratorOrderLevels(GeneratorBasis):
         self.outflow_edges: gpd.GeoDataFrame
             Geodataframe containing the outflow edges into the RWS waters
         """
-        # Copy hydroobject data to new variable 'hydroobjects' and make dataframes with start and end nodes
-        logging.info("   x find start and end nodes hydroobjects")
+        logging.info("   x find final end nodes hydroobjects (dead ends)")
+        dead_end_edges = get_dead_end_edges(self.edges)
+        dead_end_edges = dead_end_edges[["code", "node_end", "geometry"]]
+        dead_end_edges = dead_end_edges.rename(columns={"code": "edge_code"})
 
-        dead_end_edges = self.edges[
-            ~self.edges.node_end.isin(self.edges.node_start.values)
-        ].copy()
-        dead_end_edges["nodeID"] = dead_end_edges["node_end"]
-        dead_end_edges = dead_end_edges[["code", "nodeID", "geometry"]].rename(
-            columns={"code": "edge_code"}
-        )
-
-        logging.info("   x generating order code for all outflow points")
-        rws_wateren = self.rws_wateren.copy()
-        rws_wateren.geometry = rws_wateren.geometry.buffer(buffer_rws_water)
+        logging.info("   x generating order code for all outflow edges")
+        rws_wateren_buffer = self.rws_wateren[["geometry", "rws_code"]].copy()
+        rws_wateren_buffer.geometry = rws_wateren_buffer.buffer(search_range_outflow_nodes)
 
         outflow_edges = (
-            dead_end_edges.sjoin(rws_wateren[["geometry", "rws_code"]])
+            dead_end_edges.sjoin(rws_wateren_buffer)
             .drop(columns="index_right")
             .reset_index(drop=True)
         )
 
+        # Check waterschap name is right and then get rws_order_code range (min/max)
+        def get_rws_order_code_no(waterschap):
+            if waterschap is None or waterschap not in waterschappen_order_codes["Waterschap"].values:
+                logging.error("  x Waterschap is not set, cannot generate outflow points. use waterschap=")
+                for waterschap in waterschappen_order_codes["Waterschap"].values:
+                    logging.error(f"    - {waterschap}")
+                raise ValueError("Waterschap is not set or not valid.")
+            
+            rws_order_code_min = waterschappen_order_codes.set_index("Waterschap").loc[
+                waterschap, "order_code_min"
+            ]
+            rws_order_code_max = waterschappen_order_codes.set_index("Waterschap").loc[
+                waterschap, "order_code_max"
+            ]
+            return rws_order_code_min, rws_order_code_max
+
+        rws_order_code_min, rws_order_code_max = get_rws_order_code_no(self.waterschap)
         outflow_edges_all_waters = None
         for rws_code in outflow_edges.rws_code.unique():
-            outflows = outflow_edges[outflow_edges.rws_code == rws_code].reset_index(
+            outflows = outflow_edges[outflow_edges.rws_code==rws_code].reset_index(
                 drop=True
-            )
-            outflows["rws_code_no"] = self.range_order_code_min + outflows.index
+            ).copy()
+            outflows["rws_code_no"] = rws_order_code_min + outflows.index
             outflows["order_code"] = outflows.apply(
                 lambda x: f"{x.rws_code}.{str(x.rws_code_no)}", axis=1
             )
-            if outflows["rws_code_no"].max() > self.range_order_code_max:
+            if outflows["rws_code_no"].max() > rws_order_code_max:
                 logging_message = f" XXX aantal uitstroompunten op RWS-water ({rws_code}) hoger dan range order_code waterschap"
                 logging.info(logging_message)
 
             if outflow_edges_all_waters is None:
                 outflow_edges_all_waters = outflows.copy()
             else:
-                outflow_edges_all_waters = pd.concat(
-                    [outflow_edges_all_waters, outflows]
-                )
+                outflow_edges_all_waters = pd.concat([outflow_edges_all_waters, outflows])
             logging_message = (
                 f"     - RWS-water ({rws_code}): {len(outflows)} outflow_points"
             )
             logging.info(logging_message)
 
-        logging_message = f"     - total no. outflow_point on outside waters for {self.name}: {len(outflow_edges_all_waters)}"
-        logging.info(logging_message)
+        logging.info(
+            f"     - total no. outflow_point on outside waters for {self.name}: {len(outflow_edges_all_waters)}"
+        )
 
-        self.outflow_edges = outflow_edges_all_waters.rename(
-            columns={"nodeID": "node_end"}
-        ).reset_index(drop=True)
+        # set outflow_edges and set order_no to 2        
+        self.outflow_edges = outflow_edges_all_waters.reset_index(drop=True)
         self.outflow_edges["order_no"] = 2
+
+        # get outflow nodes from outflow edges
         self.outflow_nodes = self.outflow_edges.copy()
-        self.outflow_nodes["geometry"] = self.outflow_nodes["geometry"].apply(
+        self.outflow_nodes.geometry = self.outflow_nodes.geometry.apply(
             lambda x: Point(x.coords[-1])
         )
-        return self.outflow_edges
+        return self.outflow_edges, self.outflow_nodes
 
 
     def generate_order_level_for_hydroobjects(self):
@@ -743,6 +811,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         if self.outflow_nodes_overige_watergangen is None:
             return None, None
         
+        logging.info(f"     - coupling overige watergangen to outflow_nodes")
         outflow_nodes_overige_watergangen = self.outflow_nodes_overige_watergangen[
             ["nodeID", "geometry"]
         ].sjoin(
@@ -777,6 +846,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         outflow_nodes = outflow_nodes.groupby("nodeID").first().reset_index()
 
         # filter out outflow_nodes without downstream_order_no
+        logging.info(f"     - filter overige watergangen without downstream order no")
         outflow_nodes_overige_watergangen = outflow_nodes_overige_watergangen[
             ~outflow_nodes_overige_watergangen["downstream_order_no"].isnull()
         ]
@@ -819,6 +889,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             + edges["order_code_no"].astype(str).str.zfill(4)
         )
         self.overige_watergangen_processed_4 = edges.copy()
+        logging.info(f"     - overige watergangen with order code: {len(self.overige_watergangen_processed_4)}")
         
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
@@ -896,10 +967,12 @@ class GeneratorOrderLevels(GeneratorBasis):
         ).add_to(m)
 
         if "order_no" in self.edges.columns:
-            edges = self.edges[self.edges["order_no"] > 1][
-                ["code", "order_no", "order_code", "order_edge_no", "geometry"]
+            edges = self.edges[
+                self.edges["order_no"] > 1
             ].sort_values(["order_no", "order_edge_no"], ascending=[False, True])
-            edges_labels = edges.drop_duplicates(subset="order_code", keep="first")
+            edges_labels = edges.copy()
+            if "order_code" in edges_labels.columns:
+                edges_labels = edges_labels.drop_duplicates(subset="order_code", keep="first")
 
             add_categorized_lines_to_map(
                 m=m,
