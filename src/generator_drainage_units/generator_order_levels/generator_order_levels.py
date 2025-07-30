@@ -10,11 +10,8 @@ from shapely.geometry import Point
 
 from ..generator_basis import GeneratorBasis
 from ..utils.create_graph import create_graph_from_edges
-from ..utils.folium_utils import (
-    add_basemaps_to_folium_map,
-    add_categorized_lines_to_map,
-    add_labels_to_points_lines_polygons,
-)
+from ..utils.folium_map import generate_folium_map
+
 from ..assets import waterschappen_order_codes
 from ..utils.network_functions import (
     calculate_angles_of_edges_at_nodes,
@@ -22,13 +19,6 @@ from ..utils.network_functions import (
     find_node_edge_ids_in_directed_graph,
     select_downstream_upstream_edges,
 )
-
-
-def get_dead_end_edges(edges):
-    """Finds edges that have dead ends, meaning they have no downstream edge."""
-    return edges[
-        ~edges.node_end.isin(edges.node_start.values)
-    ].copy()
 
 
 class GeneratorOrderLevels(GeneratorBasis):
@@ -180,7 +170,9 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         logging.info("   x find final end nodes hydroobjects (dead ends)")
         # get dead end nodes
-        dead_end_edges = get_dead_end_edges(self.edges)
+        dead_end_edges = self.edges[
+            ~self.edges.node_end.isin(self.edges.node_start.values)
+        ].copy()
         dead_end_edges = dead_end_edges.rename(columns={"code": "edge_code"})
 
         dead_end_nodes = dead_end_edges.copy()
@@ -225,7 +217,9 @@ class GeneratorOrderLevels(GeneratorBasis):
             Geodataframe containing the outflow edges into the RWS waters
         """
         logging.info("   x find final end nodes hydroobjects (dead ends)")
-        dead_end_edges = get_dead_end_edges(self.edges)
+        dead_end_edges = self.edges[
+            ~self.edges.node_end.isin(self.edges.node_start.values)
+        ].copy()
         dead_end_edges = dead_end_edges[["code", "node_end", "geometry"]]
         dead_end_edges = dead_end_edges.rename(columns={"code": "edge_code"})
 
@@ -300,7 +294,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         The order level will keeping increasing until the complete network has an order level.
         """
         logging.info(f"   x generate order levels for hydroobjects")
-        # self.outflow_edges = self.outflow_edges[self.outflow_edges["order_no"]==2].copy()
+        outflow_edges_orders = self.outflow_edges.copy()
 
         edges_left = self.edges.copy()  # .drop(columns=["order_edge_no"]).copy()
         nodes_left = self.nodes.copy()  # .drop(columns=["order_node_no"]).copy()
@@ -309,25 +303,24 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         edges_all_orders = None
         nodes_all_orders = None
-        outflow_edges_orders = self.outflow_edges[
-            self.outflow_edges["order_no"] == 2
-        ].copy()
-        new_outflow_edges_order = outflow_edges_orders.copy()
-        new_outflow_edges_order = new_outflow_edges_order.rename(
-            columns={"nodeID": "node_end"}
-        )
+        
+        while order_no < 100:
+            outflow_edges_order = outflow_edges_orders[
+                outflow_edges_orders["order_no"] == order_no
+            ].copy()
 
-        while not new_outflow_edges_order.empty and order_no < 100:
+            if outflow_edges_order.empty:
+                break
             logging_message = (
-                f"     - order {order_no}: {len(new_outflow_edges_order)} outflow edges"
+                f"     - order {order_no}: {len(outflow_edges_order)} outflow edges"
             )
             logging.info(logging_message)
-            outflow_edges = new_outflow_edges_order.copy()
-            new_outflow_edges_order = None
             outflow_edges_edges = None
             outflow_edges_nodes = None
 
-            for i_edge, outflow_edge in outflow_edges.reset_index(drop=True).iterrows():
+            new_outflow_edges_order = None
+
+            for i_edge, outflow_edge in outflow_edges_order.reset_index(drop=True).iterrows():
                 # logging.info(f"      * {i_node+1}/{len(outflow_edges)}")
                 outflow_edge_nodes_id, outflow_edge_edges_code, new_outflow_edges = (
                     find_node_edge_ids_in_directed_graph(
@@ -413,49 +406,53 @@ class GeneratorOrderLevels(GeneratorBasis):
                 new_outflow_edges["order_code"] = outflow_edge["order_code"]
                 new_outflow_edges["order_no"] = order_no + 1
 
-                if new_outflow_edges_order is not None:
-                    new_outflow_edges = new_outflow_edges[
-                        ~new_outflow_edges.edge_code.isin(
-                            list(new_outflow_edges_order.edge_code.unique())
-                        )
-                    ]
-                if outflow_edges_orders is not None:
-                    new_outflow_edges = new_outflow_edges[
-                        ~new_outflow_edges.edge_code.isin(
-                            list(outflow_edges_orders.edge_code.unique())
-                        )
-                    ]
-
                 if new_outflow_edges_order is None:
                     new_outflow_edges_order = new_outflow_edges.copy()
                 else:
                     new_outflow_edges_order = pd.concat(
-                        [new_outflow_edges_order, new_outflow_edges]
+                        [
+                            new_outflow_edges_order, 
+                            new_outflow_edges,
+                        ]
                     )
-
+            
+            # collect all edges with associated order code
             edges_order = outflow_edges_edges.copy()
-            edges_left = edges_left[~edges_left["code"].isin(edges_order.code)].copy()
-
-            nodes_order = outflow_edges_nodes.copy()
-            nodes_left = nodes_left[
-                (nodes_left["nodeID"].isin(edges_left.node_start))
-                | (nodes_left["nodeID"].isin(edges_left.node_end))
-            ].copy()
-
             if edges_all_orders is None:
                 edges_all_orders = edges_order.copy()
             else:
                 edges_all_orders = pd.concat([edges_all_orders, edges_order])
+
+            # collect all nodes with associated order code
+            nodes_order = outflow_edges_nodes.copy()
             if nodes_all_orders is None:
                 nodes_all_orders = nodes_order.copy()
             else:
                 nodes_all_orders = pd.concat([nodes_all_orders, nodes_order])
 
+            # find all edges not yet linked to an order
+            edges_left = edges_left[
+                ~edges_left["code"].isin(edges_order.code)
+            ].copy()
+            nodes_left = nodes_left[
+                (nodes_left["nodeID"].isin(edges_left.node_start))
+                | (nodes_left["nodeID"].isin(edges_left.node_end))
+            ].copy()
+            
+            # filter 
+            new_outflow_edges_order = new_outflow_edges_order[
+                ~new_outflow_edges_order.edge_code.isin(edges_all_orders.code)
+            ]
+
+            # get all outflow edges for all orders.
             if outflow_edges_orders is None:
                 outflow_edges_orders = new_outflow_edges_order.copy()
             else:
                 outflow_edges_orders = pd.concat(
-                    [outflow_edges_orders, new_outflow_edges_order]
+                    [
+                        outflow_edges_orders, 
+                        new_outflow_edges_order,
+                    ]
                 )
 
             order_no = order_no + 1
@@ -545,20 +542,22 @@ class GeneratorOrderLevels(GeneratorBasis):
         for order_no in [
             order_no for order_no in edges.order_no.unique() if order_no > 0
         ]:
-            # get edges from this order
+            # get edges from this order and next order
             edges_order = edges[edges.order_no == order_no].copy()
-            # get edges from next order
             edges_next_order = edges[edges.order_no == order_no + 1].copy()
+            edges_next_order = edges_next_order[["code", "node_end"]].rename(
+                columns={"code": "edge_codes", "node_end": "node_end2"}
+            )
+
             # find where edges from next order are entering this order
             edges_order = edges_order.merge(
-                edges_next_order[["code", "node_end"]].rename(
-                    columns={"code": "edge_codes", "node_end": "node_end2"}
-                ),
+                edges_next_order,
                 how="left",
                 left_on="node_start",
                 right_on="node_end2",
             ).drop(columns="node_end2")
-            # sort and get inflow edges from next order
+
+            # sort and get inflow edges from next order (aggregate to list)
             sort_columns = [
                 "rws_code",
                 "rws_code_no",
@@ -583,25 +582,28 @@ class GeneratorOrderLevels(GeneratorBasis):
                 edges_orders = edges_order.copy()
             else:
                 edges_orders = pd.concat([edges_orders, edges_order]).copy()
-
+        
+        # remove nan from list in case of no inflow_edge from next order
         edges_orders["edge_codes"] = edges_orders["edge_codes"].apply(
             lambda x: [s for s in x if isinstance(s, str)]
         )
+        # get number of inflow_edges from next order
         edges_orders["no_edge_codes"] = edges_orders["edge_codes"].apply(
             lambda x: len(x)
         )
-
         edges_orders = gpd.GeoDataFrame(
             edges_orders, geometry="geometry", crs=28992
         ).reset_index(drop=True)
 
+        # Generate order codes
         edges_outflow_edges = None
         edges_outflow_edges_all = None
 
         logging.info(f"     - generate order code: per order")
-        for order_no in [
+
+        for order_no in sorted([
             order_no for order_no in edges.order_no.unique() if order_no > 0
-        ]:
+        ]):
             order_outflow_edges = self.outflow_edges[
                 self.outflow_edges.order_no == order_no
             ]
@@ -611,95 +613,100 @@ class GeneratorOrderLevels(GeneratorBasis):
             logging.info(logging_message)
 
             if edges_outflow_edges is not None:
-                new_outflow_edge = edges_outflow_edges[
-                    [
-                        "code",
-                        "edge_codes",
-                        "order_no",
-                        "no_edge_codes",
-                        "order_code_no",
-                        "order_code",
-                    ]
+                # get from existing edges (lower order) the new outflow edges
+                new_outflow_edge = edges_outflow_edges.loc[
+                    (edges_outflow_edges["no_edge_codes"] > 0) & 
+                    (edges_outflow_edges["order_no"] > 0)
                 ].copy()
+                new_outflow_edge = new_outflow_edge[[
+                    "code", "edge_codes", "order_no", "no_edge_codes", "order_code_no", "order_code"
+                ]]
                 new_outflow_edge = new_outflow_edge.rename(
                     columns={"edge_codes": "edge_code"}
                 )
                 new_outflow_edge = new_outflow_edge.explode(column="edge_code")
-                new_outflow_edge = new_outflow_edge.loc[
-                    (new_outflow_edge["no_edge_codes"] > 0)
-                    & (new_outflow_edge["order_no"] > 0)
-                ]
-                order_outflow_edges = order_outflow_edges.drop(
+                
+                # check for new outflow_edges for system:
+                old_order_outflow_edges = order_outflow_edges[~order_outflow_edges["distance"].isna()].copy()
+                old_order_outflow_edges["order_code_no"] = 1
+                
+                # outflow_edges to lower order:
+                new_order_outflow_edges = order_outflow_edges[order_outflow_edges["distance"].isna()].copy()
+                new_order_outflow_edges = new_order_outflow_edges.drop(
                     columns="order_code"
                 ).merge(
-                    new_outflow_edge[["edge_code", "order_code"]],
+                    new_outflow_edge[["edge_code", "order_code", "order_code_no"]],
                     how="left",
                     on="edge_code",
                 )
-                loc_order_code_nan = order_outflow_edges["order_code"].isna()
 
-                order_outflow_edges["order_code_no"] = -999
-                order_outflow_edges.loc[~loc_order_code_nan, "order_code_no"] = (
-                    order_outflow_edges.loc[~loc_order_code_nan, "order_code"]
-                    .str[-3:]
-                    .astype(int)
+                loc_order_code_nan = new_order_outflow_edges["order_code"].isna()
+                new_order_outflow_edges.loc[loc_order_code_nan, "order_code_no"] = -999
+                new_order_outflow_edges.loc[~loc_order_code_nan, "order_code_no"] = (
+                    new_order_outflow_edges.loc[~loc_order_code_nan, "order_code_no"] + 1
                 )
-                order_outflow_edges.loc[~loc_order_code_nan, "order_code_no"] = (
-                    order_outflow_edges.loc[~loc_order_code_nan, "order_code_no"] + 1
+                new_order_outflow_edges.loc[~loc_order_code_nan, "order_code"] = (
+                    new_order_outflow_edges.loc[~loc_order_code_nan, "order_code"].str[:-4]
                 )
-                order_outflow_edges.loc[~loc_order_code_nan, "order_code"] = (
-                    order_outflow_edges.loc[~loc_order_code_nan, "order_code"].str[:-4]
-                )
-                edges_duplicates = order_outflow_edges[
+
+                edges_duplicates = new_order_outflow_edges[
                     ["node_end", "order_code_no"]
                 ].duplicated()
 
                 while edges_duplicates.sum() > 0:
-                    order_outflow_edges["order_code_no"] = order_outflow_edges[
+                    new_order_outflow_edges["order_code_no"] = new_order_outflow_edges[
                         "order_code_no"
                     ] + edges_duplicates.astype(int)
-                    edges_duplicates = order_outflow_edges[
+                    edges_duplicates = new_order_outflow_edges[
                         ["node_end", "order_code_no"]
                     ].duplicated()
 
-                order_outflow_edges["order_code"] = (
-                    order_outflow_edges["order_code"]
+                new_order_outflow_edges["order_code"] = (
+                    new_order_outflow_edges["order_code"]
                     + "."
-                    + order_outflow_edges["order_code_no"].astype(str).str.zfill(3)
+                    + new_order_outflow_edges["order_code_no"].astype(str).str.zfill(3)
                 )
 
+                order_outflow_edges = pd.concat([
+                    old_order_outflow_edges,
+                    new_order_outflow_edges
+                ])
+
+            # Get edges from order x
             edges_outflow_edges = edges_orders[
                 edges_orders["order_no"] == order_no
             ].copy()
-
-            edges_outflow_edges["order_code_no"] = 0
-
             edges_outflow_edges["order_code_no"] = edges_outflow_edges["no_edge_codes"]
+            
             if order_for_each_edge:
+                # in case of new ordercode for each edge give all a number 1 (+ no_inflow_edges)
                 edges_outflow_edges["order_code_no"] = (
                     edges_outflow_edges["order_code_no"] + 1
                 )
             else:
+                # in case of not a new ordercode for each edge 
+                # give all a number 0 and a 1 at location of inflow_edges (+number of inflow_edges)
                 edges_outflow_edges.loc[
                     edges_outflow_edges["order_code_no"] > 0, "order_code_no"
-                ] = (
-                    edges_outflow_edges.loc[
-                        edges_outflow_edges["order_code_no"] > 0, "order_code_no"
-                    ]
-                    + 1
-                )
-            edges_outflow_edges.loc[
-                edges_outflow_edges["code"].isin(order_outflow_edges["edge_code"]),
-                "order_code_no",
-            ] = 1
+                ] = edges_outflow_edges.loc[
+                    edges_outflow_edges["order_code_no"] > 0, "order_code_no"
+                ] + 1
+            
+            # give all outflow_edges should a number 1
+            # edges_outflow_edges.loc[
+            #     edges_outflow_edges["code"].isin(order_outflow_edges["edge_code"]),
+            #     "order_code_no",
+            # ] = 1
             edges_outflow_edges["order_code"] = None
 
+            # Loop through all outflow_edges
             for i_outflow_edge, outflow_edge in order_outflow_edges.iterrows():
-                # print(f"{i_outflow_edge} / {len(order_outflow_edges)}", end="\r")
+                # get all edges with this outflow_edge
                 loc_edges_outflow_edge = (
                     edges_outflow_edges.outflow_edge == outflow_edge.edge_code
                 )
                 if order_for_each_edge:
+                    # shift 1, fillna with 1 and cumsum to get order_code_no
                     edges_outflow_edges.loc[loc_edges_outflow_edge, "order_code_no"] = (
                         edges_outflow_edges.loc[loc_edges_outflow_edge, "order_code_no"]
                         .shift(1)
@@ -707,26 +714,29 @@ class GeneratorOrderLevels(GeneratorBasis):
                         .cumsum()
                     )
                 else:
+                    # shift 1, fillna with 0 and cumsum to get order_code_no
                     edges_outflow_edges.loc[loc_edges_outflow_edge, "order_code_no"] = (
                         edges_outflow_edges.loc[loc_edges_outflow_edge, "order_code_no"]
                         .shift(1)
-                        .fillna(0)
+                        .fillna(1)
                         .cumsum()
                     )
-                    edges_outflow_edges.loc[
-                        edges_outflow_edges.code == edges_outflow_edges.outflow_edge,
-                        "order_code_no",
-                    ] = 1
+                    # edges_outflow_edges.loc[
+                    #     edges_outflow_edges.code == edges_outflow_edges.outflow_edge,
+                    #     "order_code_no",
+                    # ] = 1
+                
+                # give all edges the order code of the outflow_edge
                 edges_outflow_edges.loc[loc_edges_outflow_edge, "order_code"] = (
                     outflow_edge["order_code"]
                 )
 
+            # add order_code_no to order_code - str with zfill(3)
             edges_outflow_edges["order_code"] = (
                 edges_outflow_edges["order_code"]
                 + "."
                 + edges_outflow_edges["order_code_no"].astype(str).str.zfill(3)
             )
-
             if edges_outflow_edges_all is None:
                 edges_outflow_edges_all = edges_outflow_edges.copy()
             else:
@@ -812,6 +822,7 @@ class GeneratorOrderLevels(GeneratorBasis):
             return None, None
         
         logging.info(f"     - coupling overige watergangen to outflow_nodes")
+        
         outflow_nodes_overige_watergangen = self.outflow_nodes_overige_watergangen[
             ["nodeID", "geometry"]
         ].sjoin(
@@ -864,32 +875,33 @@ class GeneratorOrderLevels(GeneratorBasis):
             )
         ).drop(columns="index_right")
 
-        edges = self.overige_watergangen_processed_3.merge(
-            self.outflow_nodes_overige_watergangen[
-                ["nodeID", "downstream_edges", "downstream_order_no", "downstream_order_code"]
-            ],
-            how="left",
-            left_on="outflow_node",
-            right_on="nodeID",
-        )
-        edges = edges.sort_values("downstream_order_code").drop_duplicates(subset="geometry", keep="first")
+        if self.overige_watergangen_processed_3 is not None:
+            edges = self.overige_watergangen_processed_3.merge(
+                self.outflow_nodes_overige_watergangen[
+                    ["nodeID", "downstream_edges", "downstream_order_no", "downstream_order_code"]
+                ],
+                how="left",
+                left_on="outflow_node",
+                right_on="nodeID",
+            )
+            edges = edges.sort_values("downstream_order_code").drop_duplicates(subset="geometry", keep="first")
 
-        # filter out waterways with outflow_nodes without downstream_order_no
-        edges = edges[edges["downstream_order_no"] > 0]
+            # filter out waterways with outflow_nodes without downstream_order_no
+            edges = edges[edges["downstream_order_no"] > 0]
 
-        # use order_no of downstream principal waterways
-        edges["order_no"] = edges["downstream_order_no"].astype(int) + 1
-        edges["order_code_no"] = (
-            edges.groupby("downstream_order_code").cumcount().fillna(-1000).astype(int)
-            + 1
-        )
-        edges["order_code"] = (
-            edges["downstream_order_code"]
-            + "-X"
-            + edges["order_code_no"].astype(str).str.zfill(4)
-        )
-        self.overige_watergangen_processed_4 = edges.copy()
-        logging.info(f"     - overige watergangen with order code: {len(self.overige_watergangen_processed_4)}")
+            # use order_no of downstream principal waterways
+            edges["order_no"] = edges["downstream_order_no"].astype(int) + 1
+            edges["order_code_no"] = (
+                edges.groupby("downstream_order_code").cumcount().fillna(-1000).astype(int)
+                + 1
+            )
+            edges["order_code"] = (
+                edges["downstream_order_code"]
+                + "-X"
+                + edges["order_code_no"].astype(str).str.zfill(4)
+            )
+            self.overige_watergangen_processed_4 = edges.copy()
+            logging.info(f"     - overige watergangen with order code: {len(self.overige_watergangen_processed_4)}")
         
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
@@ -904,213 +916,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
 
 
-    def generate_folium_map(
-        self,
-        html_file_name: str = None,
-        include_areas: bool = True,
-        width_edges: float = 10.0,
-        opacity_edges: float = 0.5,
-        open_html: bool = False,
-        base_map: str = "Light Mode",
-        order_labels: bool = True,
-    ):
-        """Generate folium maps to display the results of the order level generator
-
-        Parameters
-        ----------
-        html_file_name : str, optional
-            _description_, by default None
-        include_areas : bool, optional
-            _description_, by default True
-        width_edges : float, optional
-            _description_, by default 10.0
-        opacity_edges : float, optional
-            _description_, by default 0.5
-        open_html : bool, optional
-            _description_, by default False
-        base_map : str, optional
-            _description_, by default "Light Mode"
-        order_labels : bool, optional
-            _description_, by default True
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-        # Make figure
-        outflow_nodes_4326 = self.outflow_nodes.to_crs(4326)
-
-        m = folium.Map(
-            location=[
-                outflow_nodes_4326.geometry.y.mean(),
-                outflow_nodes_4326.geometry.x.mean(),
-            ],
-            zoom_start=12,
-            tiles=None,
-        )
-
-        folium.GeoJson(
-            self.rws_wateren.geometry,
-            name="RWS_Wateren",
-            z_index=0,
-        ).add_to(m)
-
-        folium.GeoJson(
-            self.hydroobjecten.geometry,
-            name="AB-Watergangen",
-            color="black",
-            fill_color="black",
-            zoom_on_click=True,
-            show=True,
-            z_index=2,
-        ).add_to(m)
-
-        if "order_no" in self.edges.columns:
-            edges = self.edges[
-                self.edges["order_no"] > 1
-            ].sort_values(["order_no", "order_edge_no"], ascending=[False, True])
-            edges_labels = edges.copy()
-            if "order_code" in edges_labels.columns:
-                edges_labels = edges_labels.drop_duplicates(subset="order_code", keep="first")
-
-            add_categorized_lines_to_map(
-                m=m,
-                lines_gdf=edges,
-                layer_name="AB-watergangen - Orde-nummer",
-                control=True,
-                lines=True,
-                line_color_column="order_no",
-                line_color_cmap="hsv_r",
-                label=False,
-                line_weight=5,
-                z_index=1,
-            )
-
-            if order_labels and "order_no" in self.edges.columns:
-                fg = folium.FeatureGroup(
-                    name=f"AB-watergangen - Orde-nummer (labels)",
-                    control=True,
-                    show=False,
-                ).add_to(m)
-
-                add_labels_to_points_lines_polygons(
-                    gdf=edges_labels,
-                    column="order_no",
-                    label_fontsize=8,
-                    label_decimals=0,
-                    fg=fg,
-                )
-
-            if order_labels and "order_code" in self.edges.columns:
-                fg = folium.FeatureGroup(
-                    name=f"AB-watergangen - Orde-code (labels)",
-                    control=True,
-                    show=False,
-                ).add_to(m)
-
-                add_labels_to_points_lines_polygons(
-                    gdf=edges_labels,
-                    column="order_code",
-                    label_fontsize=8,
-                    center=True,
-                    fg=fg,
-                )
-
-        fg = folium.FeatureGroup(
-            name=f"Uitstroompunten in RWS-water", control=True
-        ).add_to(m)
-
-        folium.GeoJson(
-            self.outflow_nodes[self.outflow_nodes["order_no"] == 2],
-            name="Uitstroompunten RWS-wateren",
-            marker=folium.Circle(
-                radius=25, fill_color="red", fill_opacity=0.4, color="red", weight=3
-            ),
-            highlight_function=lambda x: {"fillOpacity": 0.8},
-            zoom_on_click=True,
-            z_index=3,
-        ).add_to(fg)
-
-        add_labels_to_points_lines_polygons(
-            gdf=self.outflow_nodes[self.outflow_nodes["order_no"] == 2],
-            column="order_code",
-            label_fontsize=8,
-            fg=fg,
-        )
-
-        if self.outflow_nodes_overige_watergangen is not None:
-            outflow_nodes_overige_watergangen = (
-                self.outflow_nodes_overige_watergangen.sjoin(
-                    self.nodes.drop(columns=["x", "y", "nodeID"]), how="left"
-                )
-            )
-            folium.GeoJson(
-                outflow_nodes_overige_watergangen.geometry,
-                name="C-watergangen - Uitstroompunten",
-                marker=folium.Circle(
-                    radius=3,
-                    fill_color="orange",
-                    fill_opacity=0.8,
-                    color="black",
-                    weight=3,
-                ),
-                show=False,
-                highlight_function=lambda x: {"fillOpacity": 0.8},
-                zoom_on_click=True,
-                z_index=2,
-            ).add_to(m)
-
-        if (
-            self.overige_watergangen_processed_4 is not None
-            and "outflow_node" in self.overige_watergangen_processed_4.columns
-        ):
-            add_categorized_lines_to_map(
-                m=m,
-                lines_gdf=self.overige_watergangen_processed_4[
-                    ["outflow_node", "geometry"]
-                ],
-                layer_name=f"C-Watergangen - Gegroepeerd per uitstroompunt",
-                control=True,
-                lines=True,
-                line_color_column="outflow_node",
-                line_color_cmap=None,
-                show=False,
-                z_index=1,
-            )
-
-            if order_labels and "order_code" in self.overige_watergangen_processed_4:
-                fg = folium.FeatureGroup(
-                    name=f"C-Watergangen - Orde-codering",
-                    control=True,
-                    show=False,
-                    z_index=2,
-                ).add_to(m)
-
-                add_labels_to_points_lines_polygons(
-                    gdf=self.overige_watergangen_processed_4,
-                    column="order_code",
-                    label_fontsize=7,
-                    label_decimals=0,
-                    center=True,
-                    fg=fg,
-                )
-
-        m = add_basemaps_to_folium_map(m=m, base_map=base_map)
-
-        folium.LayerControl(collapsed=False).add_to(m)
-        m.add_child(folium.plugins.MeasureControl())
-
-        self.folium_map = m
-
-        if html_file_name is None:
+    def generate_folium_map(self, html_file_name:str="", **kwargs):
+        if html_file_name == "":
             html_file_name = self.name + "_order_code"
-
-        self.folium_html_path = Path(self.path, f"{html_file_name}.html")
-        m.save(self.folium_html_path)
-
-        logging.info(f"   x html file saved: {html_file_name}.html")
-
-        if open_html:
-            webbrowser.open(Path(self.path, f"{html_file_name}.html"))
-        return m
+        generate_folium_map(self, html_file_name=html_file_name, **kwargs)

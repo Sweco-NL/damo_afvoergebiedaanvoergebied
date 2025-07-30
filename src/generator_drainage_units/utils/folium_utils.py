@@ -789,7 +789,6 @@ def add_graduated_raster_to_map(
             * legend_location: locatie van de legenda, bottom of top
             * legend_reverse: True als je de legenda andersom wil weergeven (laagste waarde boven, hoogste onder)
     Output = swecoleaflet"""
-    print(f" - raster: add raster {str(layer_name)}")
     fg, fgs = check_map_exists_and_feature_group(
         m=m,
         feature_group=feature_group,

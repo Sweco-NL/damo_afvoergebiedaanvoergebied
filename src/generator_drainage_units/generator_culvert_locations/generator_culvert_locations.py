@@ -13,11 +13,7 @@ from shapely.geometry import LineString, Point
 
 from ..generator_basis import GeneratorBasis
 from ..utils.create_graph import create_graph_from_edges
-from ..utils.folium_utils import (
-    add_basemaps_to_folium_map,
-    add_categorized_lines_to_map,
-    add_labels_to_points_lines_polygons,
-)
+from ..utils.folium_map import generate_folium_map
 from ..utils.general_functions import (
     calculate_angle_difference,
     calculate_angle_end,
@@ -1159,87 +1155,91 @@ class GeneratorCulvertLocations(GeneratorBasis):
             .drop(columns=["index_right"], errors="ignore")
         )
         self.outflow_nodes_overige_watergangen = outflow_nodes.copy()
-
-        # get shortest path including length from all nodes to outflow points
-        logging.info(f"     - find shortest path")
-        len_outflow_node, matrix = nx.multi_source_dijkstra(
-            G, [int(n) for n in outflow_nodes["nodeID"].values], weight="geometry_len"
-        )
-        node_to_outflow_node = pd.DataFrame(
-            {
-                "nodeID": matrix.keys(),
-                "outflow_node": [v[0] for v in matrix.values()],
-                "outflow_node_dist": [len_outflow_node[node] for node in matrix.keys()],
-            }
-        )
-
-        # Merge nodes with node_to_outflow_node
-        overige_watergangen_nodes = nodes.merge(
-            node_to_outflow_node, how="outer", left_on="nodeID", right_on="nodeID"
-        )
-        overige_watergangen_nodes["outflow_node"] = (
-            overige_watergangen_nodes["outflow_node"].fillna(-999).astype(int)
-        )
-
-        # To get length to outflow point at start and end: merge edges with nodes, first on node_start, then on node_end
-        edges = (
-            edges.merge(
-                overige_watergangen_nodes[
-                    ["nodeID", "outflow_node", "outflow_node_dist"]
-                ].rename(
-                    columns={
-                        "outflow_node": "outflow_start",
-                        "outflow_node_dist": "outflow_start_dist",
-                    }
-                ),
-                how="left",
-                left_on="node_start",
-                right_on="nodeID",
+        
+        if outflow_nodes.empty:
+            overige_watergangen_nodes = None
+            edges_cleaned = None
+        else:
+            # get shortest path including length from all nodes to outflow points
+            logging.info(f"     - find shortest path")
+            len_outflow_node, matrix = nx.multi_source_dijkstra(
+                G, [int(n) for n in outflow_nodes["nodeID"].values], weight="geometry_len"
             )
-            .merge(
-                overige_watergangen_nodes[
-                    ["nodeID", "outflow_node", "outflow_node_dist"]
-                ].rename(
-                    columns={
-                        "outflow_node": "outflow_end",
-                        "outflow_node_dist": "outflow_end_dist",
-                    }
-                ),
-                how="left",
-                left_on="node_end",
-                right_on="nodeID",
+            node_to_outflow_node = pd.DataFrame(
+                {
+                    "nodeID": matrix.keys(),
+                    "outflow_node": [v[0] for v in matrix.values()],
+                    "outflow_node_dist": [len_outflow_node[node] for node in matrix.keys()],
+                }
             )
-            .drop(columns=["nodeID_x", "nodeID_y"])
-        )
 
-        # select shortest paths for each each
-        logging.info(f"     - select direction with shortest path")
+            # Merge nodes with node_to_outflow_node
+            overige_watergangen_nodes = nodes.merge(
+                node_to_outflow_node, how="outer", left_on="nodeID", right_on="nodeID"
+            )
+            overige_watergangen_nodes["outflow_node"] = (
+                overige_watergangen_nodes["outflow_node"].fillna(-999).astype(int)
+            )
 
-        def select_shortest_direction(edge):
-            if edge.outflow_end_dist <= edge.outflow_start_dist:
-                edge.outflow_node = edge.outflow_end
-                edge.outflow_node_dist = edge.outflow_end_dist
-            else:
-                edge.outflow_node = edge.outflow_start
-                edge.outflow_node_dist = edge.outflow_start_dist
-                edge.reversed_direction = True
-            return edge
+            # To get length to outflow point at start and end: merge edges with nodes, first on node_start, then on node_end
+            edges = (
+                edges.merge(
+                    overige_watergangen_nodes[
+                        ["nodeID", "outflow_node", "outflow_node_dist"]
+                    ].rename(
+                        columns={
+                            "outflow_node": "outflow_start",
+                            "outflow_node_dist": "outflow_start_dist",
+                        }
+                    ),
+                    how="left",
+                    left_on="node_start",
+                    right_on="nodeID",
+                )
+                .merge(
+                    overige_watergangen_nodes[
+                        ["nodeID", "outflow_node", "outflow_node_dist"]
+                    ].rename(
+                        columns={
+                            "outflow_node": "outflow_end",
+                            "outflow_node_dist": "outflow_end_dist",
+                        }
+                    ),
+                    how="left",
+                    left_on="node_end",
+                    right_on="nodeID",
+                )
+                .drop(columns=["nodeID_x", "nodeID_y"])
+            )
 
-        edges["outflow_node"] = -999
-        edges["outflow_node_dist"] = -999.0
-        edges["reversed_direction"] = False
-        edges["outflow_end_dist"] = edges["outflow_end_dist"].fillna(99999.9)
-        edges["outflow_start_dist"] = edges["outflow_start_dist"].fillna(99999.9)
-        edges = edges.apply(lambda x: select_shortest_direction(x), axis=1)
+            # select shortest paths for each each
+            logging.info(f"     - select direction with shortest path")
 
-        # clean edges by removing unconnected edges and reversing direction if required
-        edges_cleaned = edges[edges["outflow_node"] != -999]
-        edges_cleaned.loc[edges_cleaned["reversed_direction"], "geometry"] = (
-            edges_cleaned.loc[edges_cleaned["reversed_direction"], "geometry"].reverse()
-        )
+            def select_shortest_direction(edge):
+                if edge.outflow_end_dist <= edge.outflow_start_dist:
+                    edge.outflow_node = edge.outflow_end
+                    edge.outflow_node_dist = edge.outflow_end_dist
+                else:
+                    edge.outflow_node = edge.outflow_start
+                    edge.outflow_node_dist = edge.outflow_start_dist
+                    edge.reversed_direction = True
+                return edge
 
-        self.overige_watergangen_processed_3_nodes = overige_watergangen_nodes.copy()
-        self.overige_watergangen_processed_3 = edges_cleaned.copy()
+            edges["outflow_node"] = -999
+            edges["outflow_node_dist"] = -999.0
+            edges["reversed_direction"] = False
+            edges["outflow_end_dist"] = edges["outflow_end_dist"].fillna(99999.9)
+            edges["outflow_start_dist"] = edges["outflow_start_dist"].fillna(99999.9)
+            edges = edges.apply(lambda x: select_shortest_direction(x), axis=1)
+
+            # clean edges by removing unconnected edges and reversing direction if required
+            edges_cleaned = edges[edges["outflow_node"] != -999]
+            edges_cleaned.loc[edges_cleaned["reversed_direction"], "geometry"] = (
+                edges_cleaned.loc[edges_cleaned["reversed_direction"], "geometry"].reverse()
+            )
+
+            self.overige_watergangen_processed_3_nodes = overige_watergangen_nodes.copy()
+            self.overige_watergangen_processed_3 = edges_cleaned.copy()
 
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
@@ -1249,134 +1249,13 @@ class GeneratorCulvertLocations(GeneratorBasis):
             ])
         return outflow_nodes, overige_watergangen_nodes, edges, edges_cleaned
 
-    def generate_folium_map(
-        self, html_file_name=None, base_map="Light Mode", open_html=False, zoom_start=12
-    ):
-        """generate a folium map of the results of the culvert generator
 
-        Parameters
-        ----------
-        html_file_name : _type_, optional
-            name of html file, by default None
-        base_map : str, optional
-            basemap for the folium map, by default "Light Mode"
-        open_html : bool, optional
-            indicated whether the map must be opened after running, by default False
-        zoom_start : int, optional
-            zoomlevel of the map when opened, by default 12
-
-        Returns
-        -------
-        m: folium.Map
-            folium map with the results of the culvert generator
-        """
-        # Make figure
-
-        hydro_4326 = self.hydroobjecten_processed_0.to_crs(4326)
-        # Calculate the extent (bounding box) of your GeoDataFrame
-        bounds = hydro_4326.total_bounds  # returns (minx, miny, maxx, maxy)
-
-        # Center the map around the mean coordinates of the bounds
-        center = [(bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2]
-        m = folium.Map(
-            location=center,
-            zoom_start=zoom_start,
-            tiles=None,
-        )
-
-        folium.GeoJson(
-            self.hydroobjecten_processed_0.geometry,
-            name="A/B-Watergangen",
-            color="blue",
-            line_weight=2,
-            fill_color="blue",
-            zoom_on_click=True,
-            z_index=0,
-        ).add_to(m)
-
-        folium.GeoJson(
-            self.overige_watergangen.geometry,
-            name="C-Watergangen - Zonder duikers",
-            color="lightblue",
-            fill_color="blue",
-            zoom_on_click=True,
-            z_index=0,
-        ).add_to(m)
-
-        folium.GeoJson(
-            self.potential_culverts_5.geometry,
-            name="C-Watergangen - Gevonden Duikers",
-            color="red",
-            fill_color="blue",
-            zoom_on_click=True,
-            z_index=1,
-        ).add_to(m)
-
-        if self.outflow_nodes_overige_watergangen is not None:
-            folium.GeoJson(
-                self.outflow_nodes_overige_watergangen.geometry,
-                name="C-Watergangen - Uitstroompunten",
-                marker=folium.Circle(
-                    radius=3,
-                    fill_color="orange",
-                    fill_opacity=1.0,
-                    color="orange",
-                    weight=1,
-                    z_index=3,
-                ),
-                show=False,
-            ).add_to(m)
-
-        if self.overige_watergangen_processed_3 is not None:
-            add_categorized_lines_to_map(
-                m=m,
-                lines_gdf=self.overige_watergangen_processed_3,
-                layer_name=f"C-Watergangen - Gegroepeerd per uitstroompunt",
-                control=True,
-                lines=True,
-                line_color_column="outflow_node",
-                line_color_cmap=None,
-                show=False,
-                z_index=2,
-            )
-
-            if "outflow_node" in self.overige_watergangen_processed_3.columns:
-                fg = folium.FeatureGroup(
-                    name="C-Watergangen - Labels uitstroompunten",
-                    control=True,
-                    show=False,
-                ).add_to(m)
-
-                add_labels_to_points_lines_polygons(
-                    gdf=self.overige_watergangen_processed_3,
-                    column="outflow_node",
-                    label_fontsize=7,
-                    label_decimals=0,
-                    fg=fg,
-                )
-
-                add_labels_to_points_lines_polygons(
-                    gdf=self.outflow_nodes_overige_watergangen,
-                    column="nodeID",
-                    label_fontsize=8,
-                    label_decimals=0,
-                    fg=fg,
-                )
-
-        m = add_basemaps_to_folium_map(m=m, base_map=base_map)
-
-        folium.LayerControl(collapsed=False).add_to(m)
-        m.add_child(folium.plugins.MeasureControl())
-
-        self.folium_map = m
-        if html_file_name is None:
+    def generate_folium_map(self, html_file_name:str="", **kwargs):
+        if html_file_name == '':
             html_file_name = self.name + "_culvert_locations"
-
-        self.folium_html_path = Path(self.path, f"{html_file_name}.html")
-        m.save(self.folium_html_path)
-
-        logging.info(f"   x html file saved: {html_file_name}.html")
-
-        if open_html:
-            webbrowser.open(Path(self.path, f"{html_file_name}.html"))
-        return m
+        self.folium_map = generate_folium_map(
+            self, 
+            html_file_name=html_file_name, 
+            **kwargs
+        )
+        return self.folium_map
