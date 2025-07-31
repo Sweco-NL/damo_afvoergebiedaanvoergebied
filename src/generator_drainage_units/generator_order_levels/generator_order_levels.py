@@ -279,6 +279,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         # set outflow_edges and set order_no to 2        
         self.outflow_edges = outflow_edges_all_waters.reset_index(drop=True)
         self.outflow_edges["order_no"] = 2
+        self.outflow_edges["distance"] = 0.0
 
         # get outflow nodes from outflow edges
         self.outflow_nodes = self.outflow_edges.copy()
