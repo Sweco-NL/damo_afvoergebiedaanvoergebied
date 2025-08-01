@@ -57,7 +57,7 @@ def generate_folium_map(
         folium.GeoJson(
             generator.hydroobjecten.geometry,
             name="AB-Watergangen",
-            color="blue",
+            color="black",
             line_weight=2,
             fill_color="blue",
             zoom_on_click=True,
@@ -109,7 +109,7 @@ def generate_folium_map(
                 fg = folium.FeatureGroup(
                     name=f"AB-watergangen - Orde-code (labels)",
                     control=True,
-                    show=True,
+                    show=False,
                     z_index=2,
                 ).add_to(m)
 
@@ -159,7 +159,7 @@ def generate_folium_map(
             fill_color="blue",
             zoom_on_click=True,
             z_index=0,
-            show=True,
+            show=False,
         ).add_to(m)
 
     for i in range(5,0,-1):
@@ -172,6 +172,7 @@ def generate_folium_map(
                 fill_color="blue",
                 zoom_on_click=True,
                 z_index=1,
+                show=False,
             ).add_to(m)
             if not all_culverts:
                 break

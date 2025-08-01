@@ -920,4 +920,9 @@ class GeneratorOrderLevels(GeneratorBasis):
     def generate_folium_map(self, html_file_name:str="", **kwargs):
         if html_file_name == "":
             html_file_name = self.name + "_order_code"
-        generate_folium_map(self, html_file_name=html_file_name, **kwargs)
+        self.folium_map = generate_folium_map(
+            self, 
+            html_file_name=html_file_name, 
+            **kwargs
+        )
+        return self.folium_map
