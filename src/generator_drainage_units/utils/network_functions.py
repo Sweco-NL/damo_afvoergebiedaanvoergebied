@@ -438,6 +438,12 @@ def define_list_upstream_downstream_edges_ids(
     logging.info("   x find connected edges for nodes")
     nodes_sel = nodes[nodes.nodeID.isin(node_ids)].copy()
     nodes_sel.index = nodes_sel[nodes_id_column].values
+
+    if any(edges[edges_id_column].apply(lambda x: x is None)):
+        none_code_edges = edges[edges[edges_id_column].isna()]
+        logging.info(f"     - edges found without code: {len(none_code_edges)}")
+        edges = edges[edges[edges_id_column].notna()]
+
     for direction in ["upstream", "downstream"]:
         node_end = "node_end" if direction == "upstream" else "node_start"
         direction_edges = nodes_sel.merge(
@@ -449,13 +455,26 @@ def define_list_upstream_downstream_edges_ids(
         nodes_sel[f"{direction}_edges"] = direction_edges.groupby(nodes_id_column).agg(
             {edges_id_column: list}
         )
+
+        def len_edges(x):
+            if ~(isinstance(x[0], float) and np.isnan(x[0])):
+                return len(x)
+            else: 
+                return 0
+
         nodes_sel[f"no_{direction}_edges"] = nodes_sel[f"{direction}_edges"].apply(
-            lambda x: len(x) if ~(isinstance(x[0], float) and np.isnan(x[0])) else 0
+            lambda x: len_edges(x)
         )
+
+        def list_to_str(x):
+            if (~(isinstance(x[0], float) and np.isnan(x[0])) and x[0] is not None):
+                return ",".join(x) 
+            else:
+                return  ",".join([])
+
         nodes_sel[f"{direction}_edges"] = nodes_sel[f"{direction}_edges"].apply(
-            lambda x: ",".join(x)
-            if ~(isinstance(x[0], float) and np.isnan(x[0]))
-            else ",".join([])
+            lambda x: list_to_str(x)
         )
     nodes_sel = nodes_sel.reset_index(drop=True)
     return nodes_sel
+
