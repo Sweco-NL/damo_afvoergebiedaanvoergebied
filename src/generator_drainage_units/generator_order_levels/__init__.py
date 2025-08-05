@@ -7,10 +7,10 @@ from .generator_order_levels import GeneratorOrderLevels
 
 def run_generator_order_levels(
     path: Path,
-    waterschap: str,
-    generate_new_outflow_nodes: bool = False,
     dir_basisdata: str = "0_basisdata",
     dir_results: str = "1_resultaat",
+    waterschap: str = None,
+    generate_new_outflow_nodes: bool = False,
     search_range_outflow_nodes: float = 50.0,
     generate_order_no: bool = True,
     generate_order_code: bool = True,

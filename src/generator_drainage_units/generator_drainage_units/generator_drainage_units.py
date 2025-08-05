@@ -49,6 +49,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
     name: str = None
     dir_basisdata: str = "0_basisdata"
     dir_results: str = "1_resultaat"
+    waterschap: str = None
 
     method: str = "pyflwdir"
 
@@ -63,6 +64,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
         "potential_culverts_5", 
         "outflow_nodes",
         "edges", 
+        "nodes",
     ]
 
     hydroobjecten: gpd.GeoDataFrame = None

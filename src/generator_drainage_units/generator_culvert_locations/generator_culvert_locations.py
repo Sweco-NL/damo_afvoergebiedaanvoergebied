@@ -39,6 +39,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
     path: Path = None
     name: str = None
     base_dir: Path = None
+    waterschap: str = None
 
     hydroobjecten: gpd.GeoDataFrame = None
     overige_watergangen: gpd.GeoDataFrame = None
@@ -1250,12 +1251,18 @@ class GeneratorCulvertLocations(GeneratorBasis):
         return outflow_nodes, overige_watergangen_nodes, edges, edges_cleaned
 
 
-    def generate_folium_map(self, html_file_name:str="", **kwargs):
+    def generate_folium_map(
+        self, 
+        html_file_name:str="", 
+        show_other_waterways_culverts: bool = True,
+        **kwargs
+    ):
         if html_file_name == '':
             html_file_name = self.name + "_culvert_locations"
         self.folium_map = generate_folium_map(
             self, 
             html_file_name=html_file_name, 
+            show_other_waterways_culverts=show_other_waterways_culverts,
             **kwargs
         )
         return self.folium_map

@@ -15,11 +15,14 @@ def generate_folium_map(
     all_culverts=False,
     order_labels=True,
     drop_duplicate_codes=True,
+    show_other_waterways_culverts=False,
+    drainage_units_cmap="Pastel2",
+    drainage_units_opacity=0.5,
     html_file_name=None, 
     base_map="Light Mode", 
     save_html=True,
     open_html=False, 
-    zoom_start=12,
+    zoom_start=11,
     zmin=None,
     zmax=None,
     dx=0.0,
@@ -31,10 +34,10 @@ def generate_folium_map(
     if not is_attribute_not_none(generator, "hydroobjecten"):
         raise ValueError("Generator does not have hydroobjecten")
 
-    hydro_4326 = generator.hydroobjecten.to_crs(4326)
     # Calculate the extent (bounding box) of your GeoDataFrame
+    hydro_4326 = generator.hydroobjecten.to_crs(4326).copy()
     bounds = hydro_4326.total_bounds  # returns (minx, miny, maxx, maxy)
-
+    
     # Center the map around the mean coordinates of the bounds
     center = [(bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2]
     m = folium.Map(
@@ -57,11 +60,23 @@ def generate_folium_map(
         folium.GeoJson(
             generator.hydroobjecten.geometry,
             name="AB-Watergangen",
-            color="blue",
+            color="black",
             line_weight=2,
-            fill_color="blue",
+            highlight_function=lambda x: {"fillOpacity": 0.8},
             zoom_on_click=True,
             z_index=1,
+        ).add_to(m)
+
+    if is_attribute_not_none(generator, "nodes"):
+        folium.GeoJson(
+            generator.nodes,
+            name="nodes",
+            marker=folium.Circle(
+                radius=2.5, fill_color="black", fill_opacity=0.5, color="black", width=1,
+            ),
+            highlight_function=lambda x: {"fillOpacity": 0.8},
+            z_index=1,
+            control=False,
         ).add_to(m)
 
     if is_attribute_not_none(generator, "edges"):
@@ -86,6 +101,7 @@ def generate_folium_map(
                 label=False,
                 line_weight=5,
                 z_index=2,
+                show=True if generator.drainage_units_0 is None else False,
             )
 
             if order_labels and "order_no" in generator.edges.columns:
@@ -109,7 +125,7 @@ def generate_folium_map(
                 fg = folium.FeatureGroup(
                     name=f"AB-watergangen - Orde-code (labels)",
                     control=True,
-                    show=True,
+                    show=False,
                     z_index=2,
                 ).add_to(m)
 
@@ -159,7 +175,7 @@ def generate_folium_map(
             fill_color="blue",
             zoom_on_click=True,
             z_index=0,
-            show=True,
+            show=show_other_waterways_culverts,
         ).add_to(m)
 
     for i in range(5,0,-1):
@@ -171,10 +187,12 @@ def generate_folium_map(
                 color="red",
                 fill_color="blue",
                 zoom_on_click=True,
-                z_index=1,
+                z_index=0,
+                show=show_other_waterways_culverts,
             ).add_to(m)
             if not all_culverts:
                 break
+            show_other_waterways_culverts = False
 
     if is_attribute_not_none(generator, f"outflow_nodes_overige_watergangen"):
         logging.info(f'     - other waterways - outflow nodes')
@@ -272,9 +290,10 @@ def generate_folium_map(
             control=True,
             vmin=0,
             vmax=int(generator.drainage_units_0.data.max()),
+            cmap=drainage_units_cmap,
             legend=False,
-            opacity=1.0,
-            show=True,
+            opacity=drainage_units_opacity,
+            show=False,
             dx=dx,
             dy=dy,
         )
@@ -291,9 +310,10 @@ def generate_folium_map(
             control=True,
             vmin=0,
             vmax=int(generator.drainage_units_1.data.max()),
+            cmap=drainage_units_cmap,
             legend=False,
-            opacity=1.0,
-            show=False,
+            opacity=drainage_units_opacity,
+            show=True,
             dx=dx,
             dy=dy,
         )
@@ -310,8 +330,9 @@ def generate_folium_map(
             control=True,
             vmin=0,
             vmax=int(generator.drainage_units_2.data.max()),
+            cmap=drainage_units_cmap,
             legend=False,
-            opacity=1.0,
+            opacity=drainage_units_opacity,
             show=False,
             dx=dx,
             dy=dy,
@@ -329,8 +350,9 @@ def generate_folium_map(
             control=True,
             vmin=0,
             vmax=int(generator.drainage_units_3.data.max()),
+            cmap=drainage_units_cmap,
             legend=False,
-            opacity=1.0,
+            opacity=drainage_units_opacity,
             show=False,
             dx=dx,
             dy=dy,
