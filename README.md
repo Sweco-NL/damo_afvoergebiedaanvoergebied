@@ -39,6 +39,7 @@ De binnen de folder `BASE_DIR` zit een sub-folder `case_name`, bijvoorbeeld `Leu
     │   ├── inflow_outflow_splits.gpkg
     │   ├── keringen.gpkg
     │   ├── nwb.gpkg
+    │   ├── outflow_nodes.gpkg (optional: in case of predefined outflow_nodes)
     │   ├── overige_watergangen.gpkg
     │   ├── peilgebieden.gpkg
     │   ├── rws_wateren.gpkg
