@@ -101,7 +101,7 @@ def generate_folium_map(
                 label=False,
                 line_weight=5,
                 z_index=2,
-                show=True if generator.drainage_units_0 is None else False,
+                show=True,
             )
 
             if order_labels and "order_no" in generator.edges.columns:
