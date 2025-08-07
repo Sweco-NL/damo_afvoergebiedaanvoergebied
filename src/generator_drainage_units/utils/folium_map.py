@@ -67,17 +67,17 @@ def generate_folium_map(
             z_index=1,
         ).add_to(m)
 
-    if is_attribute_not_none(generator, "nodes"):
-        folium.GeoJson(
-            generator.nodes,
-            name="nodes",
-            marker=folium.Circle(
-                radius=2.5, fill_color="black", fill_opacity=0.5, color="black", width=1,
-            ),
-            highlight_function=lambda x: {"fillOpacity": 0.8},
-            z_index=1,
-            control=False,
-        ).add_to(m)
+    # if is_attribute_not_none(generator, "nodes"):
+    #     folium.GeoJson(
+    #         generator.nodes,
+    #         name="nodes",
+    #         marker=folium.Circle(
+    #             radius=2.5, fill_color="black", fill_opacity=0.5, color="black", width=1,
+    #         ),
+    #         highlight_function=lambda x: {"fillOpacity": 0.8},
+    #         z_index=1,
+    #         control=False,
+    #     ).add_to(m)
 
     if is_attribute_not_none(generator, "edges"):
         if "order_no" in generator.edges.columns:
