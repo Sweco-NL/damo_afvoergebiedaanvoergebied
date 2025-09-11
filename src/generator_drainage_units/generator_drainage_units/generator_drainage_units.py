@@ -1,6 +1,5 @@
 import logging
 import time
-import webbrowser
 from pathlib import Path
 
 import folium

@@ -325,6 +325,13 @@ def calculate_angles_of_edges_at_nodes(
     edges: gpd.GeoDataFrame,
     nodes_id_column: str = "nodeID",
 ):
+    """Calculates the angles of the upstream and downstream edges for each node. 
+
+    Returns
+    -------
+    self.nodes: gpd.GeoDataFrame
+        Geodataframe containing nodes between waterlines, including upstream and downstream edges and their angles
+    """
     edges["upstream_angle"] = edges["geometry"].apply(
         lambda x: calculate_angle(x, "upstream").round(2)
     )
@@ -364,18 +371,29 @@ def calculate_angles_of_edges_at_nodes(
 
 
 def select_downstream_upstream_edges(nodes, min_difference_angle: str = 20.0):
+    """select the upstream or downstream edge that represents the main channel, based on the smallest angle. When the angle of both edges is too large, no edge is selected.
 
+    Parameters
+    ----------
+    min_difference_angle : str, optional
+        minimum , by default 20.0
+
+    Returns
+    -------
+    gpd.GeoDataFrame: self.nodes
+        Geodataframe containing nodes between waterlines, including the selected upstream and downstream angles
+    """
     def select_downstream_upstream_edges_per_node(x, min_difference_angle: str = 20.0):
-        upstream_edges = x["upstream_edges"] = [
+        upstream_edges = [
             a for a in x["upstream_edges"].split(",") if a != ""
         ]
-        downstream_edges = x["downstream_edges"] = [
+        downstream_edges = [
             a for a in x["downstream_edges"].split(",") if a != ""
         ]
-        upstream_angles = x["upstream_angles"] = [
+        upstream_angles = [
             float(a) for a in x["upstream_angles"].split(",") if a != ""
         ]
-        downstream_angles = x["downstream_angles"] = [
+        downstream_angles = [
             float(a) for a in x["downstream_angles"].split(",") if a != ""
         ]
 
@@ -415,9 +433,9 @@ def select_downstream_upstream_edges(nodes, min_difference_angle: str = 20.0):
             x["selected_downstream_edge"] = selected_downstream_edge
 
         if x["no_downstream_edges"] == 1:
-            x["selected_downstream_edge"] = x["downstream_edges"][0]
+            x["selected_downstream_edge"] = downstream_edges[0]
         if x["no_upstream_edges"] == 1:
-            x["selected_upstream_edge"] = x["upstream_edges"][0]
+            x["selected_upstream_edge"] = upstream_edges[0]
 
         return x
 
@@ -435,6 +453,13 @@ def define_list_upstream_downstream_edges_ids(
     nodes_id_column: str = "nodeID",
     edges_id_column: str = "code",
 ):
+    """Get the upstream and downstream edges for each node. 
+
+    Returns
+    -------
+    self.nodes: gpd.GeoDataFrame
+        Geodataframe containing nodes between waterlines, including upstream and downstream edges
+    """
     logging.info("   x find connected edges for nodes")
     nodes_sel = nodes[nodes.nodeID.isin(node_ids)].copy()
     nodes_sel.index = nodes_sel[nodes_id_column].values
@@ -477,4 +502,91 @@ def define_list_upstream_downstream_edges_ids(
         )
     nodes_sel = nodes_sel.reset_index(drop=True)
     return nodes_sel
+
+
+def get_start_edges_nodes(edges, nodes, direction="downstream"):
+    """    Function to get the starting edges of the graph.
+    This function identifies nodes that do not have"""
+
+    if direction == "downstream":
+        node_end = "node_end"
+        node_start = "node_start"
+    else:
+        node_end = "node_start"
+        node_start = "node_end"
+
+    # any incoming edges (i.e., nodes that are not the end of any edge)
+    nodes_end_ids = edges[node_end].unique()
+    start_nodes = nodes[~nodes.index.isin(nodes_end_ids)]
+    other_nodes = nodes[nodes.index.isin(nodes_end_ids)]
+
+    # Identify edges that start from the identified start nodes
+    nodes_start_ids = start_nodes.index
+    start_edges = edges[edges[node_start].isin(nodes_start_ids)]
+    other_edges = edges[~edges[node_start].isin(nodes_start_ids)]
+    return start_nodes, other_nodes, start_edges, other_edges
+
+
+def sum_edge_node_values_through_network(
+    edges, 
+    nodes, 
+    edges_nodes="edges", 
+    edges_id_column="code", 
+    nodes_id_column="nodeID", 
+    direction="downstream", 
+    column_to_sum="specific_discharge", 
+    sum_column="total_specific_discharge"
+):
+    nodes = nodes.set_index(nodes_id_column)
+    edges = edges.set_index(edges_id_column)
+
+    edges[sum_column] = 0.0
+    if sum_column not in nodes.columns:
+        nodes[sum_column] = 0.0
+
+    other_edges = edges.copy()
+    other_nodes = nodes.copy()
+    start_edges = edges.copy()
+
+    logging.info(f"   x Summation of {column_to_sum} {direction} through the network (total {len(other_edges)} edges)...")
+    iteration = 0
+    while not other_edges.empty and not start_edges.empty:
+        iteration += 1
+        # find all start edges and nodes
+        start_nodes, other_nodes, start_edges, other_edges = get_start_edges_nodes(
+            other_edges, other_nodes, 
+            direction=direction, 
+        )
+        logging.info(f"     - Found {len(start_edges)} start edges ({len(other_edges)} left)")
+
+        # add the total values of start nodes to start edges
+        start_edges = start_edges.drop(
+            columns=[sum_column], 
+        ).merge(
+            start_nodes[sum_column],
+            left_on="node_start",
+            right_index=True,
+            how="left"
+        )
+
+        # fillna and multiply with downstream distribution factor
+        start_edges[sum_column] = start_edges[sum_column].fillna(0.0)
+        if "downstream_splits_dist" in start_edges.columns:
+            start_edges[sum_column] = (
+                start_edges[sum_column] * start_edges["downstream_splits_dist"]
+            )
+        start_edges[column_to_sum] += start_edges[sum_column]
+
+        edges.loc[start_edges.index, sum_column] += start_edges[column_to_sum].values
+
+        specific_discharge_start_nodes = start_edges[["node_end", column_to_sum]].groupby("node_end").sum()
+        nodes.loc[specific_discharge_start_nodes.index, sum_column] += specific_discharge_start_nodes[column_to_sum].values
+        other_nodes = nodes.loc[other_nodes.index]
+
+    edges[sum_column] = edges[sum_column].astype(float)
+    nodes[sum_column] = nodes[sum_column].astype(float)
+    nodes = nodes.reset_index()
+    edges = edges.reset_index()
+
+    return edges, nodes
 

@@ -1,5 +1,4 @@
 import logging
-import webbrowser
 from pathlib import Path
 
 import folium
@@ -9,7 +8,6 @@ import pandas as pd
 from shapely.geometry import Point
 
 from ..generator_basis import GeneratorBasis
-from ..utils.create_graph import create_graph_from_edges
 from ..utils.folium_map import generate_folium_map
 
 from ..assets import waterschappen_order_codes
@@ -63,92 +61,11 @@ class GeneratorOrderLevels(GeneratorBasis):
     folium_map: folium.Map = None
     folium_html_path: Path = None
 
-    def create_graph_from_network(self, water_lines=["hydroobjecten"], processed="processed"):
-        """Turns a linestring layer containing waterlines into a graph of edges and nodes. 
 
-        Parameters
-        ----------
-        water_lines : list, optional
-            List of waterline files names used to create graph, must refer to geopackages containing linestrings, by default ["hydroobjecten"]
-
-        Returns
-        -------
-        self.nodes: gpd.GeoDataFrame
-            Geodataframe containing nodes between waterlines
-        self.edges: gpd.GeoDataFrame
-            Geodataframe containing edges (waterlines)
-        self.graph: nx.DiGraph
-            Networkx graph containing the edges and nodes
-        """
-        
-        edges = None
-        for water_line in water_lines:
-            gdf_water_line = getattr(self, water_line)
-            for i in range(10):
-                if not hasattr(self, f"{water_line}_{processed}_{i}"):
-                    break
-                gdf_water_line_processed = getattr(self, f"{water_line}_{processed}_{i}")
-                if gdf_water_line_processed is None:
-                    break
-                else:
-                    gdf_water_line = gdf_water_line_processed.copy()
-            if gdf_water_line is None:
-                continue
-            if edges is None:
-                edges = gdf_water_line.explode()
-            else:
-                edges = pd.concat([edges, gdf_water_line.explode()])
-        self.nodes, self.edges, self.graph = create_graph_from_edges(edges)
-        logging.info(
-            f"   x create network graph ({len(self.edges)} edges, {len(self.nodes)} nodes)"
-        )
-        return self.nodes, self.edges, self.graph
-
-    def define_list_upstream_downstream_edges_ids(self):
-        """Get the upstream and downstream edges for each node. 
-
-        Returns
-        -------
-        self.nodes: gpd.GeoDataFrame
-            Geodataframe containing nodes between waterlines, including upstream and downstream edges
-        """
-        self.nodes = define_list_upstream_downstream_edges_ids(
-            node_ids=self.nodes.nodeID.values, nodes=self.nodes, edges=self.edges
-        )
-        return self.nodes
-
-    def calculate_angles_of_edges_at_nodes(self):
-        """Calculates the angles of the upstream and downstream edges for each node. 
-
-        Returns
-        -------
-        self.nodes: gpd.GeoDataFrame
-            Geodataframe containing nodes between waterlines, including upstream and downstream edges and their angles
-        """
-        logging.info("   x calculate angles of edges to nodes")
-        self.nodes, self.edges = calculate_angles_of_edges_at_nodes(
-            nodes=self.nodes, edges=self.edges
-        )
-        return self.nodes
-
-    def select_downstream_upstream_edges(self, min_difference_angle: str = 20.0):
-        """select the upstream or downstream edge that represents the main channel, based on the smallest angle. When the angle of both edges is too large, no edge is selected.
-
-        Parameters
-        ----------
-        min_difference_angle : str, optional
-            minimum , by default 20.0
-
-        Returns
-        -------
-        gpd.GeoDataFrame: self.nodes
-            Geodataframe containing nodes between waterlines, including the selected upstream and downstream angles
-        """
-        logging.info("   x find downstream upstream edges")
-        self.nodes = select_downstream_upstream_edges(
-            self.nodes, min_difference_angle=min_difference_angle
-        )
-        return self.nodes
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if self.path is not None:
+            self.use_processed_hydroobjecten(force_preprocess=False)
 
 
     def read_outflow_nodes_with_rws_code(self, outflow_nodes=None, buffer_outflow_nodes=50.0):
@@ -297,8 +214,8 @@ class GeneratorOrderLevels(GeneratorBasis):
         logging.info(f"   x generate order levels for hydroobjects")
         outflow_edges_orders = self.outflow_edges.copy()
 
-        edges_left = self.edges.copy()  # .drop(columns=["order_edge_no"]).copy()
-        nodes_left = self.nodes.copy()  # .drop(columns=["order_node_no"]).copy()
+        edges_left = self.edges.copy()
+        nodes_left = self.nodes.copy()
 
         order_no = 2
 
@@ -312,10 +229,9 @@ class GeneratorOrderLevels(GeneratorBasis):
 
             if outflow_edges_order.empty:
                 break
-            logging_message = (
+            logging.info(
                 f"     - order {order_no}: {len(outflow_edges_order)} outflow edges"
             )
-            logging.info(logging_message)
             outflow_edges_edges = None
             outflow_edges_nodes = None
 
@@ -379,22 +295,26 @@ class GeneratorOrderLevels(GeneratorBasis):
                 outflow_edge_nodes = self.nodes.merge(
                     outflow_edge_nodes, how="right", on="nodeID"
                 )
-                outflow_edge_nodes = outflow_edge_nodes.sort_values(
-                    "order_no"
-                ).drop_duplicates(subset="nodeID", keep=False)
+                outflow_edge_nodes = (
+                    outflow_edge_nodes
+                    .sort_values("order_no")
+                    .drop_duplicates(subset="nodeID", keep=False)
+                )
 
                 if outflow_edges_edges is None:
                     outflow_edges_edges = outflow_edge_edges.copy()
                 else:
-                    outflow_edges_edges = pd.concat(
-                        [outflow_edges_edges, outflow_edge_edges.copy()]
-                    )
+                    outflow_edges_edges = pd.concat([
+                        outflow_edges_edges, 
+                        outflow_edge_edges.copy()
+                    ])
                 if outflow_edges_nodes is None:
                     outflow_edges_nodes = outflow_edge_nodes.copy()
                 else:
-                    outflow_edges_nodes = pd.concat(
-                        [outflow_edges_nodes, outflow_edge_nodes.copy()]
-                    )
+                    outflow_edges_nodes = pd.concat([
+                        outflow_edges_nodes, 
+                        outflow_edge_nodes.copy()
+                    ])
 
                 new_outflow_edges = self.edges[
                     self.edges["code"].isin(new_outflow_edges)
@@ -458,17 +378,17 @@ class GeneratorOrderLevels(GeneratorBasis):
 
             order_no = order_no + 1
 
-        edges_left["rws_code"] = ""
-        edges_left["rws_code_no"] = -999
-        edges_left["order_no"] = -999
-        edges_left["outflow_edge"] = -999
-        edges_left["order_edge_no"] = -999
+        # edges_left["rws_code"] = ""
+        # edges_left["rws_code_no"] = -999
+        # edges_left["order_no"] = -999
+        # edges_left["outflow_edge"] = -999
+        # edges_left["order_edge_no"] = -999
 
-        nodes_left["rws_code"] = ""
-        nodes_left["rws_code_no"] = -999
-        nodes_left["order_no"] = -999
-        nodes_left["outflow_edge"] = -999
-        nodes_left["order_node_no"] = -999
+        # nodes_left["rws_code"] = ""
+        # nodes_left["rws_code_no"] = -999
+        # nodes_left["order_no"] = -999
+        # nodes_left["outflow_edge"] = -999
+        # nodes_left["order_node_no"] = -999
 
         edges_all_orders = edges_all_orders.sort_values("order_no").drop_duplicates(
             subset="code", keep="first"
@@ -480,9 +400,11 @@ class GeneratorOrderLevels(GeneratorBasis):
             "order_no"
         ).drop_duplicates(subset=["node_end", "edge_code"], keep="first")
 
-        self.edges = pd.concat([edges_all_orders, edges_left]).reset_index(drop=True)
-        self.nodes = pd.concat([nodes_all_orders, nodes_left]).reset_index(drop=True)
-
+        # self.edges = pd.concat([edges_all_orders, edges_left]).reset_index(drop=True)
+        # self.nodes = pd.concat([nodes_all_orders, nodes_left]).reset_index(drop=True)
+        self.edges = edges_all_orders.copy()
+        self.nodes = nodes_all_orders.copy()
+        
         self.outflow_edges = outflow_edges_orders.copy()
         self.outflow_nodes = self.outflow_edges.copy()
         self.outflow_nodes["geometry"] = self.outflow_nodes["geometry"].apply(
@@ -490,12 +412,10 @@ class GeneratorOrderLevels(GeneratorBasis):
         )
         self.outflow_nodes = (
             self.outflow_nodes.groupby("node_end")
-            .agg(
-                {
-                    col: list if col == "edge_code" else "first"
-                    for col in self.outflow_nodes.columns
-                }
-            )
+            .agg({
+                col: list if col == "edge_code" else "first"
+                for col in self.outflow_nodes.columns
+            })
             .rename(columns={"edge_code": "edge_codes"})
         )
         self.outflow_nodes = gpd.GeoDataFrame(
@@ -768,18 +688,18 @@ class GeneratorOrderLevels(GeneratorBasis):
 
         for direction in ["upstream", "downstream"]:
             self.nodes[f"{direction}_order_no"] = self.nodes.apply(
-                lambda x: list(
+                lambda x: ",".join(
                     self.edges.loc[
-                        self.edges["code"].isin(x[f"{direction}_edges"]), "order_no"
-                    ].astype(int).values
+                        self.edges["code"].isin(x[f"{direction}_edges"].split(",")), "order_no"
+                    ].astype(str).values
                 ),
                 axis=1,
             )
             self.nodes[f"{direction}_order_code"] = self.nodes.apply(
-                lambda x: list(
+                lambda x: ",".join(
                     self.edges.loc[
-                        self.edges["code"].isin(x[f"{direction}_edges"]), "order_code"
-                    ].values
+                        self.edges["code"].isin(x[f"{direction}_edges"].split(",")), "order_code"
+                    ].astype(str).values
                 ),
                 axis=1,
             )
@@ -806,19 +726,17 @@ class GeneratorOrderLevels(GeneratorBasis):
         """
         logging.info(f"   x generate order code for overige watergangen")
 
-        def string_to_list(string, sep=",", type=int):
-            return [type(i.strip()[1:-1]) if i!="" else -1 for i in string[1:-1].split(sep)]
+        def string_to_list(string, sep=",", str_type=int):
+            print(string)
+            if str_type==int:
+                return [str_type(s) if s!="" else -1 for s in string.split(sep)]
+            else:
+                return [str_type(s) if s!="" else "" for s in string.split(sep)]
+
+        def list_to_string(lst, sep=","):
+            return ",".join([str(i) for i in lst])
 
         # check if values are strings and change into lists
-        for direction in ["upstream", "downstream"]:
-            column = f"{direction}_order_no"
-            if column in self.nodes.columns and isinstance(self.nodes[column].to_numpy()[0], str):
-                self.nodes[f"{direction}_order_no"] = self.nodes[f"{direction}_order_no"].apply(lambda x: string_to_list(x, sep=",", type=int))
-        if isinstance(self.nodes[f"downstream_edges"].values[0], str):
-            self.nodes[f"downstream_edges"] = self.nodes[f"downstream_edges"].apply(lambda x: string_to_list(x, sep=",", type=str))
-        if isinstance(self.nodes[f"downstream_order_code"].values[0], str):
-            self.nodes[f"downstream_order_code"] = self.nodes[f"downstream_order_code"].apply(lambda x: string_to_list(x, sep=",", type=str))
-        
         if self.outflow_nodes_overige_watergangen is None:
             return None, None
         
@@ -848,6 +766,15 @@ class GeneratorOrderLevels(GeneratorBasis):
             ]
         ].copy()
 
+        for col in ["downstream_edges", "downstream_order_no", "downstream_order_code"]:
+            outflow_nodes[col] = outflow_nodes[col].fillna("")
+            outflow_nodes[col] = outflow_nodes[col].apply(
+                lambda x: string_to_list(
+                    x, sep=",", str_type=int if col == "downstream_order_no" else str
+                )
+            )
+        display(outflow_nodes)
+        display(outflow_nodes[outflow_nodes.apply(lambda x: False if len(x["downstream_edges"])==len(x["downstream_order_no"])==len(x["downstream_order_code"]) else True, axis=1)])
         outflow_nodes = (
             outflow_nodes.explode(
                 ["downstream_edges", "downstream_order_no", "downstream_order_code"]

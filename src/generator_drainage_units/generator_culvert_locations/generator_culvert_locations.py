@@ -1,6 +1,5 @@
 import logging
 import warnings
-import webbrowser
 from pathlib import Path
 
 import folium
@@ -23,7 +22,7 @@ from ..utils.general_functions import (
     line_to_vertices,
     split_waterways_by_endpoints,
 )
-from ..utils.preprocess import preprocess_hydroobjecten
+
 
 # Suppress specific warnings
 warnings.filterwarnings("ignore", message="Geometry column does not contain geometry")
@@ -85,36 +84,12 @@ class GeneratorCulvertLocations(GeneratorBasis):
     folium_map: folium.Map = None
     folium_html_path: Path = None
 
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if self.path is not None:
-            self.generate_or_use_preprocessed_hydroobjecten()
+            self.use_processed_hydroobjecten(force_preprocess=True)
 
-    def use_processed_hydroobjecten(self):
-        logging.info("     - culvert generator will generate processed hydroobjecten")
-
-    def generate_or_use_preprocessed_hydroobjecten(
-        self, preprocessed_file="preprocessed"
-    ):
-        hydroobjecten_preprocessed_file = None
-        files_in_dir = self.dir_results.glob("**/*")
-        for f in files_in_dir:
-            if f"hydroobjecten_{preprocessed_file}" == f.stem:
-                hydroobjecten_preprocessed_file = f
-
-        if hydroobjecten_preprocessed_file is None:
-            logging.info(
-                "     - hydroobjecten_snap_split.gpkg not in directory, preprocessing hydroobjecten"
-            )
-            self.hydroobjecten, hydroobjecten_snapped = preprocess_hydroobjecten(
-                self.hydroobjecten
-            )
-            if self.write_results:
-                hydroobjecten_snapped.to_file(Path(self.dir_results, "hydroobjecten_snapped.gpkg"))
-                self.hydroobjecten.to_file(Path(self.dir_results, "hydroobjecten_snapped.gpkg"))
-        else:
-            logging.info("     - get dataset preprocessed hydroobjecten")
-            self.hydroobjecten = gpd.read_file(hydroobjecten_preprocessed_file)
 
     def generate_vertices_along_waterlines(
         self,
@@ -1033,6 +1008,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
                 "potential_culverts_5",
             ])
         return self.potential_culverts_5
+
 
     def combine_culvert_with_line(self):
         """Culverts are combined with the one of the waterlines they are connected to, to form a single linestring. After this funtion the 'check_culverts_direction' function be run again.

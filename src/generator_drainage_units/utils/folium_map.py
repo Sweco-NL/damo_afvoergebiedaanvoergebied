@@ -1,4 +1,5 @@
 import logging
+import webbrowser
 from pathlib import Path
 import folium
 from .folium_utils import (
@@ -6,6 +7,7 @@ from .folium_utils import (
     add_categorized_lines_to_map,
     add_labels_to_points_lines_polygons,
     add_graduated_raster_to_map,
+    add_lines_to_map,
 )
 logging.basicConfig(level=logging.INFO)
 
@@ -18,6 +20,7 @@ def generate_folium_map(
     show_other_waterways_culverts=False,
     drainage_units_cmap="Pastel2",
     drainage_units_opacity=0.5,
+    specific_discharge_cmap="turbo",
     html_file_name=None, 
     base_map="Light Mode", 
     save_html=True,
@@ -57,15 +60,16 @@ def generate_folium_map(
 
     if is_attribute_not_none(generator, "hydroobjecten"):
         logging.info('     - hydroobjecten')
-        folium.GeoJson(
-            generator.hydroobjecten.geometry,
-            name="AB-Watergangen",
-            color="black",
-            line_weight=2,
-            highlight_function=lambda x: {"fillOpacity": 0.8},
-            zoom_on_click=True,
+        add_lines_to_map(
+            m=m,
+            lines_gdf=generator.hydroobjecten,
+            layer_name="AB-Watergangen",
+            control=True,
+            lines=True,
+            label=False,
+            line_weight=2.5,
             z_index=1,
-        ).add_to(m)
+        )
 
     # if is_attribute_not_none(generator, "nodes"):
     #     folium.GeoJson(
@@ -84,6 +88,7 @@ def generate_folium_map(
             edges = generator.edges[
                 generator.edges["order_no"] > 1
             ].sort_values(["order_no", "order_edge_no"], ascending=[False, True])
+            edges_left = generator.edges[generator.edges["order_no"] < 2].copy()
             edges_labels = edges.copy()
 
             if "order_code" in edges_labels.columns and drop_duplicate_codes:
@@ -92,8 +97,8 @@ def generate_folium_map(
             logging.info('     - edges - order_no')
             add_categorized_lines_to_map(
                 m=m,
-                lines_gdf=edges,
-                layer_name="AB-watergangen - Orde-nummer",
+                lines_gdf=edges[["geometry", "order_no"]],
+                layer_name=f"AB-watergangen - Orde-nummer ({len(edges)})",
                 control=True,
                 lines=True,
                 line_color_column="order_no",
@@ -102,6 +107,20 @@ def generate_folium_map(
                 line_weight=5,
                 z_index=2,
                 show=True,
+            )
+
+            logging.info('     - edges - no order_no')
+            add_lines_to_map(
+                m=m,
+                lines_gdf=edges_left,
+                layer_name=f"AB-Watergangen - Geen Orde-nummer ({len(edges_left)})",
+                line_color="black",
+                control=True,
+                lines=True,
+                label=False,
+                show=False,
+                line_weight=5,
+                z_index=0,
             )
 
             if order_labels and "order_no" in generator.edges.columns:
@@ -137,7 +156,7 @@ def generate_folium_map(
                     center=True,
                     fg=fg,
                 )
-
+    
     if is_attribute_not_none(generator, "outflow_nodes"):
         fg = folium.FeatureGroup(
             name=f"Uitstroompunten in RWS-water", control=True
@@ -168,28 +187,34 @@ def generate_folium_map(
 
     if is_attribute_not_none(generator, "overige_watergangen"):
         logging.info('     - other waterways - without culverts')
-        folium.GeoJson(
-            generator.overige_watergangen.geometry,
-            name="C-Watergangen - Zonder duikers",
-            color="lightblue",
-            fill_color="blue",
-            zoom_on_click=True,
+        add_lines_to_map(
+            m=m,
+            lines_gdf=generator.overige_watergangen[["geometry"]],
+            layer_name=f"C-Watergangen - Zonder duikers ({len(generator.overige_watergangen)})",
+            line_color="lightblue",
+            control=True,
+            lines=True,
+            label=False,
+            line_weight=2.5,
             z_index=0,
             show=show_other_waterways_culverts,
-        ).add_to(m)
+        )
 
     for i in range(5,0,-1):
         if is_attribute_not_none(generator, f"potential_culverts_{i}"):
             logging.info(f'     - other waterways - potential culverts ({i})')
-            folium.GeoJson(
-                getattr(generator, f"potential_culverts_{i}").geometry,
-                name=f"C-Watergangen - Gevonden Duikers ({i})",
-                color="red",
-                fill_color="blue",
-                zoom_on_click=True,
-                z_index=0,
+            add_lines_to_map(
+                m=m,
+                lines_gdf=getattr(generator, f"potential_culverts_{i}")[["geometry"]],
+                layer_name=f"C-Watergangen - Gevonden Duikers ({i})",
+                line_color="red",
+                control=True,
+                lines=True,
+                label=False,
+                line_weight=2.5,
+                z_index=1,
                 show=show_other_waterways_culverts,
-            ).add_to(m)
+            )
             if not all_culverts:
                 break
             show_other_waterways_culverts = False
@@ -219,10 +244,29 @@ def generate_folium_map(
             control=True,
             lines=True,
             line_color_column="outflow_node",
-            line_color_cmap=None,
+            line_color_cmap="jet",
             show=False,
             z_index=2,
         )
+        
+        print('order code')
+        print(generator.overige_watergangen_processed_3.columns)
+        if order_labels and "order_code" in generator.overige_watergangen_processed_3.columns:
+            logging.info('     - other waterways - order code (labels)')
+            fg = folium.FeatureGroup(
+                name=f"C-watergangen - Orde-code (labels)",
+                control=True,
+                show=False,
+                z_index=2,
+            ).add_to(m)
+
+            add_labels_to_points_lines_polygons(
+                gdf=generator.overige_watergangen_processed_3[["geometry", "order_code"]],
+                column="order_code",
+                label_fontsize=8,
+                label_decimals=1,
+                fg=fg,
+            )
 
     if is_attribute_not_none(generator, f"ghg"):
         logging.info(f'     - raster topography or groundwaterlevel')
@@ -357,6 +401,90 @@ def generate_folium_map(
             dx=dx,
             dy=dy,
         )
+
+    if is_attribute_not_none(generator, "edges"):
+        if "total_specific_discharge" in generator.edges.columns:
+            edges = generator.edges[
+                generator.edges["total_specific_discharge"] > 0.0
+            ].sort_values("total_specific_discharge", ascending=True)
+            
+            logging.info('     - edges - total specific discharge')
+            add_categorized_lines_to_map(
+                m=m,
+                lines_gdf=edges[["geometry", "total_specific_discharge"]],
+                layer_name="AB-watergangen - Total specific discharge",
+                control=True,
+                lines=True,
+                line_color_column="total_specific_discharge",
+                line_color_cmap=specific_discharge_cmap,
+                label=False,
+                line_weight=5,
+                z_index=2,
+                show=False,
+            )
+
+            logging.info('     - edges - total specific discharge (log10)')
+            add_categorized_lines_to_map(
+                m=m,
+                lines_gdf=edges[["geometry", "log10_total_specific_discharge"]],
+                layer_name="AB-watergangen - Total specific discharge (log10)",
+                control=True,
+                lines=True,
+                line_color_column="log10_total_specific_discharge",
+                line_color_cmap=specific_discharge_cmap,
+                label=False,
+                line_weight=5,
+                z_index=2,
+                show=True,
+            )
+
+            logging.info('     - edges - total specific discharge (labels)')
+            fg = folium.FeatureGroup(
+                name=f"AB-watergangen - Total specific discharge (labels)",
+                control=True,
+                show=False,
+                z_index=2,
+            ).add_to(m)
+
+            add_labels_to_points_lines_polygons(
+                gdf=edges[["geometry", "total_specific_discharge"]],
+                column="total_specific_discharge",
+                label_fontsize=8,
+                label_decimals=1,
+                fg=fg,
+            )
+
+            edges_left = generator.edges[
+                generator.edges["total_specific_discharge"] <= 0.0
+            ]
+            add_lines_to_map(
+                m=m,
+                lines_gdf=edges_left[["geometry"]],
+                layer_name=f"AB-Watergangen - Geen specifieke afvoer ({len(edges_left)})",
+                line_color="black",
+                control=True,
+                lines=True,
+                label=False,
+                show=False,
+                line_weight=2.5,
+                z_index=0,
+            )
+        
+    if is_attribute_not_none(generator, "nodes"):
+        logging.info('     - split nodes')
+        split_points_downstreams = generator.nodes[
+            (generator.nodes["no_downstream_edges"] > 1) &
+            (generator.nodes["no_upstream_edges"] > 0)
+        ].copy()
+        folium.GeoJson(
+            split_points_downstreams,
+            name=f"Splitsingspunten benedenstrooms ({len(split_points_downstreams)})",
+            marker=folium.Circle(
+                radius=25, fill_color="purple", fill_opacity=0.4, color="purple", weight=3
+            ),
+            highlight_function=lambda x: {"fillOpacity": 0.8},
+            z_index=3,
+        ).add_to(m)
 
     m = add_basemaps_to_folium_map(m=m, base_map=base_map)
 
