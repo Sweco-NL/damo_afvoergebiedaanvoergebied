@@ -139,9 +139,9 @@ class GeneratorSpecificDischarge(GeneratorBasis):
         self.edges = edges.copy()
         self.nodes = nodes.copy()
         
-        self.split_nodes = generator.nodes[
-            (generator.nodes["no_downstream_edges"] > 1) &
-            (generator.nodes["no_upstream_edges"] > 0)
+        self.split_nodes = self.nodes[
+            (self.nodes["no_downstream_edges"] > 1) &
+            (self.nodes["no_upstream_edges"] > 0)
         ].copy()
 
         if self.write_results:
