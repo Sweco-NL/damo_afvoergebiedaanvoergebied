@@ -54,6 +54,10 @@ class GeneratorSpecificDischarge(GeneratorBasis):
     overige_watergangen: gpd.GeoDataFrame = None
     overige_watergangen_processed_4: gpd.GeoDataFrame = None
     potential_culverts_5: gpd.GeoDataFrame = None
+    drainage_units_0_gdf: gpd.GeoDataFrame = None
+
+    snapping_distance: float = 0.05
+    use_specific_discharge: float = 1.0
 
     outflow_nodes: gpd.GeoDataFrame = None
     split_nodes: gpd.GeoDataFrame = None
@@ -79,17 +83,6 @@ class GeneratorSpecificDischarge(GeneratorBasis):
         self.analyse_netwerk_add_information_to_nodes_edges(min_difference_angle=20.0)
 
 
-    def read_specific_discharge(self, specific_discharge_file_name: str):
-        """Read specific discharge data from a file."""
-        logging.info("   x read topographical data as input")
-        self.specific_discharge_file_name = specific_discharge_file_name
-        self.specific_discharge = rioxarray.open_rasterio(Path(self.path, self.dir_basisdata, specific_discharge_file_name))
-        self.specific_discharge.name = "specific_discharge"
-        if self.specific_discharge.rio.crs is None:
-            self.specific_discharge = self.specific_discharge.rio.write_crs(28992)
-        return self.specific_discharge
-    
-
     def generate_distribution_splits_downstream(self):
         self.nodes["downstream_splits_dist"] = \
             self.nodes["no_downstream_edges"].apply(
@@ -109,10 +102,28 @@ class GeneratorSpecificDischarge(GeneratorBasis):
         )
 
 
-    def add_specific_discharge_to_discharge_units(self):
+    def read_specific_discharge(self, specific_discharge_file_name: str = None):
+        """Read specific discharge data from a file."""
+        if specific_discharge_file_name is None:
+            return None
+        logging.info("   x read topographical data as input")
+        self.specific_discharge_file_name = specific_discharge_file_name
+        self.specific_discharge = rioxarray.open_rasterio(Path(self.path, self.dir_basisdata, specific_discharge_file_name))
+        self.specific_discharge.name = "specific_discharge"
+        if self.specific_discharge.rio.crs is None:
+            self.specific_discharge = self.specific_discharge.rio.write_crs(28992)
+        return self.specific_discharge
+    
+
+    def add_specific_discharge_to_discharge_units(self, use_specific_discharge=0):
         """Specify specific discharge to edges and nodes."""
-        logging.info("   x add specific discharge to edges and nodes")
         # TODO: link this to specific discharge area discharge units
+        if self.drainage_units_0_gdf is None or use_specific_discharge<0.0:
+            logging.info("   x add ")
+        if use_specific_discharge == 0:
+            logging.info("   x add distributed specific discharge to drainage_units")
+        elif use_specific_discharge > 0:
+            logging.info("   x add homogenic specific discharge to drainge units")
 
 
     def add_specific_discharge_to_edges(self):

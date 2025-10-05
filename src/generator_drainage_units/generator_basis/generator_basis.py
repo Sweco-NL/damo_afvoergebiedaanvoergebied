@@ -165,7 +165,7 @@ class GeneratorBasis(BaseModel):
                 logging.info(f" * dataset {required_dataset} is missing - check if absolutely required")
 
 
-    def use_processed_hydroobjecten(self, processed_file="processed", force_preprocess=False):
+    def use_processed_hydroobjecten(self, processed_file="processed", force_preprocess=False, snapping_distance=0.05):
         """actualize hydroobjecten and overige_watergangen
 
         replaces hydroobjecten and overige_watergangen with the newest processed attributes
@@ -175,11 +175,14 @@ class GeneratorBasis(BaseModel):
         processed_file : str, optional
             suffix of processed files, by default "processed"
         """
+        if self.snapping_distance is not None:
+            snapping_distance = self.snapping_distance
+
         for watergang in ["hydroobjecten", "overige_watergangen"]:
             if getattr(self, watergang, None) is None:
                 logging.info(f"     - attribute {watergang} does not exist")
                 continue
-
+            
             watergang_processed_file_name = None
             attributes = dir(self)
             files_in_dirs = list(self.dir_basisdata.glob("**/*")) + list(self.dir_results.glob("**/*"))
@@ -193,10 +196,13 @@ class GeneratorBasis(BaseModel):
                     watergang_processed_file_name = file
            
             if force_preprocess or watergang_processed_file_name is None:
-                if watergang == "hydroobjecten":
-                    logging.info(f"     - preprocessing dataset {watergang}")
-                    waterline = self.generate_or_use_preprocessed_hydroobjecten(waterline=watergang)
-                    setattr(self, watergang, waterline[0])
+                # if watergang == "hydroobjecten":
+                logging.info(f"     - preprocessing dataset {watergang}")
+                waterline = self.generate_or_use_preprocessed_hydroobjecten(
+                    waterline=watergang,
+                    snapping_distance=snapping_distance
+                )
+                setattr(self, watergang, waterline)
             else:
                 logging.info(
                     f"     - use processed dataset {watergang}: {watergang_processed_file_name.name}"
@@ -205,7 +211,7 @@ class GeneratorBasis(BaseModel):
 
 
     def generate_or_use_preprocessed_hydroobjecten(
-        self, waterline, preprocessed_file="preprocessed"
+        self, waterline, preprocessed_file="preprocessed", snapping_distance=0.05
     ):
         files_in_dir = self.dir_results.glob("**/*")
         waterline_preprocessed_file = Path(self.dir_results, f"{waterline}_{preprocessed_file}.gpkg")
@@ -213,20 +219,26 @@ class GeneratorBasis(BaseModel):
         if waterline_preprocessed_file in files_in_dir:
             logging.info(f"     - get dataset preprocessed {waterline}")
             gdf_waterline = gpd.read_file(waterline_preprocessed_file)
-            return gdf_waterline, gdf_waterline.copy()
+
+            return gdf_waterline
 
         else:
             logging.info(
-                f"     - {waterline}_preprocessed.gpkg not in directory, preprocessing hydroobjecten"
+                f"     - no {waterline}_preprocessed.gpkg, preprocessing {waterline}"
             )
-            gdf_waterline, gdf_waterline_snapped = preprocess_hydroobjecten(
-                getattr(self, waterline)
+            gdf_waterline = getattr(self, waterline)
+            len_gdf_waterline = len(gdf_waterline)
+            gdf_waterline, gdf_waterline_snapped, gdf_waterline_removed = preprocess_hydroobjecten(
+                gdf_waterline, snapping_distance=snapping_distance
             )
+            logging.info(f"     - removed {len_gdf_waterline-len(gdf_waterline)} waterlines [{waterline}]")
+
             if self.write_results:
+                gdf_waterline_removed.to_file(Path(self.dir_results, f"{waterline}_removed.gpkg"))
                 gdf_waterline_snapped.to_file(Path(self.dir_results, f"{waterline}_snapped.gpkg"))
                 gdf_waterline.to_file(Path(self.dir_results, f"{waterline}_preprocessed.gpkg"))
             logging.info(f"     - preprocessing {waterline}: done")
-            return gdf_waterline, gdf_waterline_snapped
+            return gdf_waterline
         
 
     def create_graph_from_network(self, water_lines=["hydroobjecten"], processed="processed"):
