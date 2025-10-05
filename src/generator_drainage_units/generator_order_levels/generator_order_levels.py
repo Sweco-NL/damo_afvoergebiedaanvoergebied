@@ -34,6 +34,8 @@ class GeneratorOrderLevels(GeneratorBasis):
     hydroobjecten_processed_0: gpd.GeoDataFrame = None
     hydroobjecten_processed_1: gpd.GeoDataFrame = None
 
+    snapping_distance: float = 0.05
+
     rws_wateren: gpd.GeoDataFrame = None
 
     read_results: bool = False

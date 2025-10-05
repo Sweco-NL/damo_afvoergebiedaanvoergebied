@@ -11,8 +11,8 @@ def run_generator_specific_discharge(
     dir_results: Path = None,
     waterschap: str = None,
     water_lines: list[str] = ["hydroobjecten"],
+    use_specific_discharge: float = 1.0,
     specific_discharge_file_name: str = None,
-    calculate_specific_discharge: bool = True,
     read_results: bool = False,
     write_results: bool = False,
     create_html_map: bool = False,
@@ -29,13 +29,16 @@ def run_generator_specific_discharge(
         write_results=write_results,
     )
 
-    if specific_discharge_file_name is not None:
-        discharge.read_specific_discharge(ghg_file_name=specific_discharge_file_name)
+    discharge.generate_distribution_splits_downstream()
 
-    if calculate_specific_discharge:
-        discharge.add_specific_discharge_to_edges()
-        discharge.generate_distribution_splits_downstream()
-        discharge.sum_specific_discharge_through_network()
+    discharge.read_specific_discharge(
+        specific_discharge_file_name=specific_discharge_file_name
+    )
+    discharge.add_specific_discharge_to_discharge_units(
+        use_specific_discharge=use_specific_discharge
+    )
+    discharge.add_specific_discharge_to_edges()
+    discharge.sum_specific_discharge_through_network()
 
     if create_html_map:
         discharge.generate_folium_map(open_html=open_html)
