@@ -577,6 +577,7 @@ def sum_edge_node_values_through_network(
             )
         start_edges[column_to_sum] += start_edges[sum_column]
 
+        edges = edges[~edges.index.duplicated(keep='first')]
         edges.loc[start_edges.index, sum_column] += start_edges[column_to_sum].values
 
         specific_discharge_start_nodes = start_edges[["node_end", column_to_sum]].groupby("node_end").sum()

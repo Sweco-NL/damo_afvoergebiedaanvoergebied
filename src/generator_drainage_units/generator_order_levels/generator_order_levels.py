@@ -206,7 +206,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         return self.outflow_edges, self.outflow_nodes
 
 
-    def generate_order_level_for_hydroobjects(self):
+    def generate_order_level_for_hydroobjects(self, max_order_no:int=100):
         """Generates the order level of the hydroobjects. A hydroobject will get the same orde as the downstream edge. 
         When a hydroobject is split at a node, the edge with the larger angle difference will get the order number downstream +1.
         The order level will keeping increasing until the complete network has an order level.
@@ -222,7 +222,7 @@ class GeneratorOrderLevels(GeneratorBasis):
         edges_all_orders = None
         nodes_all_orders = None
         
-        while order_no < 100:
+        while order_no <= max_order_no:
             outflow_edges_order = outflow_edges_orders[
                 outflow_edges_orders["order_no"] == order_no
             ].copy()
@@ -364,6 +364,10 @@ class GeneratorOrderLevels(GeneratorBasis):
             new_outflow_edges_order = new_outflow_edges_order[
                 ~new_outflow_edges_order.edge_code.isin(edges_all_orders.code)
             ]
+            new_outflow_edges_order = new_outflow_edges_order.drop_duplicates(
+                subset="edge_code", 
+                keep="first"
+            )
 
             # get all outflow edges for all orders.
             if outflow_edges_orders is None:
@@ -727,7 +731,6 @@ class GeneratorOrderLevels(GeneratorBasis):
         logging.info(f"   x generate order code for overige watergangen")
 
         def string_to_list(string, sep=",", str_type=int):
-            print(string)
             if str_type==int:
                 return [str_type(s) if s!="" else -1 for s in string.split(sep)]
             else:
@@ -773,8 +776,6 @@ class GeneratorOrderLevels(GeneratorBasis):
                     x, sep=",", str_type=int if col == "downstream_order_no" else str
                 )
             )
-        display(outflow_nodes)
-        display(outflow_nodes[outflow_nodes.apply(lambda x: False if len(x["downstream_edges"])==len(x["downstream_order_no"])==len(x["downstream_order_code"]) else True, axis=1)])
         outflow_nodes = (
             outflow_nodes.explode(
                 ["downstream_edges", "downstream_order_no", "downstream_order_code"]

@@ -3,6 +3,7 @@ from pathlib import Path
 
 import folium
 import geopandas as gpd
+import pandas as pd
 import rioxarray
 import xarray
 from pydantic import BaseModel, ConfigDict

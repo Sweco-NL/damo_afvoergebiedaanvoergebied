@@ -85,9 +85,14 @@ def generate_folium_map(
 
     if is_attribute_not_none(generator, "edges"):
         if "order_no" in generator.edges.columns:
-            edges = generator.edges[
-                generator.edges["order_no"] > 1
-            ].sort_values(["order_no", "order_edge_no"], ascending=[False, True])
+            if "order_edge_no" in generator.edges.columns:
+                edges = generator.edges[
+                    generator.edges["order_no"] > 1
+                ].sort_values(["order_no", "order_edge_no"], ascending=[False, True])
+            else:
+                edges = generator.edges[
+                    generator.edges["order_no"] > 1
+                ].sort_values(["order_no"], ascending=[False])
             edges_left = generator.edges[generator.edges["order_no"] < 2].copy()
             edges_labels = edges.copy()
 
@@ -104,7 +109,7 @@ def generate_folium_map(
                 line_color_column="order_no",
                 line_color_cmap="hsv_r",
                 label=False,
-                line_weight=5,
+                line_weight=3,
                 z_index=2,
                 show=True,
             )
@@ -119,7 +124,7 @@ def generate_folium_map(
                 lines=True,
                 label=False,
                 show=False,
-                line_weight=5,
+                line_weight=3,
                 z_index=0,
             )
 
@@ -235,23 +240,28 @@ def generate_folium_map(
             show=False,
         ).add_to(m)
 
-    if is_attribute_not_none(generator, f"overige_watergangen_processed_3"):
+    if is_attribute_not_none(generator, f"overige_watergangen_processed_4"):
+        overige_watergangen_processed = generator.overige_watergangen_processed_4.copy()
+    elif is_attribute_not_none(generator, f"overige_watergangen_processed_3"):
+        overige_watergangen_processed = generator.overige_watergangen_processed_3.copy()
+    else:
+        overige_watergangen_processed = None
+
+    if overige_watergangen_processed is not None:
         logging.info(f'     - other waterways - aggregated per outflow node')
         add_categorized_lines_to_map(
             m=m,
-            lines_gdf=generator.overige_watergangen_processed_3,
+            lines_gdf=overige_watergangen_processed,
             layer_name=f"C-Watergangen - Gegroepeerd per uitstroompunt",
             control=True,
             lines=True,
             line_color_column="outflow_node",
-            line_color_cmap="jet",
+            line_color_cmap=None,
             show=False,
             z_index=2,
         )
         
-        print('order code')
-        print(generator.overige_watergangen_processed_3.columns)
-        if order_labels and "order_code" in generator.overige_watergangen_processed_3.columns:
+        if order_labels and "order_code" in overige_watergangen_processed.columns:
             logging.info('     - other waterways - order code (labels)')
             fg = folium.FeatureGroup(
                 name=f"C-watergangen - Orde-code (labels)",
@@ -261,7 +271,7 @@ def generate_folium_map(
             ).add_to(m)
 
             add_labels_to_points_lines_polygons(
-                gdf=generator.overige_watergangen_processed_3[["geometry", "order_code"]],
+                gdf=overige_watergangen_processed[["geometry", "order_code"]],
                 column="order_code",
                 label_fontsize=8,
                 label_decimals=1,
@@ -418,7 +428,7 @@ def generate_folium_map(
                 line_color_column="total_specific_discharge",
                 line_color_cmap=specific_discharge_cmap,
                 label=False,
-                line_weight=5,
+                line_weight=3,
                 z_index=2,
                 show=False,
             )
@@ -433,7 +443,7 @@ def generate_folium_map(
                 line_color_column="log10_total_specific_discharge",
                 line_color_cmap=specific_discharge_cmap,
                 label=False,
-                line_weight=5,
+                line_weight=3,
                 z_index=2,
                 show=True,
             )
@@ -484,6 +494,7 @@ def generate_folium_map(
             ),
             highlight_function=lambda x: {"fillOpacity": 0.8},
             z_index=3,
+            show=False,
         ).add_to(m)
 
     m = add_basemaps_to_folium_map(m=m, base_map=base_map)

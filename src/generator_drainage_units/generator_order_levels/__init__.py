@@ -13,6 +13,7 @@ def run_generator_order_levels(
     generate_new_outflow_nodes: bool = False,
     search_range_outflow_nodes: float = 50.0,
     generate_order_no: bool = True,
+    max_order_no: int = 100,
     generate_order_code: bool = True,
     generate_order_code_sub_waterlines: bool = False,
     order_for_each_edge: bool = True,
@@ -45,7 +46,7 @@ def run_generator_order_levels(
                 search_range_outflow_nodes=search_range_outflow_nodes
             )
 
-        order.generate_order_level_for_hydroobjects()
+        order.generate_order_level_for_hydroobjects(max_order_no=max_order_no)
 
     if generate_order_code:
         order.generate_order_code_for_hydroobjects(

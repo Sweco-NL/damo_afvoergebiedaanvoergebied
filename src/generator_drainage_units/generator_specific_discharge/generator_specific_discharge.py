@@ -4,6 +4,7 @@ from pathlib import Path
 
 import folium
 import geopandas as gpd
+import pandas as pd
 import imod
 import numpy as np
 import pandas as pd
@@ -37,20 +38,22 @@ class GeneratorSpecificDischarge(GeneratorBasis):
     
     required_results: list[str] = [
         "hydroobjecten",
-        # "hydroobjecten_processed_0", 
-        # "overige_watergangen_processed_4", 
-        # "potential_culverts_5", 
+        "hydroobjecten_processed_0", 
+        "hydroobjecten_processed_1", 
+        "overige_watergangen_processed_4", 
+        "potential_culverts_5", 
         "outflow_nodes",
         "edges", 
         "nodes",
     ]
 
     hydroobjecten: gpd.GeoDataFrame = None
-    # hydroobjecten_processed_0: gpd.GeoDataFrame = None
+    hydroobjecten_processed_0: gpd.GeoDataFrame = None
+    hydroobjecten_processed_1: gpd.GeoDataFrame = None
     
-    # overige_watergangen: gpd.GeoDataFrame = None
-    # overige_watergangen_processed_4: gpd.GeoDataFrame = None
-    # potential_culverts_5: gpd.GeoDataFrame = None
+    overige_watergangen: gpd.GeoDataFrame = None
+    overige_watergangen_processed_4: gpd.GeoDataFrame = None
+    potential_culverts_5: gpd.GeoDataFrame = None
 
     outflow_nodes: gpd.GeoDataFrame = None
     split_nodes: gpd.GeoDataFrame = None
@@ -71,9 +74,9 @@ class GeneratorSpecificDischarge(GeneratorBasis):
         super().__init__(**kwargs)
         if self.path is not None:
             self.use_processed_hydroobjecten(force_preprocess=False)
-        if self.edges is None:
-            self.create_graph_from_network(water_lines=self.water_lines)
-            self.analyse_netwerk_add_information_to_nodes_edges(min_difference_angle=20.0)
+        # if self.edges is None:
+        self.create_graph_from_network(water_lines=self.water_lines)
+        self.analyse_netwerk_add_information_to_nodes_edges(min_difference_angle=20.0)
 
 
     def read_specific_discharge(self, specific_discharge_file_name: str):
