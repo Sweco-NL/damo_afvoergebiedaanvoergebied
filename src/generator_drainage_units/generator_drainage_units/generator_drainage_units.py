@@ -59,18 +59,25 @@ class GeneratorDrainageUnits(GeneratorBasis):
     required_results: list[str] = [
         "hydroobjecten",
         "hydroobjecten_processed_0", 
+        "overige_watergangen", 
+        "outflow_nodes_overige_watergangen",
+        "overige_watergangen_processed_3", 
         "overige_watergangen_processed_4", 
         "potential_culverts_5", 
         "outflow_nodes",
         "edges", 
         "nodes",
+        "all_waterways_0",
+        "drainage_units_0",
     ]
 
     hydroobjecten: gpd.GeoDataFrame = None
     hydroobjecten_processed_0: gpd.GeoDataFrame = None
     
     overige_watergangen: gpd.GeoDataFrame = None
+    overige_watergangen_processed_3: gpd.GeoDataFrame = None
     overige_watergangen_processed_4: gpd.GeoDataFrame = None
+    outflow_nodes_overige_watergangen: gpd.GeoDataFrame = None
     potential_culverts_5: gpd.GeoDataFrame = None
 
     outflow_nodes: gpd.GeoDataFrame = None
@@ -291,10 +298,10 @@ class GeneratorDrainageUnits(GeneratorBasis):
             gdf = imod.prepare.polygonize(self.drainage_units_0)
         else:
             gdf = imod.prepare.polygonize(self.drainage_units_0[0])
+
         gdf = gdf.rename(columns={"value": "drainage_unit_id"})
         gdf["drainage_unit_id"] = gdf["drainage_unit_id"].astype(int)
         gdf = gdf.dissolve(by="drainage_unit_id", aggfunc="first").reset_index()
-        # gdf = gdf[gdf["drainage_unit_id"] >= 0]
         gdf = gdf.set_crs(self.hydroobjecten.crs)
         random_color_id = np.random.randint(0, 25, size=len(gdf))
         gdf["color_id"] = random_color_id
@@ -303,10 +310,6 @@ class GeneratorDrainageUnits(GeneratorBasis):
         gdf = gdf.explode().reset_index(drop=True)
         gdf["part_count"] = gdf[["drainage_unit_id"]].groupby("drainage_unit_id").transform("count").reset_index()
         gdf = gdf[gdf["drainage_unit_id"] > -1]
-
-        # area_lim = self.new_resolution * self.new_resolution * 1.5
-        # gdf = gdf.loc[(gdf.geometry.area>=area_lim) | (gdf.part_count<2)]
-        # gdf.geometry = remove_holes_from_polygons(gdf.geometry, min_area=area_lim)
         gdf = gdf.dissolve(by="drainage_unit_id").reset_index()
 
         self.drainage_units_0_gdf = gdf.copy()
@@ -344,32 +347,15 @@ class GeneratorDrainageUnits(GeneratorBasis):
             )
         
         logging.info(f"     - aggregate sub drainage units: replace {len(all_waterways_1)} drainage_unit_ids")
-        drainage_units_0_gdf = gpd.sjoin(
-            self.drainage_units_0_gdf,
-            self.all_waterways_1.drop(columns=["color_id", "drainage_unit_id"]),
-            how="inner",
-            predicate="intersects"
+        drainage_units_0_gdf = self.drainage_units_0_gdf.merge(
+            self.all_waterways_1[
+                ["drainage_unit_id", "code", "downstream_edges", "order_code", "downstream_order_code"]
+            ],
+            how="left",
+            on="drainage_unit_id"
         )
-        drainage_units_0_gdf = drainage_units_0_gdf.merge(
-            self.all_waterways_1[["geometry", "downstream_edges"]].rename(columns={"geometry": "waterway_geometry"}), 
-            how="left", 
-            on="downstream_edges", 
-        )
-        drainage_units_0_gdf['overlap_length'] = (
-            drainage_units_0_gdf
-            .geometry
-            .intersection(
-                drainage_units_0_gdf.waterway_geometry
-            ).length
-        )
-        drainage_units_0_gdf = drainage_units_0_gdf.loc[
-            drainage_units_0_gdf.groupby('drainage_unit_id')['overlap_length'].idxmax()
-        ]
-        self.drainage_units_0_gdf = (
-            drainage_units_0_gdf
-            .reset_index(drop=True)
-            .drop(columns=["index_right", "waterway_geometry", "overlap_length"])
-        )
+        self.drainage_units_0_gdf = drainage_units_0_gdf.copy()
+
         self.drainage_units_0_gdf["downstream_order_code"] = self.drainage_units_0_gdf["downstream_order_code"].fillna("")
         self.drainage_units_0_gdf = self.drainage_units_0_gdf.sort_values("downstream_order_code", ascending=True)
         self.drainage_units_1_gdf = (
@@ -401,8 +387,13 @@ class GeneratorDrainageUnits(GeneratorBasis):
             raster.name = raster_name
             return raster
         
+        if self.drainage_units_0.dims != ("y", "x"):
+            drainage_units_0 = self.drainage_units_0[0]
+        else:
+            drainage_units_0 = self.drainage_units_0
+
         self.drainage_units_0 = dataarray_from_gdf(
-            self.drainage_units_0, 
+            drainage_units_0, 
             self.drainage_units_0_gdf, 
             "drainage_units_0"
         )

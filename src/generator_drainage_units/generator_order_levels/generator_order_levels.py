@@ -46,6 +46,8 @@ class GeneratorOrderLevels(GeneratorBasis):
         "rws_wateren",
         "overige_watergangen_processed_3", 
         "outflow_nodes_overige_watergangen",
+        "nodes",
+        "edges",
     ]
 
     outflow_edges: gpd.GeoDataFrame = None
@@ -778,6 +780,7 @@ class GeneratorOrderLevels(GeneratorBasis):
                     x, sep=",", str_type=int if col == "downstream_order_no" else str
                 )
             )
+        display(outflow_nodes[["downstream_edges", "downstream_order_no", "downstream_order_code"]])
         outflow_nodes = (
             outflow_nodes.explode(
                 ["downstream_edges", "downstream_order_no", "downstream_order_code"]

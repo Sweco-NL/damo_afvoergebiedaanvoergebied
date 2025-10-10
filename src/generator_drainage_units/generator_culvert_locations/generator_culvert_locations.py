@@ -303,9 +303,12 @@ class GeneratorCulvertLocations(GeneratorBasis):
         self.potential_culverts_0 = potential_culverts_0.drop(columns="geometry2")
 
         if self.write_results:
-            self.export_results_to_gpkg_or_nc(list_layers=[
-                "potential_culverts_0",
-            ])
+            logging.info(
+                f"     - potential_culverts_0 not written to save space"
+            )
+            # self.export_results_to_gpkg_or_nc(list_layers=[
+            #     "potential_culverts_0",
+            # ])
 
         logging.info(
             f"     - {len(self.potential_culverts_0)} potential culverts generated"
@@ -841,7 +844,7 @@ class GeneratorCulvertLocations(GeneratorBasis):
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
                 "potential_culverts_3",
-                "potential_culverts_pre_filter",
+                # "potential_culverts_pre_filter",
             ])
 
         return self.potential_culverts_3, self.potential_culverts_pre_filter

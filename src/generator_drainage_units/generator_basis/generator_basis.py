@@ -196,11 +196,10 @@ class GeneratorBasis(BaseModel):
                     watergang_processed_file_name = file
            
             if force_preprocess or watergang_processed_file_name is None:
-                # if watergang == "hydroobjecten":
                 logging.info(f"     - preprocessing dataset {watergang}")
                 waterline = self.generate_or_use_preprocessed_hydroobjecten(
                     waterline=watergang,
-                    snapping_distance=snapping_distance
+                    snapping_distance=snapping_distance if watergang == "hydroobjecten" else None
                 )
                 setattr(self, watergang, waterline)
             else:
@@ -227,17 +226,20 @@ class GeneratorBasis(BaseModel):
                 f"     - no {waterline}_preprocessed.gpkg, preprocessing {waterline}"
             )
             gdf_waterline = getattr(self, waterline)
-            len_gdf_waterline = len(gdf_waterline)
-            gdf_waterline, gdf_waterline_snapped, gdf_waterline_removed = preprocess_hydroobjecten(
-                gdf_waterline, snapping_distance=snapping_distance
-            )
-            logging.info(f"     - removed {len_gdf_waterline-len(gdf_waterline)} waterlines [{waterline}]")
+            if snapping_distance is not None:
+                len_gdf_waterline = len(gdf_waterline)
+                gdf_waterline, gdf_waterline_snapped, gdf_waterline_removed = preprocess_hydroobjecten(
+                    gdf_waterline, snapping_distance=snapping_distance
+                )
+                logging.info(f"     - removed {len_gdf_waterline-len(gdf_waterline)} waterlines [{waterline}]")
 
-            if self.write_results:
-                gdf_waterline_removed.to_file(Path(self.dir_results, f"{waterline}_removed.gpkg"))
-                gdf_waterline_snapped.to_file(Path(self.dir_results, f"{waterline}_snapped.gpkg"))
-                gdf_waterline.to_file(Path(self.dir_results, f"{waterline}_preprocessed.gpkg"))
-            logging.info(f"     - preprocessing {waterline}: done")
+                if self.write_results:
+                    gdf_waterline_removed.to_file(Path(self.dir_results, f"{waterline}_removed.gpkg"))
+                    gdf_waterline_snapped.to_file(Path(self.dir_results, f"{waterline}_snapped.gpkg"))
+                    gdf_waterline.to_file(Path(self.dir_results, f"{waterline}_preprocessed.gpkg"))
+                logging.info(f"     - preprocessing done: {waterline}")
+            else:
+                logging.info(f"     - no preprocessing: {waterline}")
             return gdf_waterline
         
 

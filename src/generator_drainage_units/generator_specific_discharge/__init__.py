@@ -11,6 +11,7 @@ def run_generator_specific_discharge(
     dir_results: Path = None,
     waterschap: str = None,
     water_lines: list[str] = ["hydroobjecten"],
+    level_discharge_units: int = 0, # level discharge units 0/1/2/3
     use_specific_discharge: float = 1.0,
     specific_discharge_file_name: str = None,
     read_results: bool = False,
@@ -35,7 +36,8 @@ def run_generator_specific_discharge(
         specific_discharge_file_name=specific_discharge_file_name
     )
     discharge.add_specific_discharge_to_discharge_units(
-        use_specific_discharge=use_specific_discharge
+        use_specific_discharge=use_specific_discharge,
+        level_discharge_units=level_discharge_units
     )
     discharge.add_specific_discharge_to_edges()
     discharge.sum_specific_discharge_through_network()

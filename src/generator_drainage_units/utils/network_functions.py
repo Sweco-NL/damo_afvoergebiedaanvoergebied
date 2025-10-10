@@ -548,7 +548,7 @@ def sum_edge_node_values_through_network(
     other_nodes = nodes.copy()
     start_edges = edges.copy()
 
-    logging.info(f"   x Summation of {column_to_sum} {direction} through the network (total {len(other_edges)} edges)...")
+    logging.info(f"   x Sum of {column_to_sum} {direction} through the network (total {len(other_edges)} edges)...")
     iteration = 0
     while not other_edges.empty and not start_edges.empty:
         iteration += 1
