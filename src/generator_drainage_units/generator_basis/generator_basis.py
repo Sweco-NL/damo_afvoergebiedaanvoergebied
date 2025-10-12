@@ -3,9 +3,18 @@ from pathlib import Path
 
 import folium
 import geopandas as gpd
+import pandas as pd
 import rioxarray
 import xarray
 from pydantic import BaseModel, ConfigDict
+from ..utils.preprocess import preprocess_hydroobjecten
+from ..utils.create_graph import create_graph_from_edges
+from ..utils.network_functions import (
+    calculate_angles_of_edges_at_nodes,
+    define_list_upstream_downstream_edges_ids,
+    find_node_edge_ids_in_directed_graph,
+    select_downstream_upstream_edges,
+)
 
 
 class GeneratorBasis(BaseModel):
@@ -57,7 +66,6 @@ class GeneratorBasis(BaseModel):
             self.check_case_path_directory(path=self.path)
             self.read_data_from_case()
             self.read_required_data_from_case()
-            # self.use_processed_hydroobjecten(processed_file="processed")
 
 
     def check_case_path_directory(self, path: Path):
@@ -157,7 +165,7 @@ class GeneratorBasis(BaseModel):
                 logging.info(f" * dataset {required_dataset} is missing - check if absolutely required")
 
 
-    def use_processed_hydroobjecten(self, processed_file="processed"):
+    def use_processed_hydroobjecten(self, processed_file="processed", force_preprocess=False, snapping_distance=0.05):
         """actualize hydroobjecten and overige_watergangen
 
         replaces hydroobjecten and overige_watergangen with the newest processed attributes
@@ -167,12 +175,15 @@ class GeneratorBasis(BaseModel):
         processed_file : str, optional
             suffix of processed files, by default "processed"
         """
+        if self.snapping_distance is not None:
+            snapping_distance = self.snapping_distance
+
         for watergang in ["hydroobjecten", "overige_watergangen"]:
             if getattr(self, watergang, None) is None:
                 logging.info(f"     - attribute {watergang} does not exist")
                 continue
-
-            watergang_processed_file = None
+            
+            watergang_processed_file_name = None
             attributes = dir(self)
             files_in_dirs = list(self.dir_basisdata.glob("**/*")) + list(self.dir_results.glob("**/*"))
 
@@ -182,13 +193,111 @@ class GeneratorBasis(BaseModel):
                     and "nodes" not in file.stem
                     and file.stem in self.required_results
                 ):
-                    watergang_processed_file = file
-
-            if watergang_processed_file is not None:
-                logging.info(
-                    f"     - use dataset processed {watergang}: {watergang_processed_file.name}"
+                    watergang_processed_file_name = file
+           
+            if force_preprocess or watergang_processed_file_name is None:
+                logging.info(f"     - preprocessing dataset {watergang}")
+                waterline = self.generate_or_use_preprocessed_hydroobjecten(
+                    waterline=watergang,
+                    snapping_distance=snapping_distance if watergang == "hydroobjecten" else None
                 )
-                setattr(self, watergang, gpd.read_file(watergang_processed_file))
+                setattr(self, watergang, waterline)
+            else:
+                logging.info(
+                    f"     - use processed dataset {watergang}: {watergang_processed_file_name.name}"
+                )
+                setattr(self, watergang, gpd.read_file(watergang_processed_file_name))
+
+
+    def generate_or_use_preprocessed_hydroobjecten(
+        self, waterline, preprocessed_file="preprocessed", snapping_distance=0.05
+    ):
+        files_in_dir = self.dir_results.glob("**/*")
+        waterline_preprocessed_file = Path(self.dir_results, f"{waterline}_{preprocessed_file}.gpkg")
+        
+        if waterline_preprocessed_file in files_in_dir:
+            logging.info(f"     - get dataset preprocessed {waterline}")
+            gdf_waterline = gpd.read_file(waterline_preprocessed_file)
+
+            return gdf_waterline
+
+        else:
+            logging.info(
+                f"     - no {waterline}_preprocessed.gpkg, preprocessing {waterline}"
+            )
+            gdf_waterline = getattr(self, waterline)
+            if snapping_distance is not None:
+                len_gdf_waterline = len(gdf_waterline)
+                gdf_waterline, gdf_waterline_snapped, gdf_waterline_removed = preprocess_hydroobjecten(
+                    gdf_waterline, snapping_distance=snapping_distance
+                )
+                logging.info(f"     - removed {len_gdf_waterline-len(gdf_waterline)} waterlines [{waterline}]")
+
+                if self.write_results:
+                    gdf_waterline_removed.to_file(Path(self.dir_results, f"{waterline}_removed.gpkg"))
+                    gdf_waterline_snapped.to_file(Path(self.dir_results, f"{waterline}_snapped.gpkg"))
+                    gdf_waterline.to_file(Path(self.dir_results, f"{waterline}_preprocessed.gpkg"))
+                logging.info(f"     - preprocessing done: {waterline}")
+            else:
+                logging.info(f"     - no preprocessing: {waterline}")
+            return gdf_waterline
+        
+
+    def create_graph_from_network(self, water_lines=["hydroobjecten"], processed="processed"):
+        """Turns a linestring layer containing waterlines into a graph of edges and nodes. 
+
+        Parameters
+        ----------
+        water_lines : list, optional
+            List of waterline files names used to create graph, must refer to geopackages containing linestrings, by default ["hydroobjecten"]
+
+        Returns
+        -------
+        self.nodes: gpd.GeoDataFrame
+            Geodataframe containing nodes between waterlines
+        self.edges: gpd.GeoDataFrame
+            Geodataframe containing edges (waterlines)
+        self.graph: nx.DiGraph
+            Networkx graph containing the edges and nodes
+        """
+        
+        edges = None
+        for water_line in water_lines:
+            gdf_water_line = getattr(self, water_line)
+            for i in range(10):
+                if not hasattr(self, f"{water_line}_{processed}_{i}"):
+                    break
+                gdf_water_line_processed = getattr(self, f"{water_line}_{processed}_{i}")
+                if gdf_water_line_processed is None:
+                    break
+                else:
+                    gdf_water_line = gdf_water_line_processed.copy()
+            if gdf_water_line is None:
+                continue
+            if edges is None:
+                edges = gdf_water_line.explode()
+            else:
+                edges = pd.concat([edges, gdf_water_line.explode()])
+        self.nodes, self.edges, self.graph = create_graph_from_edges(edges)
+        logging.info(
+            f"   x create network graph ({len(self.edges)} edges, {len(self.nodes)} nodes)"
+        )
+        return self.nodes, self.edges, self.graph
+
+
+    def analyse_netwerk_add_information_to_nodes_edges(self, min_difference_angle=20.0):
+        self.nodes = define_list_upstream_downstream_edges_ids(
+            node_ids=self.nodes.nodeID.values, nodes=self.nodes, edges=self.edges
+        )
+        logging.info("   x calculate angles of edges to nodes")
+        self.nodes, self.edges = calculate_angles_of_edges_at_nodes(
+            nodes=self.nodes, edges=self.edges
+        )
+        logging.info("   x find downstream upstream edges")
+        self.nodes = select_downstream_upstream_edges(
+            self.nodes, min_difference_angle=min_difference_angle
+        )
+        return self.nodes, self.edges
 
 
     def export_results_to_gpkg_or_nc(self, list_layers: list[str] = None, dir_output: str | Path = None):
@@ -218,6 +327,6 @@ class GeneratorBasis(BaseModel):
                         'complevel': 9,
                     },
                 }
-                # result.to_netcdf(netcdf_file_path, mode='w', encoding=encoding)
+                result.to_netcdf(netcdf_file_path, mode='w', encoding=encoding)
             else:
                 raise ValueError("type not exportable")

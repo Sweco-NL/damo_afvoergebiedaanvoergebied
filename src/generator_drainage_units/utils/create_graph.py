@@ -10,6 +10,8 @@ import logging
 def create_graph_from_edges(
     edges: gpd.GeoDataFrame, directed=True, integer_labels=True
 ):
+    if edges.empty:
+        raise ValueError("GeoDataFrame 'edges' is empty.")
     G = momepy.gdf_to_nx(
         edges,
         approach="primal",

@@ -120,11 +120,13 @@ def check_fields_aliases(
     return fields_x, aliases
 
 
-def create_categories_based_on_thresholds(thresholds: list[float],
-                                          unit: str = 'm',
-                                          lower_limit: bool = True,
-                                          upper_limit: bool = True,
-                                          decimals: int = 2):
+def create_categories_based_on_thresholds(
+    thresholds: list[float],
+    unit: str = 'm',
+    lower_limit: bool = True,
+    upper_limit: bool = True,
+    decimals: int = 2
+):
     """This function creates categories based on a list of tresholds.
 
     Input:  * thresholds: A list of floats
@@ -187,23 +189,29 @@ def add_categorized_color_to_gdf(
         gdf[new_color_column] = color_column
         return gdf, [], gdf[new_color_column].unique()
     # no colors, but
-    if thresholds is None or gdf[color_column].dtype == object:
+    if gdf[color_column].dtype == object:
         if names is None:
             names = [name for name in gdf[color_column].unique() if name is not None]
         if colors is None or len(names) != len(colors):
             if colormap is not None:
                 cmap = matplotlib.cm.get_cmap(colormap)
-                colors = [
-                    matplotlib.colors.rgb2hex(cmap(float(i) / float(len(names) - 1)))
-                    for i in range(len(names))
-                ]
+                if len(names) == 1:
+                    colors = [matplotlib.colors.rgb2hex(cmap(0.5))]
+                else:
+                    colors = [
+                        matplotlib.colors.rgb2hex(cmap(float(i) / float(len(names) - 1)))
+                        for i in range(len(names))
+                    ]
             else:
                 cmap = matplotlib.cm.get_cmap("hsv")
-                colors = [
-                    matplotlib.colors.rgb2hex(cmap(float(i) / float(len(names) - 1)))
-                    for i in range(len(names))
-                ]
-                random.shuffle(colors)
+                if len(names) == 1:
+                    colors = [matplotlib.colors.rgb2hex(cmap(0.5))]
+                else:
+                    colors = [
+                        matplotlib.colors.rgb2hex(cmap(float(i) / float(len(names) - 1)))
+                        for i in range(len(names))
+                    ]
+                    random.shuffle(colors)
         gdf[new_name_column] = "-----------"
         gdf[new_color_column] = "rgba(0,0,0,0)"
         for name, color in zip(names, colors):
@@ -211,6 +219,15 @@ def add_categorized_color_to_gdf(
             gdf.loc[gdf[color_column] == name, new_color_column] = color
         gdf[new_name_column] = gdf[new_name_column].astype(str)
     else:
+        if thresholds is None:
+            no_thresholds = 20
+            d_thresholds = (gdf[color_column].max()-gdf[color_column].min()) / no_thresholds
+            thresholds = [float(x) for x in np.arange(
+                gdf[color_column].min(), 
+                gdf[color_column].max()+d_thresholds, 
+                d_thresholds
+            )]
+
         new_thresholds, names = create_categories_based_on_thresholds(
             thresholds=thresholds,
             lower_limit=lower_limit,
