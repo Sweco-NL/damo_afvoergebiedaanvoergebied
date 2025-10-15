@@ -97,7 +97,7 @@ De vraag om afvoergebieden af te leiden tot op het diepste detailniveau op basis
    :show_indicators:
    :show_dark:
 
-   .. figure:: _static/damo_afvoergebiedaanvoergebied_1.jpg
+   .. figure:: _static/generator_drainage_units_1.jpg
       :height: 400px
       :align: center
 
@@ -105,7 +105,7 @@ De vraag om afvoergebieden af te leiden tot op het diepste detailniveau op basis
 
       Workflow Afvoergebieden - Afleiden afwateringseenheden per watergang
 
-   .. figure:: _static/damo_afvoergebiedaanvoergebied_2.jpg
+   .. figure:: _static/generator_drainage_units_2.jpg
       :height: 400px
       :align: center
 
@@ -113,7 +113,7 @@ De vraag om afvoergebieden af te leiden tot op het diepste detailniveau op basis
 
       Workflow Afvoergebieden - Aggregeren afwateringseenheden naar hoofdwatergangen
 
-   .. figure:: _static/damo_afvoergebiedaanvoergebied_3.jpg
+   .. figure:: _static/generator_drainage_units_3.jpg
       :height: 400px
       :align: center
 
@@ -135,7 +135,7 @@ De vraag om op basis van benedenstroomse uitstroompunten (deel)stroomgebieden te
 `GeneratorNetworkLumping <description_workflows.html#generatornetworklumping-workflow-aggregeren-deel-stroomgebieden>`_ - Workflow om voor opgegeven uitstroompunten het bovenstroomse watersysteem inclusief afwateringseenheden te lumpen (aggregeren) om stroomgebieden of deelstroomgebieden te genereren. Hierbij wordt overlap gedetecteerd en kan men aangeven hoe de deelgebieden verdeeld worden.
 
 FIGUUR WORDT NOG AANGEVULD (BEZIG MET BUG)
-*GeneratorNetworkLumping - Afleiden (deel)stroomgebieden op basis van uitstroompunten*
+*Workflow NetworkLumping - Afleiden (deel)stroomgebieden op basis van uitstroompunten*
 
 Inhoud
 ^^^^^^^^^^^^^^^^^^^^^^^^
