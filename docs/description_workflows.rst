@@ -29,14 +29,14 @@ Zie ook:
 
 * `Issue #12 <https://github.com/Sweco-NL/damo_afvoergebiedaanvoergebied/issues/12#issuecomment-2446702722>`_: Voor criteria waarop de beste duiker/verbinding wordt geselecteerd
 
-.. image:: _static/generator_duikers_1.jpg
+.. image:: _static/generator_culvert_locations_1.jpg
     :alt: Workflow Duikers (verbinden C-watergangen)
     :width: 800px
     :align: center
 
 Figuur: Workflow Duikers - Geselecteerde verbindingen/duikers (de rode lijntjes) tussen de C-watergangen onderling en met de A-/B-watergangen.
 
-.. image:: _static/generator_duikers_2.jpg
+.. image:: _static/generator_culvert_locations_2.jpg
     :alt: Workflow Duikers (verbinden C-watergangen)
     :width: 800px
     :align: center
@@ -126,28 +126,28 @@ Figuur: Leuvenumsebeek, GHG (links) en afwateringseenheden per watergangsdeel (r
 
 Ieder watergangdeel heeft een orde-codering en hierbij dus ook een afwateringseenheid. Door deze te koppelen kan er geaggregeerd worden puur op basis van de orde-codering:
 
-.. image:: _static/damo_afvoergebiedaanvoergebied_1.jpg
+.. image:: _static/generator_drainage_units_1.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
 
 Figuur: Afwateringseenheden - per watergangdeel (A/B/C-watergangen)
 
-.. image:: _static/damo_afvoergebiedaanvoergebied_2.jpg
+.. image:: _static/generator_drainage_units_2.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
 
 Figuur: Afwateringseenheden - per deel hoofdwatergang (na aggregeren C-watergangen)
 
-.. image:: _static/damo_afvoergebiedaanvoergebied_3.jpg
+.. image:: _static/generator_drainage_units_3.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
 
 Figuur: Afwateringseenheden - aggregeren op basis van orde-codering
 
-.. image:: _static/damo_afvoergebiedaanvoergebied_4.jpg
+.. image:: _static/generator_drainage_units_4.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
