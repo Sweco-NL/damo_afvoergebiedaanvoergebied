@@ -13,6 +13,7 @@ import rioxarray
 import xarray
 import networkx as nx
 import rasterstats
+import xarray as xr
 from geocube.api.core import make_geocube
 from pydantic import ConfigDict
 from tqdm import tqdm
@@ -22,7 +23,7 @@ from ..utils.folium_map import generate_folium_map
 from ..utils.network_functions import sum_edge_node_values_through_network
 
 
-class GeneratorSpecificDischarge(GeneratorBasis):
+class GeneratorSpecifiekeAfvoer(GeneratorBasis):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     path: Path = None
@@ -110,8 +111,8 @@ class GeneratorSpecificDischarge(GeneratorBasis):
             return None
         logging.info("   x read topographical data as input")
         self.specific_discharge_file_name = specific_discharge_file_name
-        self.specific_discharge = rioxarray.open_rasterio(Path(self.path, self.dir_basisdata, specific_discharge_file_name))
-        self.specific_discharge.name = "specific_discharge"
+        self.specific_discharge = xr.open_dataset(Path(self.path, self.dir_basisdata, specific_discharge_file_name))
+        self.specific_discharge = self.specific_discharge.rename_vars({"__xarray_dataarray_variable__": "specific_discharge"})
         if self.specific_discharge.rio.crs is None:
             self.specific_discharge = self.specific_discharge.rio.write_crs(28992)
         # interpolate
@@ -119,7 +120,7 @@ class GeneratorSpecificDischarge(GeneratorBasis):
         return self.specific_discharge
     
 
-    def add_specific_discharge_to_discharge_units(self, use_specific_discharge=0, level_discharge_units=0):
+    def add_specific_discharge_to_discharge_units(self, level_discharge_units=0, use_specific_discharge=0):
         """Add specific discharge to discharge units"""
         logging.info(
             f"   x add specific discharge to discharge units"
@@ -142,14 +143,16 @@ class GeneratorSpecificDischarge(GeneratorBasis):
             logging.info("     - add distributed specific discharge to drainage_units [l/s]")
             drainage_units_geojson = rasterstats.zonal_stats(
                 self.drainage_units_gdf,
-                self.specific_discharge.data[0],
-                nodata=self.specific_discharge.rio.nodata,
+                self.specific_discharge["specific_discharge"].data[0],
+                nodata=np.nan,
                 affine=self.specific_discharge.rio.transform(),
-                stats=["sum"],
+                stats=["sum", "mean"],
                 geojson_out=True
             )
             drainage_units_gdf = gpd.GeoDataFrame.from_features(drainage_units_geojson)
-            self.drainage_units_gdf = drainage_units_gdf.rename(columns={"sum": "specific_discharge"})
+            self.drainage_units_gdf = drainage_units_gdf.rename(
+                columns={"sum": "specific_discharge", "mean": "mean_specific_discharge"}
+            )
             self.drainage_units_gdf["specific_discharge"] = self.drainage_units_gdf["specific_discharge"]*25*25/1000/24/3600
             self.drainage_units_gdf["specific_discharge"] = self.drainage_units_gdf["specific_discharge"].fillna(0.0)
             

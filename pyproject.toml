@@ -2,7 +2,7 @@
 authors = [{name = "harm-nomden-sweco", email = "harm.nomden@sweco.nl"}]
 dependencies = ["ugrid>=0.13.0,<0.14", "pandas-xlsx-tables>=1.0.0,<2", "tomli-w>=1.2.0,<2"]
 description = "Python toolbox om afwateringseenheden te genereren op basis van basisdata en een raster"
-name = "generator_drainage_units"
+name = "damo_afvoergebiedaanvoergebied"
 requires-python = ">= 3.11"
 version = "0.1.0"
 
@@ -15,7 +15,7 @@ channels = ["conda-forge"]
 platforms = ["win-64"]
 
 [tool.pixi.pypi-dependencies]
-generator_drainage_units = { path = ".", editable = true }
+damo_afvoergebiedaanvoergebied = { path = ".", editable = true }
 
 [tool.pixi.tasks]
 

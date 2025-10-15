@@ -2,10 +2,10 @@ import logging
 import time
 from pathlib import Path
 
-from .generator_specific_discharge import GeneratorSpecificDischarge
+from .generator_specifieke_afvoer import GeneratorSpecifiekeAfvoer
 
 
-def run_generator_specific_discharge(
+def run_generator_specifieke_afvoer(
     path: Path,
     dir_basisdata: Path,
     dir_results: Path = None,
@@ -18,9 +18,9 @@ def run_generator_specific_discharge(
     write_results: bool = False,
     create_html_map: bool = False,
     open_html: bool = False,
-) -> GeneratorSpecificDischarge:
+) -> GeneratorSpecifiekeAfvoer:
     start_time = time.time()
-    discharge = GeneratorSpecificDischarge(
+    discharge = GeneratorSpecifiekeAfvoer(
         path=path, 
         dir_basisdata=dir_basisdata,
         dir_results=dir_results,

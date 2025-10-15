@@ -8,10 +8,10 @@ De voorbewerkingen die zijn uitgevoerd op de basisdata bestaan uit twee types:
 * Handmatige aanpassingen: Een los script met twee geopackages wordt gebruikt om vooraf elementen uit de basisdata te verwijderen, aan te passen of toe te voegen. Dit blijkt nodig te zijn, omdat sommige watergangen in de praktijk niet verbonden zijn met deelnetwerken of omdat de richting van A-/B-watergangen verkeerd geregistreerd staat. Dit is niet (of lastig) automatisch te herleiden en aan te passen.
 * Automatische checks en aanpassingen: Bij verrassend veel A-/B-watergangen sluiten de ingetekende lijnelementen niet exact op elkaar aan en liggen de uiteinden centimeters of millimeters van elkaar af. Er wordt een correctie toegepast op de lijnelementen (snapping) om dit op te lossen en een sluitend netwerk te maken. Dit gaat voornamelijk om de hydroobjecten: de aanpassingen worden opgeslagen in hydroobjecten_snapped.gpkg.
 
-De automatische voorbewerkingen (snapping) worden nu nog uitgevoerd binnen de GeneratorCulvertLocations.
+De automatische voorbewerkingen (snapping) worden nu nog uitgevoerd binnen de Workflow Duikers.
 
 
-GeneratorCulvertLocations (workflow Duiker Locaties)
+Workflow Duikers (verbinden C-watergangen)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Doel van deze workflow is het verbinden van de C-watergangen met de A-/B-watergangen. Dit om te bepalen welke gebieden waar aansluiten op de hoofdwatergangen van het waterschap. 
 De C-watergangen zijn in beheer van gemeentes of perceeleigenaren en hiervan is vaak beperkt data beschikbaar. 
@@ -27,24 +27,24 @@ De workflow bestaat uit de volgende stappen:
 
 Zie ook:
 
-* `Issue #12 <https://github.com/Sweco-NL/generator_drainage_units/issues/12#issuecomment-2446702722>`_: Voor criteria waarop de beste duiker/verbinding wordt geselecteerd
+* `Issue #12 <https://github.com/Sweco-NL/damo_afvoergebiedaanvoergebied/issues/12#issuecomment-2446702722>`_: Voor criteria waarop de beste duiker/verbinding wordt geselecteerd
 
-.. image:: _static/generator_culvert_locations_1.jpg
-    :alt: Generator Order Levels (workflow duiker-generator)
+.. image:: _static/generator_duikers_1.jpg
+    :alt: Workflow Duikers (verbinden C-watergangen)
     :width: 800px
     :align: center
 
-Figuur: Duikergenerator - Geselecteerde verbindingen/duikers (de rode lijntjes) tussen de C-watergangen onderling en met de A-/B-watergangen.
+Figuur: Workflow Duikers - Geselecteerde verbindingen/duikers (de rode lijntjes) tussen de C-watergangen onderling en met de A-/B-watergangen.
 
-.. image:: _static/generator_culvert_locations_2.jpg
-    :alt: Generator Order Levels (workflow duiker-generator)
+.. image:: _static/generator_duikers_2.jpg
+    :alt: Workflow Duikers (verbinden C-watergangen)
     :width: 800px
     :align: center
 
 Figuur: Afleiden welke C-watergangen bij welke uitstroompunten in de A-/B-watergangen horen (op basis van de kortste route). Hieruit kan de richting bepaald worden.
 
 
-GeneratorOrderLevels (workflow Orde-codering)
+Workflow GebiedsOrde (Orde-niveau + Orde-codering)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 De `Leidraad Harmoniseren Afvoergebieden <https://kennis.hunzeenaas.nl/file_auth.php/hunzeenaas/a/aa/Leidraden_Harmoniseren_Afvoergebieden_v1.1.pdf>`_ schrijft voor hoe afvoergebieden gecodeerd kunnen worden.
 De methode is gericht op afvoergebieden, maar omdat het systeem van watergangen hierin bepalend is, kan de orde-codering daarvoor bepaald worden. De orde-code van iedere watergang kan eenvoudig later gekoppeld worden aan de bijbehorende afwateringseenheid of afvoergebied.
@@ -68,27 +68,27 @@ De workflow bestaat (op dit moment) uit de volgende stappen, werkend van beneden
 
 Zie ook: 
 
-* `Issue #16 <https://github.com/Sweco-NL/generator_drainage_units/issues/16#issuecomment-2558479293>`_: Codering RWS wateren en uitstroompunten
-* `Issue #17 <https://github.com/Sweco-NL/generator_drainage_units/issues/17#issuecomment-2516835304>`_: Definitie orde A-/B-watergangen
-* `Issue #18 <https://github.com/Sweco-NL/generator_drainage_units/issues/18#issue-2629773652>`_: Definitie orde C-watergangen
-* `Issue #19 <https://github.com/Sweco-NL/generator_drainage_units/issues/20#issuecomment-2558543651>`_: Definitie orde-codering
+* `Issue #16 <https://github.com/Sweco-NL/damo_afvoergebiedaanvoergebied/issues/16#issuecomment-2558479293>`_: Codering RWS wateren en uitstroompunten
+* `Issue #17 <https://github.com/Sweco-NL/damo_afvoergebiedaanvoergebied/issues/17#issuecomment-2516835304>`_: Definitie orde A-/B-watergangen
+* `Issue #18 <https://github.com/Sweco-NL/damo_afvoergebiedaanvoergebied/issues/18#issue-2629773652>`_: Definitie orde C-watergangen
+* `Issue #19 <https://github.com/Sweco-NL/damo_afvoergebiedaanvoergebied/issues/20#issuecomment-2558543651>`_: Definitie orde-codering
 
 .. image:: _static/generator_order_levels_1.jpg
-    :alt: Generator Order Levels (workflow orde-codering)
+    :alt: Workflow GebiedsOrde (workflow orde-codering)
     :width: 800px
     :align: center
 
 Figuur: Afleiden orde nummer van de A-/B-watergangen
 
 .. image:: _static/generator_order_levels_2.jpg
-    :alt: Generator Order Levels (workflow orde-codering)
+    :alt: Workflow GebiedsOrde (workflow orde-codering)
     :width: 800px
     :align: center
 
 Figuur: Afleiden orde codering van de A-/B-watergangen
 
 .. image:: _static/order_levels_west_oost.jpg
-    :alt: Generator Order Levels (oost)
+    :alt: Workflow GebiedsOrde (oost)
     :width: 800px
     :align: center
 
@@ -101,7 +101,7 @@ Figuur: Orde nummer van de A-/B-watergangen voor het gehele beheergebied van wat
 Figuur: De zwarte watergangen zijn niet verbonden of verkeerde richting
 
 
-GeneratorDrainageUnits (workflow Afwateringseenheden)
+Workflow Afvoergebieden (workflow Afwateringseenheden)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Doel van deze workflow is het genereren van afwateringseenheden in de vorm van polygonen. De afwateringseenheden worden bepaald alle watergangen (ook de C-watergangen), zodat ze daarna geaggregeerd kunnen worden naar een hoger niveau.
 Op basis van een hoogte-raster wordt de afvoerrichting van iedere rastercel bepaald en vervolgens wordt per waterdeel bepaald welk gebied erop afstroomt. 
@@ -126,28 +126,28 @@ Figuur: Leuvenumsebeek, GHG (links) en afwateringseenheden per watergangsdeel (r
 
 Ieder watergangdeel heeft een orde-codering en hierbij dus ook een afwateringseenheid. Door deze te koppelen kan er geaggregeerd worden puur op basis van de orde-codering:
 
-.. image:: _static/generator_drainage_units_1.jpg
+.. image:: _static/damo_afvoergebiedaanvoergebied_1.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
 
 Figuur: Afwateringseenheden - per watergangdeel (A/B/C-watergangen)
 
-.. image:: _static/generator_drainage_units_2.jpg
+.. image:: _static/damo_afvoergebiedaanvoergebied_2.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
 
 Figuur: Afwateringseenheden - per deel hoofdwatergang (na aggregeren C-watergangen)
 
-.. image:: _static/generator_drainage_units_3.jpg
+.. image:: _static/damo_afvoergebiedaanvoergebied_3.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
 
 Figuur: Afwateringseenheden - aggregeren op basis van orde-codering
 
-.. image:: _static/generator_drainage_units_4.jpg
+.. image:: _static/damo_afvoergebiedaanvoergebied_4.jpg
     :alt: Generator Drainage Units (workflow afwateringseenheden)
     :width: 800px
     :align: center
@@ -159,7 +159,7 @@ Omdat de acht stroomrichtingen slechts beperkt detail geven in de richting die h
 Bij de Leuvenumsebeek (zie figuur helemaal boven) loopt de GHG helling ongeveer in noord-noordwestelijke richting naar de randmeren, daardoor lopen alle afwateringseenheden in noordwestelijke richting.
 
 
-GeneratorNetworkLumping (workflow aggregeren (deel)stroomgebieden)
+Workflow NetworkLumping (workflow aggregeren (deel)stroomgebieden)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Workflow om voor opgegeven uitstroompunten het bovenstroomse watersysteem te lumpen en afvoergebieden of (deel)stroomgebieden te genereren. Hierbij wordt overlap gedetecteerd tussen deelstroomgebieden en kan men aangeven hoe de deelgebieden verdeeld worden.
 De workflow bestaat (op dit moment) uit de volgende stappen:

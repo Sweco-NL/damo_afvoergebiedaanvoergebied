@@ -370,7 +370,41 @@ def calculate_angles_of_edges_at_nodes(
     return nodes, edges
 
 
-def select_downstream_upstream_edges(nodes, min_difference_angle: str = 20.0):
+def calculate_discharges_of_edges_at_nodes(
+    nodes: gpd.GeoDataFrame,
+    edges: gpd.GeoDataFrame,
+    nodes_id_column: str = "nodeID",
+):
+    """Calculates the angles of the upstream and downstream edges for each node. 
+
+    Returns
+    -------
+    self.nodes: gpd.GeoDataFrame
+        Geodataframe containing nodes between waterlines, including upstream and downstream edges and their angles
+    """
+    if "total_specific_discharge" not in edges.columns:
+        return nodes, edges
+    
+    for direction, opp_direction in zip(
+        ["upstream", "downstream"], ["downstream", "upstream"]
+    ):
+        node_end = "node_end" if direction == "upstream" else "node_start"
+        temp = nodes.merge(
+            edges[[node_end, "total_specific_discharge"]].rename(
+                columns={node_end: nodes_id_column, "total_specific_discharge": f"{direction}_discharge"}
+            ),
+            how="left",
+            on=nodes_id_column,
+        )
+        temp = temp.groupby(nodes_id_column).agg({f"{direction}_discharge": list})
+        temp[f"{direction}_discharge"] = temp[f"{direction}_discharge"].apply(
+            lambda x: ",".join([f"{a:.3f}" for a in x if ~np.isnan(a)])
+        )
+        nodes[f"{direction}_discharges"] = temp[f"{direction}_discharge"]
+    return nodes, edges
+
+
+def select_downstream_upstream_edges_angle(nodes, min_difference_angle: float = 20.0):
     """select the upstream or downstream edge that represents the main channel, based on the smallest angle. When the angle of both edges is too large, no edge is selected.
 
     Parameters
@@ -383,7 +417,7 @@ def select_downstream_upstream_edges(nodes, min_difference_angle: str = 20.0):
     gpd.GeoDataFrame: self.nodes
         Geodataframe containing nodes between waterlines, including the selected upstream and downstream angles
     """
-    def select_downstream_upstream_edges_per_node(x, min_difference_angle: str = 20.0):
+    def select_downstream_upstream_edges_angle_per_node(x, min_difference_angle: float = 20.0):
         upstream_edges = [
             a for a in x["upstream_edges"].split(",") if a != ""
         ]
@@ -440,7 +474,63 @@ def select_downstream_upstream_edges(nodes, min_difference_angle: str = 20.0):
         return x
 
     nodes = nodes.apply(
-        lambda x: select_downstream_upstream_edges_per_node(x, min_difference_angle),
+        lambda x: select_downstream_upstream_edges_angle_per_node(x, min_difference_angle),
+        axis=1,
+    )
+    return nodes
+
+
+def select_downstream_upstream_edges_discharge(nodes, min_difference_discharge_factor: float = 2.0):
+    """select the upstream or downstream edge that represents the main channel, based on the smallest angle. When the angle of both edges is too large, no edge is selected.
+
+    Parameters
+    ----------
+    min_difference_angle : str, optional
+        minimum , by default 20.0
+
+    Returns
+    -------
+    gpd.GeoDataFrame: self.nodes
+        Geodataframe containing nodes between waterlines, including the selected upstream and downstream angles
+    """
+    def select_downstream_upstream_edges_discharge_per_node(x, min_difference_discharge_factor: float = 2.0):
+        upstream_edges = [
+            a for a in x["upstream_edges"].split(",") if a != ""
+        ]
+        downstream_edges = [
+            a for a in x["downstream_edges"].split(",") if a != ""
+        ]
+        upstream_discharges = [
+            float(a) for a in x["upstream_discharges"].split(",") if a != ""
+        ]
+        downstream_discharges = [
+            float(a) for a in x["downstream_discharges"].split(",") if a != ""
+        ]
+
+        x["selected_upstream_edge"] = None
+        x["selected_downstream_edge"] = None
+        if len(upstream_discharges) == 1:
+            x["selected_upstream_edge"] = upstream_edges[0]
+        elif len(upstream_discharges) > 1:
+            max_upstream_discharge = max(upstream_discharges)
+            upstream_discharges_sort = sorted(upstream_discharges, reverse=True)
+            if upstream_discharges_sort[0] >= upstream_discharges_sort[1] * min_difference_discharge_factor:
+                index_max = upstream_discharges.index(max_upstream_discharge)
+                x["selected_upstream_edge"] = upstream_edges[index_max]
+
+        if len(downstream_discharges) == 1:
+            x["selected_downstream_edge"] = downstream_edges[0]
+        elif len(downstream_discharges) > 1:
+            max_downstream_discharge = max(downstream_discharges)
+            downstream_discharges_sort = sorted(downstream_discharges, reverse=True)
+            if downstream_discharges_sort[0] >= downstream_discharges_sort[1] * min_difference_discharge_factor:
+                index_max = downstream_discharges.index(max_downstream_discharge)
+                x["selected_downstream_edge"] = downstream_edges[index_max]
+
+        return x
+
+    nodes = nodes.apply(
+        lambda x: select_downstream_upstream_edges_discharge_per_node(x, min_difference_discharge_factor),
         axis=1,
     )
     return nodes
@@ -548,7 +638,7 @@ def sum_edge_node_values_through_network(
     other_nodes = nodes.copy()
     start_edges = edges.copy()
 
-    logging.info(f"   x Sum of {column_to_sum} {direction} through the network (total {len(other_edges)} edges)...")
+    logging.info(f"   x sum of '{column_to_sum}' '{direction}' through the network (total {len(other_edges)} edges)...")
     iteration = 0
     while not other_edges.empty and not start_edges.empty:
         iteration += 1
@@ -571,6 +661,8 @@ def sum_edge_node_values_through_network(
 
         # fillna and multiply with downstream distribution factor
         start_edges[sum_column] = start_edges[sum_column].fillna(0.0)
+        start_edges = start_edges[~start_edges.index.duplicated()]
+
         if "downstream_splits_dist" in start_edges.columns:
             start_edges[sum_column] = (
                 start_edges[sum_column] * start_edges["downstream_splits_dist"]

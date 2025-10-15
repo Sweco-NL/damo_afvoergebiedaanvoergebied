@@ -15,11 +15,11 @@ from ..utils.network_functions import (
     calculate_angles_of_edges_at_nodes,
     define_list_upstream_downstream_edges_ids,
     find_node_edge_ids_in_directed_graph,
-    select_downstream_upstream_edges,
+    select_downstream_upstream_edges_angle,
 )
 
 
-class GeneratorOrderLevels(GeneratorBasis):
+class GeneratorGebiedsOrde(GeneratorBasis):
     """Module to generate partial networks and order levels for all water bodies,
     based on ..."""
 
@@ -218,7 +218,17 @@ class GeneratorOrderLevels(GeneratorBasis):
         logging.info(f"   x generate order levels for hydroobjects")
         outflow_edges_orders = self.outflow_edges.copy()
 
-        edges_left = self.edges.copy()
+        edges_left = self.edges.drop(
+            columns=[
+                "rws_code",
+                "rws_code_no",
+                "rws_order_code",
+                "order_no",
+                "outflow_edge",
+                "order_edge_no",
+            ],
+            errors="ignore",
+        ).copy()
         nodes_left = self.nodes.copy()
 
         order_no = 2
@@ -270,17 +280,11 @@ class GeneratorOrderLevels(GeneratorBasis):
                         "order_edge_no": range(len(outflow_edge_edges_code[0])),
                     }
                 )
-                outflow_edge_edges = edges_left.drop(
-                    columns=[
-                        "rws_code",
-                        "rws_code_no",
-                        "rws_order_code",
-                        "order_no",
-                        "outflow_edge",
-                        "order_edge_no",
-                    ],
-                    errors="ignore",
-                ).merge(outflow_edge_edges, how="right", on="code")
+                outflow_edge_edges = edges_left.merge(
+                    outflow_edge_edges, 
+                    how="right", 
+                    on="code"
+                )
                 outflow_edge_edges = outflow_edge_edges.sort_values(
                     "order_no"
                 ).drop_duplicates(subset="code", keep=False)
@@ -780,7 +784,17 @@ class GeneratorOrderLevels(GeneratorBasis):
                     x, sep=",", str_type=int if col == "downstream_order_no" else str
                 )
             )
-        display(outflow_nodes[["downstream_edges", "downstream_order_no", "downstream_order_code"]])
+
+
+        outflow_nodes["no_downstream_edges"] = outflow_nodes["downstream_edges"].apply(lambda x: len(x))
+        outflow_nodes["no_downstream_order_no"] = outflow_nodes["downstream_order_no"].apply(lambda x: len(x))
+        outflow_nodes["no_downstream_order_code"] = outflow_nodes["downstream_order_code"].apply(lambda x: len(x))
+        outflow_nodes["equal"] = outflow_nodes.apply(
+            lambda x: (x.no_downstream_edges == x.no_downstream_order_no) and (x.no_downstream_edges == x.no_downstream_order_code),
+            axis=1
+        )
+        display(outflow_nodes[outflow_nodes["equal"]==False])
+
         outflow_nodes = (
             outflow_nodes.explode(
                 ["downstream_edges", "downstream_order_no", "downstream_order_code"]

@@ -2,10 +2,10 @@ import logging
 import time
 from pathlib import Path
 
-from .generator_culvert_locations import GeneratorCulvertLocations
+from .generator_duikers import GeneratorDuikers
 
 
-def run_generator_culvert_locations(
+def run_generator_duikers(
     path: Path,
     dir_basisdata: Path,
     dir_results: Path = None,
@@ -16,7 +16,7 @@ def run_generator_culvert_locations(
     read_results: bool = False,
     write_results: bool = False,
     create_html_map: bool = False,
-) -> GeneratorCulvertLocations:
+) -> GeneratorDuikers:
     """Run Generator Culvert Locations (Duikergenerator)
 
     Parameters
@@ -38,11 +38,11 @@ def run_generator_culvert_locations(
 
     Returns
     -------
-    GeneratorCulvertLocations
-        An instance of the GeneratorCulvertLocations including basisdata and results
+    GeneratorDuikers
+        An instance of the GeneratorDuikers including basisdata and results
     """
     start_time = time.time()
-    culvert = GeneratorCulvertLocations(
+    culvert = GeneratorDuikers(
         path=path,
         dir_basisdata=dir_basisdata,
         dir_results=dir_results,

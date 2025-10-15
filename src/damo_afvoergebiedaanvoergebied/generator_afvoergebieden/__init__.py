@@ -2,10 +2,10 @@ import logging
 import time
 from pathlib import Path
 
-from .generator_drainage_units import GeneratorDrainageUnits
+from .generator_afvoergebieden import GeneratorAfvoergebieden
 
 
-def run_generator_drainage_units(
+def run_generator_afvoergebieden(
     path: Path,
     dir_basisdata: Path,
     dir_results: Path = None,
@@ -26,7 +26,7 @@ def run_generator_drainage_units(
     read_results: bool = False,
     write_results: bool = False,
     create_html_map: bool = False,
-) -> GeneratorDrainageUnits:
+) -> GeneratorAfvoergebieden:
     """_summary_
 
     _extended_summary_
@@ -67,11 +67,11 @@ def run_generator_drainage_units(
 
     Yields
     ------
-    GeneratorDrainageUnits
+    GeneratorAfvoergebieden
         _description_
     """
     start_time = time.time()
-    gdu = GeneratorDrainageUnits(
+    gdu = GeneratorAfvoergebieden(
         path=path, 
         dir_basisdata=dir_basisdata,
         dir_results=dir_results,

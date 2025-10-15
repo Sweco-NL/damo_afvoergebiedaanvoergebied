@@ -13,7 +13,9 @@ from ..utils.network_functions import (
     calculate_angles_of_edges_at_nodes,
     define_list_upstream_downstream_edges_ids,
     find_node_edge_ids_in_directed_graph,
-    select_downstream_upstream_edges,
+    calculate_discharges_of_edges_at_nodes,
+    select_downstream_upstream_edges_angle,
+    select_downstream_upstream_edges_discharge,
 )
 
 
@@ -226,20 +228,24 @@ class GeneratorBasis(BaseModel):
                 f"     - no {waterline}_preprocessed.gpkg, preprocessing {waterline}"
             )
             gdf_waterline = getattr(self, waterline)
+            len_gdf_waterline = len(gdf_waterline)
             if snapping_distance is not None:
-                len_gdf_waterline = len(gdf_waterline)
-                gdf_waterline, gdf_waterline_snapped, gdf_waterline_removed = preprocess_hydroobjecten(
+                gdf_waterline, gdf_waterline_snapped = preprocess_hydroobjecten(
                     gdf_waterline, snapping_distance=snapping_distance
                 )
-                logging.info(f"     - removed {len_gdf_waterline-len(gdf_waterline)} waterlines [{waterline}]")
-
                 if self.write_results:
-                    gdf_waterline_removed.to_file(Path(self.dir_results, f"{waterline}_removed.gpkg"))
                     gdf_waterline_snapped.to_file(Path(self.dir_results, f"{waterline}_snapped.gpkg"))
                     gdf_waterline.to_file(Path(self.dir_results, f"{waterline}_preprocessed.gpkg"))
                 logging.info(f"     - preprocessing done: {waterline}")
             else:
                 logging.info(f"     - no preprocessing: {waterline}")
+
+            # check for invalid or duplicate geometries (linestrings forming a ring)
+            gdf_waterline_old = gdf_waterline.copy()
+            gdf_waterline = gdf_waterline[~gdf_waterline['geometry'].apply(lambda geom: geom.is_closed)]
+            gdf_waterline = gdf_waterline.loc[~gdf_waterline["geometry"].duplicated(keep="first")]
+            logging.info(f"     - removed {len_gdf_waterline-len(gdf_waterline)} waterlines [{waterline}]")
+
             return gdf_waterline
         
 
@@ -285,7 +291,31 @@ class GeneratorBasis(BaseModel):
         return self.nodes, self.edges, self.graph
 
 
-    def analyse_netwerk_add_information_to_nodes_edges(self, min_difference_angle=20.0):
+    def select_downstream_upstream_edges(
+        self, 
+        min_difference_angle=10.0, 
+        min_difference_discharge_factor=2.0
+    ):
+        logging.info("   x find downstream upstream edges")
+        if "specific_discharge" not in self.nodes:
+            logging.info(f"     - use angle using min_difference_angle [{min_difference_angle}deg]")
+            self.nodes = select_downstream_upstream_edges_angle(
+                self.nodes, min_difference_angle=min_difference_angle
+            )
+        else:
+            logging.info(f"     - use discharge distribution [factor{min_difference_discharge_factor:.3f}]")
+            self.nodes = select_downstream_upstream_edges_discharge(
+                self.nodes, min_difference_discharge_factor=min_difference_discharge_factor
+            )
+        return self.nodes
+
+
+    def analyse_netwerk_add_information_to_nodes_edges(
+        self, 
+        min_difference_angle=10.0, 
+        min_difference_discharge_factor=2.0
+    ):
+        logging.info("   x get upstream downstream edges ids")
         self.nodes = define_list_upstream_downstream_edges_ids(
             node_ids=self.nodes.nodeID.values, nodes=self.nodes, edges=self.edges
         )
@@ -293,9 +323,14 @@ class GeneratorBasis(BaseModel):
         self.nodes, self.edges = calculate_angles_of_edges_at_nodes(
             nodes=self.nodes, edges=self.edges
         )
-        logging.info("   x find downstream upstream edges")
-        self.nodes = select_downstream_upstream_edges(
-            self.nodes, min_difference_angle=min_difference_angle
+        logging.info("   x calculate discharges of edges to nodes")
+        self.nodes, self.edges = calculate_discharges_of_edges_at_nodes(
+            nodes=self.nodes, edges=self.edges
+        )
+        logging.info("   x select downstream upstream edges")
+        self.nodes = self.select_downstream_upstream_edges(
+            min_difference_angle=min_difference_angle,
+            min_difference_discharge_factor=min_difference_discharge_factor
         )
         return self.nodes, self.edges
 

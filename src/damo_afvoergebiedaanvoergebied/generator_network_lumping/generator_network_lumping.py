@@ -23,7 +23,7 @@ from ..utils.general_functions import (
 )
 from ..utils.network_functions import (
     calculate_angles_of_edges_at_nodes,
-    select_downstream_upstream_edges,
+    select_downstream_upstream_edges_angle,
     define_list_upstream_downstream_edges_ids,
     find_nodes_edges_for_direction,
 )
@@ -363,9 +363,9 @@ class GeneratorNetworkLumping(GeneratorBasis):
         return self.inflow_outflow_nodes
 
 
-    def select_downstream_upstream_edges(self, min_difference_angle: str = 20.0):
+    def select_downstream_upstream_edges_angle(self, min_difference_angle: str = 20.0):
         logging.info("   x find downstream upstream edges")
-        self.inflow_outflow_nodes = select_downstream_upstream_edges(
+        self.inflow_outflow_nodes = select_downstream_upstream_edges_angle(
             self.inflow_outflow_nodes, min_difference_angle=min_difference_angle
         )
         return self.inflow_outflow_nodes

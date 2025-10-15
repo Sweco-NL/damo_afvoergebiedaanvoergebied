@@ -41,7 +41,18 @@ def get_resolution_2d_array(dataarray, x: str = 'x', y: str = 'y', decimals=2):
     return x_resolution, y_resolution
 
 
-class GeneratorDrainageUnits(GeneratorBasis):
+def dataarray_from_gdf(raster, gdf, raster_name):
+    raster.data = imod.prepare.rasterize(
+        gdf.reset_index(drop=True), 
+        column="color_id",
+        like=raster,
+        fill=-1,
+    )
+    raster.name = raster_name
+    return raster
+
+
+class GeneratorAfvoergebieden(GeneratorBasis):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     path: Path = None
@@ -69,6 +80,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
         "nodes",
         "all_waterways_0",
         "drainage_units_0",
+        "drainage_units_0_gdf",
     ]
 
     hydroobjecten: gpd.GeoDataFrame = None
@@ -109,8 +121,6 @@ class GeneratorDrainageUnits(GeneratorBasis):
     flow_direction_d16_ind: xarray.Dataset = None
     flow_direction_d16_fills: xarray.Dataset = None
     
-    drainage_units_clean: gpd.GeoDataFrame = None
-    
     drainage_units_0: xarray.Dataset = None
     drainage_units_0_gdf: gpd.GeoDataFrame = None
     drainage_units_1: xarray.Dataset = None
@@ -119,6 +129,8 @@ class GeneratorDrainageUnits(GeneratorBasis):
     drainage_units_2_gdf: gpd.GeoDataFrame = None
     drainage_units_3: xarray.Dataset = None
     drainage_units_3_gdf: gpd.GeoDataFrame = None
+    drainage_units_4: xarray.Dataset = None
+    drainage_units_4_gdf: gpd.GeoDataFrame = None
 
     edges: gpd.GeoDataFrame = None
     nodes: gpd.GeoDataFrame = None
@@ -176,9 +188,13 @@ class GeneratorDrainageUnits(GeneratorBasis):
 
         logging.info("     - select waterways and add depth at waterways")
         # combine all waterways and filter on order_no
-        edges = self.edges[["code", "order_no", "geometry"]].reset_index(drop=True)
-        # select only with order_no
-        edges = edges[edges["order_no"]>0]
+        if "order_no" in self.edges.columns:
+            edges = self.edges[["code", "order_no", "geometry"]].reset_index(drop=True)
+            # select only with order_no
+            edges = edges[edges["order_no"]>0]
+        else:
+            edges = self.edges[["code", "geometry"]].reset_index(drop=True)
+
         self.all_waterways_0 = edges[["code", "geometry"]].reset_index(drop=True)
         # do the same for the other waterways and combine
         if self.overige_watergangen_processed_4 is not None:
@@ -276,22 +292,7 @@ class GeneratorDrainageUnits(GeneratorBasis):
         else:
             raise ValueError("method wrong")
 
-        if self.write_results:
-            self.export_results_to_gpkg_or_nc(
-                list_layers=[
-                    "flow_direction_d16",
-                    "drainage_units_0"
-                ]
-            )
-        return self.drainage_units_0
-
-
-    def aggregate_drainage_units(self):
         self.drainage_units_0_gdf = None
-        self.drainage_units_1 = None
-        self.drainage_units_1_gdf = None
-        self.drainage_units_2 = None
-        self.drainage_units_2_gdf = None
 
         logging.info(f"     - polygonize rasters to polygons")
         if self.drainage_units_0.dims == ("y", "x"):
@@ -312,14 +313,45 @@ class GeneratorDrainageUnits(GeneratorBasis):
         gdf = gdf[gdf["drainage_unit_id"] > -1]
         gdf = gdf.dissolve(by="drainage_unit_id").reset_index()
 
+        gdf = gdf.merge(
+            self.all_waterways_0[["code", "drainage_unit_id"]],
+            how="left",
+            on="drainage_unit_id",
+        )
+
         self.drainage_units_0_gdf = gdf.copy()
-        self.drainage_units_clean = gdf.copy()
+
+        # if self.drainage_units_0.dims != ("y", "x"):
+        #     drainage_units_0 = self.drainage_units_0[0]
+        # else:
+        #     drainage_units_0 = self.drainage_units_0
+
+        # self.drainage_units_0 = dataarray_from_gdf(
+        #     drainage_units_0, 
+        #     self.drainage_units_0_gdf, 
+        #     "drainage_units_0"
+        # )
+
         if self.write_results:
             self.export_results_to_gpkg_or_nc(
                 list_layers=[
-                    "drainage_units_clean"
+                    "flow_direction_d16",
+                    "drainage_units_0",
+                    "drainage_units_0_gdf",
                 ]
             )
+        return self.drainage_units_0
+
+
+    def aggregate_drainage_units(self):
+        self.drainage_units_1 = None
+        self.drainage_units_1_gdf = None
+        self.drainage_units_2 = None
+        self.drainage_units_2_gdf = None
+        self.drainage_units_3 = None
+        self.drainage_units_3_gdf = None
+        self.drainage_units_4 = None
+        self.drainage_units_4_gdf = None
 
         logging.info("   x aggregation/lumping of drainage units: aggregate 'overige watergangen'")
         logging.info("     - define new drainage_unit_ids for all 'overige watergangen'")
@@ -347,86 +379,97 @@ class GeneratorDrainageUnits(GeneratorBasis):
             )
         
         logging.info(f"     - aggregate sub drainage units: replace {len(all_waterways_1)} drainage_unit_ids")
-        drainage_units_0_gdf = self.drainage_units_0_gdf.merge(
-            self.all_waterways_1[
-                ["drainage_unit_id", "code", "downstream_edges", "order_code", "downstream_order_code"]
-            ],
+        # drainage_units_1_gdf = gpd.sjoin(
+        #     self.drainage_units_0_gdf,
+        #     self.all_waterways_1.drop(columns=["color_id", "drainage_unit_id"]),
+        #     how="left",
+        #     predicate="intersects"
+        # )
+        # drainage_units_1_gdf = drainage_units_1_gdf.merge(
+        #     self.all_waterways_1[["geometry", "downstream_edges"]].rename(columns={"geometry": "waterway_geometry"}), 
+        #     how="left", 
+        #     on="downstream_edges", 
+        # )
+        # drainage_units_1_gdf['overlap_length'] = (
+        #     drainage_units_1_gdf
+        #     .geometry
+        #     .intersection(
+        #         drainage_units_1_gdf.waterway_geometry
+        #     ).length
+        # )
+        # drainage_units_1_gdf = drainage_units_1_gdf.loc[
+        #     drainage_units_1_gdf.groupby('drainage_unit_id')['overlap_length'].idxmax()
+        # ]
+        # self.drainage_units_1_gdf = (
+        #     drainage_units_1_gdf
+        #     .reset_index(drop=True)
+        #     .drop(columns=["index_right", "waterway_geometry", "overlap_length"])
+        # )
+        # self.drainage_units_1_gdf = drainage_units_1_gdf.drop(columns="waterway_geometry")
+        self.drainage_units_1_gdf = self.drainage_units_0_gdf.merge(
+            self.all_waterways_1.drop(columns=["color_id", "geometry"]),
             how="left",
             on="drainage_unit_id"
         )
-        self.drainage_units_0_gdf = drainage_units_0_gdf.copy()
-
-        self.drainage_units_0_gdf["downstream_order_code"] = self.drainage_units_0_gdf["downstream_order_code"].fillna("")
-        self.drainage_units_0_gdf = self.drainage_units_0_gdf.sort_values("downstream_order_code", ascending=True)
-        self.drainage_units_1_gdf = (
-            self.drainage_units_0_gdf
+        
+        self.drainage_units_1_gdf["downstream_order_code"] = self.drainage_units_1_gdf["downstream_order_code"].fillna("")
+        self.drainage_units_1_gdf = self.drainage_units_1_gdf.sort_values("downstream_order_code", ascending=True)
+        self.drainage_units_2_gdf = (
+            self.drainage_units_1_gdf
             .dissolve(by="downstream_edges")
             .drop(columns="downstream_order_code")
             .reset_index()
         )
-        random_color_id = np.random.randint(0, 25, size=len(self.drainage_units_1_gdf))
-        self.drainage_units_1_gdf["color_id"] = random_color_id
-
-        self.drainage_units_2_gdf = self.drainage_units_1_gdf.dissolve(by="order_code").reset_index()
         random_color_id = np.random.randint(0, 25, size=len(self.drainage_units_2_gdf))
         self.drainage_units_2_gdf["color_id"] = random_color_id
-        self.drainage_units_2_gdf["order_code_no"] = self.drainage_units_2_gdf.order_code.str[:6]
 
-        self.drainage_units_3_gdf = self.drainage_units_2_gdf.dissolve("order_code_no").reset_index()
+        self.drainage_units_3_gdf = self.drainage_units_2_gdf.dissolve(by="order_code").reset_index()
         random_color_id = np.random.randint(0, 25, size=len(self.drainage_units_3_gdf))
         self.drainage_units_3_gdf["color_id"] = random_color_id
+        self.drainage_units_3_gdf["order_code_no"] = self.drainage_units_3_gdf.order_code.str[:6]
 
-        # rasterize gdfs
-        def dataarray_from_gdf(raster, gdf, raster_name):
-            raster.data = imod.prepare.rasterize(
-                gdf.reset_index(drop=True), 
-                column="color_id",
-                like=raster,
-                fill=-1,
-            )
-            raster.name = raster_name
-            return raster
-        
-        if self.drainage_units_0.dims != ("y", "x"):
-            drainage_units_0 = self.drainage_units_0[0]
-        else:
-            drainage_units_0 = self.drainage_units_0
+        self.drainage_units_4_gdf = self.drainage_units_3_gdf.dissolve("order_code_no").reset_index()
+        random_color_id = np.random.randint(0, 25, size=len(self.drainage_units_4_gdf))
+        self.drainage_units_4_gdf["color_id"] = random_color_id
 
-        self.drainage_units_0 = dataarray_from_gdf(
-            drainage_units_0, 
-            self.drainage_units_0_gdf, 
-            "drainage_units_0"
-        )
         self.drainage_units_1 = self.drainage_units_0.copy()
         self.drainage_units_1 = dataarray_from_gdf(
-            self.drainage_units_1, 
+            self.drainage_units_1[0], 
             self.drainage_units_1_gdf, 
             "drainage_units_1"
         )
         self.drainage_units_2 = self.drainage_units_0.copy()
         self.drainage_units_2 = dataarray_from_gdf(
-            self.drainage_units_2, 
+            self.drainage_units_2[0], 
             self.drainage_units_2_gdf, 
             "drainage_units_2"
         )
 
         self.drainage_units_3 = self.drainage_units_0.copy()
         self.drainage_units_3 = dataarray_from_gdf(
-            self.drainage_units_3, 
+            self.drainage_units_3[0], 
             self.drainage_units_3_gdf, 
             "drainage_units_3"
+        )
+
+        self.drainage_units_4 = self.drainage_units_0.copy()
+        self.drainage_units_4 = dataarray_from_gdf(
+            self.drainage_units_4[0], 
+            self.drainage_units_4_gdf, 
+            "drainage_units_4"
         )
 
         if self.write_results:
             self.export_results_to_gpkg_or_nc(
                 list_layers=[
-                    "drainage_units_0_gdf",
                     "drainage_units_1_gdf",
                     "drainage_units_2_gdf",
                     "drainage_units_3_gdf",
+                    "drainage_units_4_gdf",
                     "drainage_units_1",
                     "drainage_units_2",
                     "drainage_units_3",
+                    "drainage_units_4",
                 ]
             )
         return self.drainage_units_2_gdf

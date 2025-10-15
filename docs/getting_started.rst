@@ -1,7 +1,7 @@
 Installatie en gebruik van de workflows
 =====================
 
-Download voor gebruik de public repository. Daarin zit zowel de package generator_drainage_units als enkele voorbeeldscripts inclusief testdata.
+Download voor gebruik de public repository. Daarin zit zowel de package damo_afvoergebiedaanvoergebied als enkele voorbeeldscripts inclusief testdata.
 
 
 Installatie environment
@@ -58,16 +58,16 @@ De analyse inclusief brondata en de resultaten komt in een map terecht. In de no
 
 De verschillende workflows kunnen los gedraaid worden, maar er zit ook een volgorde in:
 
-- GeneratorCulvertLocations: bereid het watersysteem helemaal voor, voert voorbewerking uit op de A-/B-watergangen, verbindt de C-watergangen middels duikers, etc; 
-- GeneratorOrderLevels: Genereert order-nummers en orde-codering voor alle (A-/B-/C-)watergangen; 
-- GeneratorDrainageUnits: Genereert de afwateringseenheden (polygonen); 
-- GeneratorNetworkLumping: Genereert de deelstroomgebieden voor uitstroompunten, (sluitend) waternetwerk en afwateringseenheden.
+- Workflow Duikers: bereid het watersysteem helemaal voor, voert voorbewerking uit op de A-/B-watergangen, verbindt de C-watergangen middels duikers, etc; 
+- Workflow GebiedsOrde: Genereert order-nummers en orde-codering voor alle (A-/B-/C-)watergangen; 
+- Workflow Afvoergebieden: Genereert de afwateringseenheden (polygonen); 
+- Workflow NetworkLumping: Genereert de deelstroomgebieden voor uitstroompunten, (sluitend) waternetwerk en afwateringseenheden.
 
 Om de analyses uit te voeren zijn voor iedere analyse losse functies geschreven:
 
-- `run_generator_culvert_locations() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#generator_drainage_units.generator_culvert_locations.run_generator_culvert_locations>`_
-- `run_generator_order_levels() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#generator_drainage_units.generator_order_levels.run_generator_order_levels>`_
-- `run_generator_drainage_units() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#generator_drainage_units.generator_network_lumping.run_generator_network_lumping>`_
-- `run_generator_network_lumping() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#generator_drainage_units.generator_network_lumping.run_generator_network_lumping>`_
+- `run_generator_duikers() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#damo_afvoergebiedaanvoergebied.generator_duikers.run_generator_duikers>`_
+- `run_generator_gebiedsorde() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#damo_afvoergebiedaanvoergebied.generator_gebiedsorde.run_generator_gebiedsorde>`_
+- `run_damo_afvoergebiedaanvoergebied() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#damo_afvoergebiedaanvoergebied.generator_network_lumping.run_generator_network_lumping>`_
+- `run_generator_network_lumping() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#damo_afvoergebiedaanvoergebied.generator_network_lumping.run_generator_network_lumping>`_
 
 Alle functies hebben eigenlijk alleen het path nodig waar de map met basisdata staat. De resultaatmap wordt automatisch aangemaakt. Indien gewenst kunnen extra parameters worden meegegeven voor het draaien van de functies.

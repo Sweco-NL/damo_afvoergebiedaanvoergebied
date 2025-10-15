@@ -1109,6 +1109,16 @@ packages:
   - pkg:pypi/cytoolz?source=hash-mapping
   size: 316347
   timestamp: 1734107735311
+- pypi: ./
+  name: damo-afvoergebiedaanvoergebied
+  version: 0.1.0
+  sha256: 2f999c58d331226c8a9602e2177523dee815b4fd549c0f75af1a3a052a1c3eeb
+  requires_dist:
+  - ugrid>=0.13.0,<0.14
+  - pandas-xlsx-tables>=1.0.0,<2
+  - tomli-w>=1.2.0,<2
+  requires_python: '>=3.11'
+  editable: true
 - conda: https://conda.anaconda.org/conda-forge/noarch/dask-2024.12.1-pyhd8ed1ab_0.conda
   sha256: 4caae23bb33892998bee07024ddf1eec346400556c7bb7d45d1cee148af060d1
   md5: f3134df9565c4d4415ff0e61f3aa28d0
@@ -1582,16 +1592,6 @@ packages:
   purls: []
   size: 523967
   timestamp: 1715783547727
-- pypi: ./
-  name: generator-drainage-units
-  version: 0.1.0
-  sha256: adbd5d15ac216cbfe42272cfc5c961d3b7b81b11e775068210b303e19570d57d
-  requires_dist:
-  - ugrid>=0.13.0,<0.14
-  - pandas-xlsx-tables>=1.0.0,<2
-  - tomli-w>=1.2.0,<2
-  requires_python: '>=3.11'
-  editable: true
 - conda: https://conda.anaconda.org/conda-forge/noarch/geocube-0.7.1-pyhd8ed1ab_0.conda
   sha256: 05f6b7163fb31778d99f9c57c7514460f29ed14cb35cf2a681aa0458230a0b4c
   md5: 5d905eadd1a60abeb09fd636dedce3e2

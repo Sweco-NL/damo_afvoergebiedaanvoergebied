@@ -2,10 +2,10 @@ from pathlib import Path
 import geopandas as gpd
 import logging
 import time
-from .generator_order_levels import GeneratorOrderLevels
+from .generator_gebiedsorde import GeneratorGebiedsOrde
 
 
-def run_generator_order_levels(
+def run_generator_gebiedsorde(
     path: Path,
     dir_basisdata: str = "0_basisdata",
     dir_results: str = "1_resultaat",
@@ -22,9 +22,9 @@ def run_generator_order_levels(
     write_results: bool = True,
     create_html_map: bool = False,
     open_html: bool = False,
-) -> GeneratorOrderLevels:
+) -> GeneratorGebiedsOrde:
     start_time = time.time()
-    order = GeneratorOrderLevels(
+    order = GeneratorGebiedsOrde(
         path=path,
         dir_basisdata=dir_basisdata,
         dir_results=dir_results,
@@ -34,7 +34,8 @@ def run_generator_order_levels(
     )
 
     if generate_order_no:
-        order.create_graph_from_network(water_lines=water_lines)
+        if order.edges is None:
+            order.create_graph_from_network(water_lines=water_lines)
         order.analyse_netwerk_add_information_to_nodes_edges()
         
         if not generate_new_outflow_nodes and order.outflow_nodes is not None:

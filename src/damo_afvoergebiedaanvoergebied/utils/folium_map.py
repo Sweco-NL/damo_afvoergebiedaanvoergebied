@@ -339,7 +339,7 @@ def generate_folium_map(
         add_graduated_raster_to_map(
             m=m,
             raster=drainage_units_0,
-            layer_name="Afwateringseenheden (A/B/C watergangen)",
+            layer_name="Afwateringseenheden - basis",
             unit="unique id",
             control=True,
             vmin=0,
@@ -359,7 +359,7 @@ def generate_folium_map(
         add_graduated_raster_to_map(
             m=m,
             raster=drainage_units_1,
-            layer_name="Afwateringseenheden (A/B watergangen)",
+            layer_name="Afwateringseenheden (A/B/C watergangen)",
             unit="unique id",
             control=True,
             vmin=0,
@@ -379,7 +379,7 @@ def generate_folium_map(
         add_graduated_raster_to_map(
             m=m,
             raster=drainage_units_2,
-            layer_name="Afwateringseenheden (orde-code)",
+            layer_name="Afwateringseenheden (A/B watergangen)",
             unit="unique id",
             control=True,
             vmin=0,
@@ -399,11 +399,31 @@ def generate_folium_map(
         add_graduated_raster_to_map(
             m=m,
             raster=drainage_units_3,
-            layer_name="Afwateringseenheden (stroomgebied)",
+            layer_name="Afwateringseenheden (orde-code)",
             unit="unique id",
             control=True,
             vmin=0,
             vmax=int(generator.drainage_units_3.data.max()),
+            cmap=drainage_units_cmap,
+            legend=False,
+            opacity=drainage_units_opacity,
+            show=False,
+            dx=dx,
+            dy=dy,
+        )
+
+    if is_attribute_not_none(generator, f"drainage_units_4"):
+        logging.info(f'     - drainage units (raster, level 4)')
+        drainage_units_4 = generator.drainage_units_4.where(generator.drainage_units_4 > -1.0)
+        drainage_units_4 = drainage_units_4.rio.write_crs(generator.crs)
+        add_graduated_raster_to_map(
+            m=m,
+            raster=drainage_units_4,
+            layer_name="Afwateringseenheden (stroomgebied)",
+            unit="unique id",
+            control=True,
+            vmin=0,
+            vmax=int(generator.drainage_units_4.data.max()),
             cmap=drainage_units_cmap,
             legend=False,
             opacity=drainage_units_opacity,

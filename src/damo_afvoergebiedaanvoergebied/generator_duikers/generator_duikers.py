@@ -28,7 +28,7 @@ from ..utils.general_functions import (
 warnings.filterwarnings("ignore", message="Geometry column does not contain geometry")
 
 
-class GeneratorCulvertLocations(GeneratorBasis):
+class GeneratorDuikers(GeneratorBasis):
     """ "Module to guess (best-guess) the locations of culverts
     based on existing water network, other water bodies (c-watergangen),
     roads and level areas (peilgebieden)."""
