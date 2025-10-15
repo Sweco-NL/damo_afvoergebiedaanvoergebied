@@ -2,12 +2,12 @@
    sphinx-quickstart on Wed Dec 18 09:19:01 2024.
 
 
-Afleiden afwateringseenheden en afvoergebieden (DAMO_AfvoergebiedAanvoergebied)
+Automatisch Afleiden Afvoergebieden (DAMO_AfvoergebiedAanvoergebied)
 ============================================================================================================================
 
 `GitHub-repository <https://github.com/Sweco-NL/damo_afvoergebiedaanvoergebied>`_
 
-Verschillende categorieën afvoergebieden
+Categorieën afvoergebieden
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 De basisdata (legger) van de waterschappen bestaat voor het watersysteem uit het netwerk van watergangen, dwarsprofielen, alle waterregulerende kunstwerken en verschillende typen afvoergebieden. De data wordt gebruikt voor het beheer, voor analyses rondom wateroverlast / droogte / waterkwaliteit en voor de opbouw van (geo)hydrologische en hydraulische modellen. 
