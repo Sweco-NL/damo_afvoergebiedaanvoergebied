@@ -1,6 +1,6 @@
-## Workflows network-analyses op hydrologische basisdata waterschappen
+## Workflow voor hydrologische basisdata waterschappen
 
-o.a. voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afwateringseenheden, stroomgebieden afleiden, automatische orde-codering. Bekijk de uitgebreide documentatie via de [read-the-docs](https://damo-afvoergebiedaanvoergebied.readthedocs.io/en/latest/)
+o.a. voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afwateringseenheden, automatische orde-codering, stroomgebieden afleiden. Bekijk de uitgebreide documentatie via de [read-the-docs](https://damo-afvoergebiedaanvoergebied.readthedocs.io/en/latest/)
 
 
 ### Installatie environment
