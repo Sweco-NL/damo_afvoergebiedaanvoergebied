@@ -178,7 +178,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
             ).copy()
             outflows["rws_code_no"] = rws_order_code_min + outflows.index
             outflows["order_code"] = outflows.apply(
-                lambda x: f"{x.rws_code}.{str(x.rws_code_no)}", axis=1
+                lambda x: f"{x.rws_code}.{str(x.rws_code_no).zfill(3)}", axis=1
             )
             if outflows["rws_code_no"].max() > rws_order_code_max:
                 logging_message = f" XXX aantal uitstroompunten op RWS-water ({rws_code}) hoger dan range order_code waterschap"
@@ -390,17 +390,17 @@ class GeneratorGebiedsOrde(GeneratorBasis):
 
             order_no = order_no + 1
 
-        # edges_left["rws_code"] = ""
-        # edges_left["rws_code_no"] = -999
-        # edges_left["order_no"] = -999
-        # edges_left["outflow_edge"] = -999
-        # edges_left["order_edge_no"] = -999
+        edges_left["rws_code"] = ""
+        edges_left["rws_code_no"] = -999
+        edges_left["order_no"] = -999
+        edges_left["outflow_edge"] = -999
+        edges_left["order_edge_no"] = -999
 
-        # nodes_left["rws_code"] = ""
-        # nodes_left["rws_code_no"] = -999
-        # nodes_left["order_no"] = -999
-        # nodes_left["outflow_edge"] = -999
-        # nodes_left["order_node_no"] = -999
+        nodes_left["rws_code"] = ""
+        nodes_left["rws_code_no"] = -999
+        nodes_left["order_no"] = -999
+        nodes_left["outflow_edge"] = -999
+        nodes_left["order_node_no"] = -999
 
         edges_all_orders = edges_all_orders.sort_values("order_no").drop_duplicates(
             subset="code", keep="first"
@@ -412,10 +412,10 @@ class GeneratorGebiedsOrde(GeneratorBasis):
             "order_no"
         ).drop_duplicates(subset=["node_end", "edge_code"], keep="first")
 
-        # self.edges = pd.concat([edges_all_orders, edges_left]).reset_index(drop=True)
-        # self.nodes = pd.concat([nodes_all_orders, nodes_left]).reset_index(drop=True)
-        self.edges = edges_all_orders.copy()
-        self.nodes = nodes_all_orders.copy()
+        self.edges = pd.concat([edges_all_orders, edges_left]).reset_index(drop=True)
+        self.nodes = pd.concat([nodes_all_orders, nodes_left]).reset_index(drop=True)
+        # self.edges = edges_all_orders.copy()
+        # self.nodes = nodes_all_orders.copy()
         
         self.outflow_edges = outflow_edges_orders.copy()
         self.outflow_nodes = self.outflow_edges.copy()
@@ -440,6 +440,8 @@ class GeneratorGebiedsOrde(GeneratorBasis):
         logging.info(logging_message)
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
+                "edges",
+                "nodes",
                 "outflow_edges",
                 "outflow_nodes",
             ])
@@ -793,7 +795,6 @@ class GeneratorGebiedsOrde(GeneratorBasis):
             lambda x: (x.no_downstream_edges == x.no_downstream_order_no) and (x.no_downstream_edges == x.no_downstream_order_code),
             axis=1
         )
-        display(outflow_nodes[outflow_nodes["equal"]==False])
 
         outflow_nodes = (
             outflow_nodes.explode(

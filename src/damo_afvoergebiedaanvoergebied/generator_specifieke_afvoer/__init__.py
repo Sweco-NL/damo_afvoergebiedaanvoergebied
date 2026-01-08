@@ -11,6 +11,7 @@ def run_generator_specifieke_afvoer(
     dir_results: Path = None,
     waterschap: str = None,
     water_lines: list[str] = ["hydroobjecten"],
+    generate_specific_discharge: bool = True,
     level_discharge_units: int = 0, # level discharge units 0/1/2/3
     use_specific_discharge: float = 1.0,
     specific_discharge_file_name: str = None,
@@ -30,18 +31,19 @@ def run_generator_specifieke_afvoer(
         write_results=write_results,
     )
 
-    discharge.generate_distribution_splits_downstream()
+    if generate_specific_discharge:
+        discharge.generate_distribution_splits_downstream()
 
-    discharge.read_specific_discharge(
-        specific_discharge_file_name=specific_discharge_file_name
-    )
-    discharge.add_specific_discharge_to_discharge_units(
-        use_specific_discharge=use_specific_discharge,
-        level_discharge_units=level_discharge_units
-    )
-    discharge.add_specific_discharge_to_edges()
-    discharge.sum_specific_discharge_through_network()
-
+        discharge.read_specific_discharge(
+            specific_discharge_file_name=specific_discharge_file_name
+        )
+        discharge.add_specific_discharge_to_discharge_units(
+            use_specific_discharge=use_specific_discharge,
+            level_discharge_units=level_discharge_units
+        )
+        discharge.add_specific_discharge_to_edges()
+        discharge.sum_specific_discharge_through_network()
+    
     if create_html_map:
         discharge.generate_folium_map(open_html=open_html)
 

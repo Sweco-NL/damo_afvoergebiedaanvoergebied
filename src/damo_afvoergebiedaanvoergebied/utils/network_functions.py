@@ -506,9 +506,10 @@ def select_downstream_upstream_edges_discharge(nodes, min_difference_discharge_f
         downstream_discharges = [
             float(a) for a in x["downstream_discharges"].split(",") if a != ""
         ]
-
+        
         x["selected_upstream_edge"] = None
         x["selected_downstream_edge"] = None
+
         if len(upstream_discharges) == 1:
             x["selected_upstream_edge"] = upstream_edges[0]
         elif len(upstream_discharges) > 1:

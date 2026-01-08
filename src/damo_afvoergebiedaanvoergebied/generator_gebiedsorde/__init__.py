@@ -22,6 +22,7 @@ def run_generator_gebiedsorde(
     write_results: bool = True,
     create_html_map: bool = False,
     open_html: bool = False,
+    snapping_distance: float = 0.05,
 ) -> GeneratorGebiedsOrde:
     start_time = time.time()
     order = GeneratorGebiedsOrde(
@@ -31,6 +32,7 @@ def run_generator_gebiedsorde(
         waterschap=waterschap,
         read_results=read_results,
         write_results=write_results,
+        snapping_distance=snapping_distance,
     )
 
     if generate_order_no:

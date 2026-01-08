@@ -125,7 +125,7 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
         logging.info(
             f"   x add specific discharge to discharge units"
         )
-        if 0 <= level_discharge_units <= 3:
+        if 0 <= level_discharge_units <= 4:
             discharge_units_file_path = Path(self.dir_results, f"drainage_units_{level_discharge_units}_gdf.gpkg")
             if discharge_units_file_path.exists():
                 self.drainage_units_gdf = gpd.read_file(discharge_units_file_path)
