@@ -50,6 +50,7 @@ class GeneratorBasis(BaseModel):
     path: Path = None
     name: str = None
     base_dir: Path = None
+    waterschap: str = None
 
     dir_basisdata: str | Path = "0_basisdata"
     dir_results: str | Path | None = "1_resultaat"
@@ -87,7 +88,7 @@ class GeneratorBasis(BaseModel):
             )
         self.path = path
         self.name = self.path.name
-        logging.info(f' ### Case "{self.name.capitalize()}" ###')
+        logging.info(f' ### Waterschap "{self.waterschap.capitalize()}" Case "{self.name.capitalize()}" ###')
 
         # check if directories 0_basisdata and 1_resultaat exist
         if isinstance(self.dir_basisdata, str):
