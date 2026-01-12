@@ -31,7 +31,7 @@ warnings.filterwarnings("ignore", message="Geometry column does not contain geom
 class GeneratorDuikers(GeneratorBasis):
     """ "Module to guess (best-guess) the locations of culverts
     based on existing water network, other water bodies (c-watergangen),
-    roads and level areas (peilgebieden)."""
+    roads and level areas (peilgebied)."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -40,14 +40,14 @@ class GeneratorDuikers(GeneratorBasis):
     base_dir: Path = None
     waterschap: str = None
 
-    hydroobjecten: gpd.GeoDataFrame = None
-    overige_watergangen: gpd.GeoDataFrame = None
+    hydroobject: gpd.GeoDataFrame = None
+    overige_watergang: gpd.GeoDataFrame = None
     bebouwing: gpd.GeoDataFrame = None
-    keringen: gpd.GeoDataFrame = None
+    kering: gpd.GeoDataFrame = None
     nwb: gpd.GeoDataFrame = None
-    peilgebieden: gpd.GeoDataFrame = None
-    snelwegen: gpd.GeoDataFrame = None
-    spoorwegen: gpd.GeoDataFrame = None
+    peilgebied: gpd.GeoDataFrame = None
+    snelweg: gpd.GeoDataFrame = None
+    spoorweg: gpd.GeoDataFrame = None
 
     read_results: bool = False
     write_results: bool = False
@@ -68,21 +68,21 @@ class GeneratorDuikers(GeneratorBasis):
     potential_culverts_4: gpd.GeoDataFrame = None           # resultaat met nabewerking
     potential_culverts_5: gpd.GeoDataFrame = None           # resultaat met flips
 
-    # hydroobjecten including splits by culverts
-    hydroobjecten_processed_0: gpd.GeoDataFrame = None
-    # overige_watergangen including splits by culverts
-    overige_watergangen_processed_0: gpd.GeoDataFrame = None
-    # overige_watergangen including splits by culverts and post process
-    overige_watergangen_processed_1: gpd.GeoDataFrame = None
-    # overige_watergangen including splits by culverts
-    overige_watergangen_processed_2: gpd.GeoDataFrame = None
+    # hydroobject including splits by culverts
+    hydroobject_processed_0: gpd.GeoDataFrame = None
+    # overige_watergang including splits by culverts
+    overige_watergang_processed_0: gpd.GeoDataFrame = None
+    # overige_watergang including splits by culverts and post process
+    overige_watergang_processed_1: gpd.GeoDataFrame = None
+    # overige_watergang including splits by culverts
+    overige_watergang_processed_2: gpd.GeoDataFrame = None
 
-    # overige_watergangen including outflow_node to hydroobjects and redirected
-    overige_watergangen_processed_3: gpd.GeoDataFrame = None
-    overige_watergangen_processed_3_nodes: gpd.GeoDataFrame = None
+    # overige_watergang including outflow_nodes to hydroobjects and redirected
+    overige_watergang_processed_3: gpd.GeoDataFrame = None
+    overige_watergang_processed_3_nodes: gpd.GeoDataFrame = None
 
-    # outflow points from overige watergangen to hydroobjecten
-    outflow_nodes_overige_watergangen: gpd.GeoDataFrame = None
+    # outflow points from overige watergangen to hydroobject
+    outflow_nodes_overige_watergang: gpd.GeoDataFrame = None
 
     folium_map: folium.Map = None
     folium_html_path: Path = None
@@ -91,13 +91,13 @@ class GeneratorDuikers(GeneratorBasis):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if self.path is not None:
-            self.use_processed_hydroobjecten(force_preprocess=True)
+            self.use_processed_hydroobject(force_preprocess=True)
 
 
     def generate_vertices_along_waterlines(
         self,
         distance_vertices: float = 10.0,
-        waterlines: list[str] = ["hydroobjecten", "overige_watergangen"],
+        waterlines: list[str] = ["hydroobject", "overige_watergang"],
         read_results: bool = None,
         write_results: bool = None,
     ) -> gpd.GeoDataFrame:
@@ -108,7 +108,7 @@ class GeneratorDuikers(GeneratorBasis):
         distance_vertices : float, optional
             distance between vertices, by default 10.0
         waterlines : list[str], optional
-            list of attributes to be included, by default ["hydroobjecten", "overige_watergangen"]
+            list of attributes to be included, by default ["hydroobject", "overige_watergang"]
         read_results : bool, optional
             option (True/False) to read previous results from gpkg, by default None
         write_results : bool, optional
@@ -247,7 +247,7 @@ class GeneratorDuikers(GeneratorBasis):
         # Filter for end points (only overige watergangen and not when connected)
         end_pnts = self.water_line_pnts[
             (self.water_line_pnts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (self.water_line_pnts["WaterLineType"] == "overige_watergangen")
+            & (self.water_line_pnts["WaterLineType"] == "overige_watergang")
         ]
         end_pnts = end_pnts.drop_duplicates(subset="geometry", keep=False)
         end_pnts = end_pnts.rename(
@@ -325,13 +325,13 @@ class GeneratorDuikers(GeneratorBasis):
             return self.potential_culverts_1
 
         crossing_objects = [
-            "hydroobjecten",
-            "overige_watergangen",
-            "keringen",
+            "hydroobject",
+            "overige_watergang",
+            "kering",
             "nwb",
-            "peilgebieden",
-            "snelwegen",
-            "spoorwegen",
+            "peilgebied",
+            "snelweg",
+            "spoorweg",
         ]
 
         # Work directly on the original culverts
@@ -354,7 +354,7 @@ class GeneratorDuikers(GeneratorBasis):
             # Merge without creating duplicates
             culverts = culverts.merge(joined, how="left", left_index=True, right_index=True)
             
-            if crossing_object in ["hydroobjecten", "overige_watergangen"]:
+            if crossing_object in ["hydroobject", "overige_watergang"]:
                 # Step 1: Create a copy with only the relevant columns
                 culverts_copy = culverts[
                     [f"{crossing_object}_code", "dangling_code", "code", "unique_id"]
@@ -392,8 +392,8 @@ class GeneratorDuikers(GeneratorBasis):
 
         # Remove unwanted culverts directly
         culverts = culverts.loc[
-            culverts[["crossings_hydroobjecten", "crossings_overige_watergangen",
-                    "crossings_keringen", "crossings_snelwegen", "crossings_spoorwegen"]].any(axis=1) == False
+            culverts[["crossings_hydroobject", "crossings_overige_watergang",
+                    "crossings_kering", "crossings_snelweg", "crossings_spoorweg"]].any(axis=1) == False
         ]
 
         logging.info(f"     - {len(culverts)} potential culverts remaining")
@@ -432,8 +432,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 1e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["WaterLineType"] == "hydroobjecten")
-            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["WaterLineType"] == "hydroobject")
+            & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == False),
             "score",
         ] = 1
@@ -441,8 +441,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 2e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["WaterLineType"] == "hydroobjecten")
-            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["WaterLineType"] == "hydroobject")
+            & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == False),
             "score",
         ] = 2
@@ -450,8 +450,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 3e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["WaterLineType"] == "overige_watergangen")
-            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["WaterLineType"] == "overige_watergang")
+            & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == False),
             "score",
         ] = 3
@@ -459,8 +459,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 4e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["WaterLineType"] == "overige_watergangen")
-            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["WaterLineType"] == "overige_watergang")
+            & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == False),
             "score",
         ] = 4
@@ -468,8 +468,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 5e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["WaterLineType"] == "hydroobjecten")
-            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["WaterLineType"] == "hydroobject")
+            & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == True),
             "score",
         ] = 5
@@ -477,8 +477,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 6e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["WaterLineType"] == "hydroobjecten")
-            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["WaterLineType"] == "hydroobject")
+            & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == True),
             "score",
         ] = 6
@@ -486,8 +486,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 7e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["WaterLineType"] == "overige_watergangen")
-            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["WaterLineType"] == "overige_watergang")
+            & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == True),
             "score",
         ] = 7
@@ -495,8 +495,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 8e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["WaterLineType"] == "overige_watergangen")
-            & (culverts["crossings_peilgebieden"] == False)
+            & (culverts["WaterLineType"] == "overige_watergang")
+            & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == True),
             "score",
         ] = 8
@@ -504,8 +504,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 9e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["WaterLineType"] == "hydroobjecten")
-            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["WaterLineType"] == "hydroobject")
+            & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == False),
             "score",
         ] = 9
@@ -513,8 +513,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 10e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["WaterLineType"] == "hydroobjecten")
-            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["WaterLineType"] == "hydroobject")
+            & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == False),
             "score",
         ] = 10
@@ -522,8 +522,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 11e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["WaterLineType"] == "overige_watergangen")
-            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["WaterLineType"] == "overige_watergang")
+            & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == False),
             "score",
         ] = 11
@@ -531,8 +531,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 12e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["WaterLineType"] == "overige_watergangen")
-            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["WaterLineType"] == "overige_watergang")
+            & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == False),
             "score",
         ] = 12
@@ -540,8 +540,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 13e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["WaterLineType"] == "hydroobjecten")
-            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["WaterLineType"] == "hydroobject")
+            & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == False),
             "score",
         ] = 13
@@ -549,8 +549,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 14e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["WaterLineType"] == "hydroobjecten")
-            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["WaterLineType"] == "hydroobject")
+            & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == True),
             "score",
         ] = 14
@@ -558,8 +558,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 15e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["WaterLineType"] == "overige_watergangen")
-            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["WaterLineType"] == "overige_watergang")
+            & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == True),
             "score",
         ] = 15
@@ -567,8 +567,8 @@ class GeneratorDuikers(GeneratorBasis):
         # 16e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["WaterLineType"] == "overige_watergangen")
-            & (culverts["crossings_peilgebieden"] == True)
+            & (culverts["WaterLineType"] == "overige_watergang")
+            & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == True),
             "score",
         ] = 16
@@ -636,19 +636,19 @@ class GeneratorDuikers(GeneratorBasis):
         )
         culverts["angle_waterline"] = None
 
-        self.overige_watergangen = self.overige_watergangen.explode()
+        self.overige_watergang = self.overige_watergang.explode()
 
-        self.overige_watergangen["angle_start"] = self.overige_watergangen[
+        self.overige_watergang["angle_start"] = self.overige_watergang[
             "geometry"
         ].apply(calculate_angle_start)
-        self.overige_watergangen["angle_end"] = self.overige_watergangen[
+        self.overige_watergang["angle_end"] = self.overige_watergang[
             "geometry"
         ].apply(calculate_angle_end)
 
-        code_to_angle_start = self.overige_watergangen.set_index("code")[
+        code_to_angle_start = self.overige_watergang.set_index("code")[
             "angle_start"
         ].to_dict()
-        code_to_angle_end = self.overige_watergangen.set_index("code")[
+        code_to_angle_end = self.overige_watergang.set_index("code")[
             "angle_end"
         ].to_dict()
 
@@ -892,7 +892,7 @@ class GeneratorDuikers(GeneratorBasis):
         culverts = culverts[~culverts.apply(should_remove, axis=1)].copy()
 
         # check if overige watergang already has another connection and choose shortest:
-        duplicate_culverts = culverts.loc[culverts["WaterLineType"]=="hydroobjecten"]
+        duplicate_culverts = culverts.loc[culverts["WaterLineType"]=="hydroobject"]
         duplicate_culverts = duplicate_culverts.sort_values(
             [
                 "dangling_code", 
@@ -921,49 +921,49 @@ class GeneratorDuikers(GeneratorBasis):
         return self.potential_culverts_4
 
 
-    def splits_hydroobjecten_by_endpoints_of_culverts_and_combine(self):
-        """Splits hydroobjects and overige_watergangen at the location where culverts are connected. 
+    def splits_hydroobject_by_endpoints_of_culverts_and_combine(self):
+        """Splits hydroobjects and overige_watergangt the location where culverts are connected. 
         This is done to create a complete and connected network.
-        The function also generates the outflow point of the overige_watergangen in hydroobjects.
+        The function also generates the outflow point of the overige_watergang in hydroobjects.
 
 
         Returns
         -------
-        self.overige_watergangen_processed_0: gpd.GeoDataFrame
-            Overige_watergangen after the splits from the culverts
-        self.hydroobjecten_processed_0: gpd.GeoDataFrame
-            Hydroobjecten after the splits from the culverts
-        self.outflow_nodes_overige_watergangen: gpd.GeoDataFrame
-            Outflow points of overige_watergangen in hydroobjects
+        self.overige_watergang_processed_0: gpd.GeoDataFrame
+            overige_watergang after the splits from the culverts
+        self.hydroobject_processed_0: gpd.GeoDataFrame
+            hydroobject after the splits from the culverts
+        self.outflow_nodes_overige_watergang: gpd.GeoDataFrame
+            Outflow points of overige_watergang in hydroobjects
         """
         other_culverts_hydro = self.potential_culverts_4[
             (self.potential_culverts_4["line_type"] == "other")
-            & (self.potential_culverts_4["WaterLineType"] == "hydroobjecten")
+            & (self.potential_culverts_4["WaterLineType"] == "hydroobject")
         ].copy()
         other_culverts_other = self.potential_culverts_4[
             (self.potential_culverts_4["line_type"] == "other")
-            & (self.potential_culverts_4["WaterLineType"] == "overige_watergangen")
+            & (self.potential_culverts_4["WaterLineType"] == "overige_watergang")
         ].copy()
 
-        self.hydroobjecten_processed_0 = split_waterways_by_endpoints(
-            self.hydroobjecten, other_culverts_hydro
+        self.hydroobject_processed_0 = split_waterways_by_endpoints(
+            self.hydroobject, other_culverts_hydro
         )
-        logging.info("     - hydroobjecten gesplit")
-        self.overige_watergangen_processed_0 = split_waterways_by_endpoints(
-            self.overige_watergangen, other_culverts_other
+        logging.info("     - hydroobject gesplit")
+        self.overige_watergang_processed_0 = split_waterways_by_endpoints(
+            self.overige_watergang, other_culverts_other
         )
 
         logging.info("     - overige watergangen gesplit")
 
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
-                "hydroobjecten_processed_0",
-                "overige_watergangen_processed_0",
+                "hydroobject_processed_0",
+                "overige_watergang_processed_0",
                 "potential_culverts_pre_filter",
             ])
 
         culverts_hydro = self.potential_culverts_4[
-            (self.potential_culverts_4["WaterLineType"] == "hydroobjecten")
+            (self.potential_culverts_4["WaterLineType"] == "hydroobject")
         ]
 
         # Extract end points and retain 'unique_id' and 'dangling_code'
@@ -987,17 +987,17 @@ class GeneratorDuikers(GeneratorBasis):
             columns={"end_point": "geometry"}
         ).set_geometry("geometry")
 
-        self.outflow_nodes_overige_watergangen = end_points_gdf.copy()
+        self.outflow_nodes_overige_watergang = end_points_gdf.copy()
         
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
-                "outflow_nodes_overige_watergangen",
+                "outflow_nodes_overige_watergang",
             ])
 
         return (
-            self.overige_watergangen_processed_0,
-            self.hydroobjecten_processed_0,
-            self.outflow_nodes_overige_watergangen,
+            self.overige_watergang_processed_0,
+            self.hydroobject_processed_0,
+            self.outflow_nodes_overige_watergang,
         )
 
     def check_culverts_direction(self):
@@ -1010,7 +1010,7 @@ class GeneratorDuikers(GeneratorBasis):
         """
         culvert = self.potential_culverts_4.copy()
         lines = pd.concat(
-            [self.hydroobjecten_processed_0, self.overige_watergangen_processed_0],
+            [self.hydroobject_processed_0, self.overige_watergang_processed_0],
             ignore_index=True,
         )
 
@@ -1048,14 +1048,14 @@ class GeneratorDuikers(GeneratorBasis):
 
         Returns
         -------
-        self.overige_watergangen_processed_1: gpd.GeoDataFrame
-            Geodataframe containing processed overige_watergangen where the waterline is combined with culverts
+        self.overige_watergang_processed_1: gpd.GeoDataFrame
+            Geodataframe containing processed overige_watergang where the waterline is combined with culverts
         """
         culvert = self.potential_culverts_5.copy()
         culvert_dict = (
             culvert.groupby("dangling_code")["geometry"].apply(list).to_dict()
         )
-        lines = self.overige_watergangen_processed_0.copy()
+        lines = self.overige_watergang_processed_0.copy()
 
         def get_base_code(code):
             return code.split("-")[0]
@@ -1091,43 +1091,43 @@ class GeneratorDuikers(GeneratorBasis):
 
         logging.info("     - culverts combined with watergangen")
 
-        self.overige_watergangen_processed_1 = lines.copy()
+        self.overige_watergang_processed_1 = lines.copy()
 
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
-                "overige_watergangen_processed_1",
+                "overige_watergang_processed_1",
             ])
-        return self.overige_watergangen_processed_1
+        return self.overige_watergang_processed_1
 
-    def splits_hydroobjecten_by_endpoind_of_culverts_and_combine_2(
+    def splits_hydroobject_by_endpoind_of_culverts_and_combine_2(
         self, write_results=True
     ):
-        """After a second check of the culvert direction, the hydroobjects and overige_watergangen must be split again for some instances and the remaining flipped culverts are combined with the overige_watergangen.
+        """After a second check of the culvert direction, the hydroobjects and overige_watergang must be split again for some instances and the remaining flipped culverts are combined with the overige_watergang.
 
         Returns
         -------
-        self.overige_watergangen_processed_1: gpd.GeoDataFrame
-            Geodataframe containing processed overige_watergangen where the waterline is combined with culverts
+        self.overige_watergang_processed_1: gpd.GeoDataFrame
+            Geodataframe containing processed overige_waterganghere the waterline is combined with culverts
         """
         # split overige watergangen opnieuw
-        overige_watergangen = self.overige_watergangen_processed_1.copy()
-        overige_watergangen = split_waterways_by_endpoints(
-            overige_watergangen, overige_watergangen
+        overige_watergang = self.overige_watergang_processed_1.copy()
+        overige_watergang = split_waterways_by_endpoints(
+            overige_watergang, overige_watergang
         )
         logging.info("     - overige watergangen weer gesplit")
 
-        self.overige_watergangen_processed_2 = overige_watergangen.copy()
+        self.overige_watergang_processed_2 = overige_watergang.copy()
 
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
-                "overige_watergangen_processed_2",
+                "overige_watergang_processed_2",
             ])
-        return self.overige_watergangen_processed_2
+        return self.overige_watergang_processed_2
 
-    def get_shortest_path_from_overige_watergangen_to_hydroobjects(
+    def get_shortest_path_from_overige_watergang_to_hydroobjects(
         self, write_results=False
     ):
-        """Calculate the shortest path to a hydroobject for the overige_watergangen. This is done to identify overige_watergangen with an incorrect direction, these are then flipped.
+        """Calculate the shortest path to a hydroobject for the overige_watergang. This is done to identify overige_watergang with an incorrect direction, these are then flipped.
 
         Parameters
         ----------
@@ -1137,69 +1137,69 @@ class GeneratorDuikers(GeneratorBasis):
         Returns
         -------
         outflow_nodes: gpd.GeoDataFrame
-            Outflow nodes of the overige_watergangen in hydroobjecten
-        overige_watergangen_nodes: gpd.GeoDataFrame
-            All outflow nodes of overige_watergangen
+            Outflow nodes of the overige_watergang in hydroobject
+        overige_watergang_nodes: gpd.GeoDataFrame
+            All outflow nodes of overige_watergang
         edges: gpd.GeoDataFrame
-            All overige_watergangen as edges with information about previous and subsequent overige_watergangen
+            All overige_watergang as edges with information about previous and subsequent overige_watergang
         edges_cleaned: gpd.GeoDataFrame
-            Overige_watergangen cleaned through removal of unconnected waterlines and flipped waterlines when required
+            overige_watergang cleaned through removal of unconnected waterlines and flipped waterlines when required
         """
         logging.info(f"   x redirect 'overige watergangen' based on shortest path")
         # create networkx graph
         logging.info(f"     - create sub networks")
         nodes, edges, _ = create_graph_from_edges(
-            self.overige_watergangen_processed_2, directed=True
+            self.overige_watergang_processed_2, directed=True
         )
         _, _, G = create_graph_from_edges(
-            self.overige_watergangen_processed_2, directed=False
+            self.overige_watergang_processed_2, directed=False
         )
 
         # get outflow points and add nodes information
         outflow_nodes = (
-            self.outflow_nodes_overige_watergangen[
+            self.outflow_nodes_overige_watergang[
                 ["unique_id", "dangling_code", "geometry"]
             ]
             .sjoin(nodes, how="inner")
             .reset_index(drop=True)
             .drop(columns=["index_right"], errors="ignore")
         )
-        self.outflow_nodes_overige_watergangen = outflow_nodes.copy()
+        self.outflow_nodes_overige_watergang = outflow_nodes.copy()
         
         if outflow_nodes.empty:
-            overige_watergangen_nodes = None
+            overige_watergang_nodes = None
             edges_cleaned = None
         else:
             # get shortest path including length from all nodes to outflow points
             logging.info(f"     - find shortest path")
-            len_outflow_node, matrix = nx.multi_source_dijkstra(
+            len_outflow_nodes, matrix = nx.multi_source_dijkstra(
                 G, [int(n) for n in outflow_nodes["nodeID"].values], weight="geometry_len"
             )
-            node_to_outflow_node = pd.DataFrame(
+            node_to_outflow_nodes = pd.DataFrame(
                 {
                     "nodeID": matrix.keys(),
-                    "outflow_node": [v[0] for v in matrix.values()],
-                    "outflow_node_dist": [len_outflow_node[node] for node in matrix.keys()],
+                    "outflow_nodes": [v[0] for v in matrix.values()],
+                    "outflow_nodes_dist": [len_outflow_nodes[node] for node in matrix.keys()],
                 }
             )
 
-            # Merge nodes with node_to_outflow_node
-            overige_watergangen_nodes = nodes.merge(
-                node_to_outflow_node, how="outer", left_on="nodeID", right_on="nodeID"
+            # Merge nodes with node_to_outflow_nodes
+            overige_watergang_nodes = nodes.merge(
+                node_to_outflow_nodes, how="outer", left_on="nodeID", right_on="nodeID"
             )
-            overige_watergangen_nodes["outflow_node"] = (
-                overige_watergangen_nodes["outflow_node"].fillna(-999).astype(int)
+            overige_watergang_nodes["outflow_nodes"] = (
+                overige_watergang_nodes["outflow_nodes"].fillna(-999).astype(int)
             )
 
             # To get length to outflow point at start and end: merge edges with nodes, first on node_start, then on node_end
             edges = (
                 edges.merge(
-                    overige_watergangen_nodes[
-                        ["nodeID", "outflow_node", "outflow_node_dist"]
+                    overige_watergang_nodes[
+                        ["nodeID", "outflow_nodes", "outflow_nodes_dist"]
                     ].rename(
                         columns={
-                            "outflow_node": "outflow_start",
-                            "outflow_node_dist": "outflow_start_dist",
+                            "outflow_nodes": "outflow_start",
+                            "outflow_nodes_dist": "outflow_start_dist",
                         }
                     ),
                     how="left",
@@ -1207,12 +1207,12 @@ class GeneratorDuikers(GeneratorBasis):
                     right_on="nodeID",
                 )
                 .merge(
-                    overige_watergangen_nodes[
-                        ["nodeID", "outflow_node", "outflow_node_dist"]
+                    overige_watergang_nodes[
+                        ["nodeID", "outflow_nodes", "outflow_nodes_dist"]
                     ].rename(
                         columns={
-                            "outflow_node": "outflow_end",
-                            "outflow_node_dist": "outflow_end_dist",
+                            "outflow_nodes": "outflow_end",
+                            "outflow_nodes_dist": "outflow_end_dist",
                         }
                     ),
                     how="left",
@@ -1227,37 +1227,37 @@ class GeneratorDuikers(GeneratorBasis):
 
             def select_shortest_direction(edge):
                 if edge.outflow_end_dist <= edge.outflow_start_dist:
-                    edge.outflow_node = edge.outflow_end
-                    edge.outflow_node_dist = edge.outflow_end_dist
+                    edge.outflow_nodes = edge.outflow_end
+                    edge.outflow_nodes_dist = edge.outflow_end_dist
                 else:
-                    edge.outflow_node = edge.outflow_start
-                    edge.outflow_node_dist = edge.outflow_start_dist
+                    edge.outflow_nodes = edge.outflow_start
+                    edge.outflow_nodes_dist = edge.outflow_start_dist
                     edge.reversed_direction = True
                 return edge
 
-            edges["outflow_node"] = -999
-            edges["outflow_node_dist"] = -999.0
+            edges["outflow_nodes"] = -999
+            edges["outflow_nodes_dist"] = -999.0
             edges["reversed_direction"] = False
             edges["outflow_end_dist"] = edges["outflow_end_dist"].fillna(99999.9)
             edges["outflow_start_dist"] = edges["outflow_start_dist"].fillna(99999.9)
             edges = edges.apply(lambda x: select_shortest_direction(x), axis=1)
 
             # clean edges by removing unconnected edges and reversing direction if required
-            edges_cleaned = edges[edges["outflow_node"] != -999]
+            edges_cleaned = edges[edges["outflow_nodes"] != -999]
             edges_cleaned.loc[edges_cleaned["reversed_direction"], "geometry"] = (
                 edges_cleaned.loc[edges_cleaned["reversed_direction"], "geometry"].reverse()
             )
 
-            self.overige_watergangen_processed_3_nodes = overige_watergangen_nodes.copy()
-            self.overige_watergangen_processed_3 = edges_cleaned.copy()
+            self.overige_watergang_processed_3_nodes = overige_watergang_nodes.copy()
+            self.overige_watergang_processed_3 = edges_cleaned.copy()
 
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
-                "outflow_nodes_overige_watergangen",
-                "overige_watergangen_processed_3_nodes",
-                "overige_watergangen_processed_3",
+                "outflow_nodes_overige_watergang",
+                "overige_watergang_processed_3_nodes",
+                "overige_watergang_processed_3",
             ])
-        return outflow_nodes, overige_watergangen_nodes, edges, edges_cleaned
+        return outflow_nodes, overige_watergang_nodes, edges, edges_cleaned
 
 
     def generate_folium_map(

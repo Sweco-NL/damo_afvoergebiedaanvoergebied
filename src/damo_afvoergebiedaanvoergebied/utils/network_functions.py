@@ -244,7 +244,7 @@ def find_node_edge_ids_in_directed_graph(
             }
 
         for i in range(outflow_edge_ids.shape[0]):
-            # print(f" * {i+1}/{len_outflow_node_ids} ({(i+1)/len_outflow_node_ids:.2%})", end="\r")
+            # print(f" * {i+1}/{len_outflow_nodes_ids} ({(i+1)/len_outflow_nodes_ids:.2%})", end="\r")
             edge_id = outflow_edge_ids[i]
             if direction == "upstream":
                 pred_nodes, pred_edges, new_outflow_edges = (
@@ -382,7 +382,7 @@ def calculate_discharges_of_edges_at_nodes(
     self.nodes: gpd.GeoDataFrame
         Geodataframe containing nodes between waterlines, including upstream and downstream edges and their angles
     """
-    if "total_specific_discharge" not in edges.columns:
+    if "total_specifieke_afvoer" not in edges.columns:
         return nodes, edges
     
     for direction, opp_direction in zip(
@@ -390,8 +390,8 @@ def calculate_discharges_of_edges_at_nodes(
     ):
         node_end = "node_end" if direction == "upstream" else "node_start"
         temp = nodes.merge(
-            edges[[node_end, "total_specific_discharge"]].rename(
-                columns={node_end: nodes_id_column, "total_specific_discharge": f"{direction}_discharge"}
+            edges[[node_end, "total_specifieke_afvoer"]].rename(
+                columns={node_end: nodes_id_column, "total_specifieke_afvoer": f"{direction}_discharge"}
             ),
             how="left",
             on=nodes_id_column,
@@ -506,7 +506,7 @@ def select_downstream_upstream_edges_discharge(nodes, min_difference_discharge_f
         downstream_discharges = [
             float(a) for a in x["downstream_discharges"].split(",") if a != ""
         ]
-        
+
         x["selected_upstream_edge"] = None
         x["selected_downstream_edge"] = None
 
@@ -625,8 +625,8 @@ def sum_edge_node_values_through_network(
     edges_id_column="code", 
     nodes_id_column="nodeID", 
     direction="downstream", 
-    column_to_sum="specific_discharge", 
-    sum_column="total_specific_discharge"
+    column_to_sum="specifieke_afvoer", 
+    sum_column="total_specifieke_afvoer"
 ):
     nodes = nodes.set_index(nodes_id_column)
     edges = edges.set_index(edges_id_column)
@@ -673,8 +673,8 @@ def sum_edge_node_values_through_network(
         edges = edges[~edges.index.duplicated(keep='first')]
         edges.loc[start_edges.index, sum_column] += start_edges[column_to_sum].values
 
-        specific_discharge_start_nodes = start_edges[["node_end", column_to_sum]].groupby("node_end").sum()
-        nodes.loc[specific_discharge_start_nodes.index, sum_column] += specific_discharge_start_nodes[column_to_sum].values
+        specifieke_afvoer_start_nodes = start_edges[["node_end", column_to_sum]].groupby("node_end").sum()
+        nodes.loc[specifieke_afvoer_start_nodes.index, sum_column] += specifieke_afvoer_start_nodes[column_to_sum].values
         other_nodes = nodes.loc[other_nodes.index]
 
     edges[sum_column] = edges[sum_column].astype(float)

@@ -10,18 +10,18 @@ def run_generator_specifieke_afvoer(
     dir_basisdata: Path,
     dir_results: Path = None,
     waterschap: str = None,
-    water_lines: list[str] = ["hydroobjecten"],
-    generate_specific_discharge: bool = True,
+    water_lines: list[str] = ["hydroobject"],
+    generate_specifieke_afvoer: bool = True,
     level_discharge_units: int = 0, # level discharge units 0/1/2/3
-    use_specific_discharge: float = 1.0,
-    specific_discharge_file_name: str = None,
+    use_specifieke_afvoer: float = 1.0,
+    file_name_specifieke_afvoer: str = None,
     read_results: bool = False,
     write_results: bool = False,
     create_html_map: bool = False,
     open_html: bool = False,
 ) -> GeneratorSpecifiekeAfvoer:
     start_time = time.time()
-    discharge = GeneratorSpecifiekeAfvoer(
+    afvoer = GeneratorSpecifiekeAfvoer(
         path=path, 
         dir_basisdata=dir_basisdata,
         dir_results=dir_results,
@@ -31,22 +31,22 @@ def run_generator_specifieke_afvoer(
         write_results=write_results,
     )
 
-    if generate_specific_discharge:
-        discharge.generate_distribution_splits_downstream()
+    if generate_specifieke_afvoer:
+        afvoer.generate_distribution_splits_downstream()
 
-        discharge.read_specific_discharge(
-            specific_discharge_file_name=specific_discharge_file_name
+        afvoer.read_specifieke_afvoer(
+            file_name_specifieke_afvoer=file_name_specifieke_afvoer
         )
-        discharge.add_specific_discharge_to_discharge_units(
-            use_specific_discharge=use_specific_discharge,
+        afvoer.add_specifieke_afvoer_to_discharge_units(
+            use_specifieke_afvoer=use_specifieke_afvoer,
             level_discharge_units=level_discharge_units
         )
-        discharge.add_specific_discharge_to_edges()
-        discharge.sum_specific_discharge_through_network()
+        afvoer.add_specifieke_afvoer_to_edges()
+        afvoer.sum_specifieke_afvoer_through_network()
     
     if create_html_map:
-        discharge.generate_folium_map(open_html=open_html)
+        afvoer.generate_folium_map(open_html=open_html)
 
     logging.info(f"   x Case finished in {round(time.time()-start_time, 3)} seconds")
-    return discharge
+    return afvoer
 

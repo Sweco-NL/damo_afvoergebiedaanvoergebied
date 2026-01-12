@@ -33,18 +33,15 @@ De binnen de folder `BASE_DIR` zit een sub-folder `case_name`, bijvoorbeeld `Leu
 📁 BASE_DIR
 └── 📁 case_name
     ├── 📁 0_basisdata
-    │   ├── GHG_2000-2010_L1.NC
-    │   ├── hydroobjecten.gpkg
-    │   ├── inflow_outflow_points.gpkg
-    │   ├── inflow_outflow_splits.gpkg
-    │   ├── keringen.gpkg
-    │   ├── nwb.gpkg
-    │   ├── outflow_nodes.gpkg (optional: in case of predefined outflow_nodes)
-    │   ├── overige_watergangen.gpkg
-    │   ├── peilgebieden.gpkg
-    │   ├── rws_wateren.gpkg
-    │   ├── snelwegen.gpkg
-    │   ├── spoorwegen.gpkg
+    │   ├── ghg.nc
+    │   ├── hydroobject.gpkg
+    │   ├── kering.gpkg
+    │   ├── weg.gpkg
+    │   ├── overige_watergang.gpkg
+    │   ├── peilgebied.gpkg
+    │   ├── rws_water.gpkg
+    │   ├── snelweg.gpkg
+    │   ├── spoorweg.gpkg
     └── 📁 1_resultaat
         ├── ...
 ```

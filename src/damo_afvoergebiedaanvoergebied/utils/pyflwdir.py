@@ -75,17 +75,17 @@ def find_flow_direction_indices(flow_direction, level=1):
 def get_upstream_values_d16(
     flw_mask, 
     flw_idxs_ds, 
-    drainage_units_flat, 
+    afvoergebied_flat, 
     iterations,
     iteration_start
 ):
     for i in range(iterations):
         # time_start = time.time()
-        upstream_values = drainage_units_flat.copy()
+        upstream_values = afvoergebied_flat.copy()
         upstream_values[flw_mask] = upstream_values[flw_idxs_ds[flw_mask]]
         
-        new_filled_cells = (drainage_units_flat == -1) & (upstream_values != -1)
-        drainage_units_flat = np.where(new_filled_cells, upstream_values, drainage_units_flat)
+        new_filled_cells = (afvoergebied_flat == -1) & (upstream_values != -1)
+        afvoergebied_flat = np.where(new_filled_cells, upstream_values, afvoergebied_flat)
 
         number_new_filled_cells = new_filled_cells.sum()
 
@@ -96,7 +96,7 @@ def get_upstream_values_d16(
         # print2 = f" | number new cells: {number_new_filled_cells}"
         # print3 = f"({round(time.time()-time_start, 2)} seconds)"
         # logging.debug(print1 + print2 + print3, end="\r")
-    return drainage_units_flat, number_new_filled_cells
+    return afvoergebied_flat, number_new_filled_cells
 
 
 # get upstream values
@@ -212,7 +212,7 @@ def run_pyflwdir(
                 waterways_flat_new, number_new_filled_cells = get_upstream_values_d16(
                     flw_mask=(dem.data[0] > -100.0).ravel(), 
                     flw_idxs_ds=waterways_flat_d16_index, 
-                    drainage_units_flat=waterways_flat_new, 
+                    afvoergebied_flat=waterways_flat_new, 
                     iterations=1,
                     iteration_start=0
                 )
