@@ -30,22 +30,22 @@ class GeneratorGebiedsOrde(GeneratorBasis):
 
     waterschap: str = None
 
-    hydroobjecten: gpd.GeoDataFrame = None
-    hydroobjecten_processed_0: gpd.GeoDataFrame = None
-    hydroobjecten_processed_1: gpd.GeoDataFrame = None
+    hydroobject: gpd.GeoDataFrame = None
+    hydroobject_processed_0: gpd.GeoDataFrame = None
+    hydroobject_processed_1: gpd.GeoDataFrame = None
 
     snapping_distance: float = 0.05
 
-    rws_wateren: gpd.GeoDataFrame = None
+    rws_water: gpd.GeoDataFrame = None
 
     read_results: bool = False
     write_results: bool = False
 
     required_results: list[str] = [
-        "hydroobjecten_processed_0", 
-        "rws_wateren",
-        "overige_watergangen_processed_3", 
-        "outflow_nodes_overige_watergangen",
+        "hydroobject_processed_0", 
+        "rws_water",
+        "overige_watergang_processed_3", 
+        "outflow_nodes_overige_watergang",
         "nodes",
         "edges",
     ]
@@ -53,10 +53,10 @@ class GeneratorGebiedsOrde(GeneratorBasis):
     outflow_edges: gpd.GeoDataFrame = None
     outflow_nodes: gpd.GeoDataFrame = None
 
-    outflow_nodes_overige_watergangen: gpd.GeoDataFrame = None
-    overige_watergangen: gpd.GeoDataFrame = None
-    overige_watergangen_processed_3: gpd.GeoDataFrame = None
-    overige_watergangen_processed_4: gpd.GeoDataFrame = None
+    outflow_nodes_overige_watergang: gpd.GeoDataFrame = None
+    overige_watergang: gpd.GeoDataFrame = None
+    overige_watergang_processed_3: gpd.GeoDataFrame = None
+    overige_watergang_processed_4: gpd.GeoDataFrame = None
 
     edges: gpd.GeoDataFrame = None
     nodes: gpd.GeoDataFrame = None
@@ -69,7 +69,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if self.path is not None:
-            self.use_processed_hydroobjecten(force_preprocess=False)
+            self.use_processed_hydroobject(force_preprocess=False)
 
 
     def read_outflow_nodes_with_rws_code(self, outflow_nodes=None, buffer_outflow_nodes=50.0):
@@ -145,11 +145,11 @@ class GeneratorGebiedsOrde(GeneratorBasis):
         dead_end_edges = dead_end_edges.rename(columns={"code": "edge_code"})
 
         logging.info("   x generating order code for all outflow edges")
-        rws_wateren_buffer = self.rws_wateren[["geometry", "rws_code"]].copy()
-        rws_wateren_buffer.geometry = rws_wateren_buffer.buffer(search_range_outflow_nodes)
+        rws_water_buffer = self.rws_water[["geometry", "rws_code"]].copy()
+        rws_water_buffer.geometry = rws_water_buffer.buffer(search_range_outflow_nodes)
 
         outflow_edges = (
-            dead_end_edges.sjoin(rws_wateren_buffer)
+            dead_end_edges.sjoin(rws_water_buffer)
             .drop(columns="index_right")
             .reset_index(drop=True)
         )
@@ -181,7 +181,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
                 lambda x: f"{x.rws_code}.{str(x.rws_code_no).zfill(3)}", axis=1
             )
             if outflows["rws_code_no"].max() > rws_order_code_max:
-                logging_message = f" XXX aantal uitstroompunten op RWS-water ({rws_code}) hoger dan range order_code waterschap"
+                logging_message = f" XXX aantal outflow_nodesen op RWS-water ({rws_code}) hoger dan range order_code waterschap"
                 logging.info(logging_message)
 
             if outflow_edges_all_waters is None:
@@ -718,14 +718,14 @@ class GeneratorGebiedsOrde(GeneratorBasis):
                 axis=1,
             )
         
-        self.hydroobjecten_processed_1 = self.edges.copy()
+        self.hydroobject_processed_1 = self.edges.copy()
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
-                "hydroobjecten_processed_1",
+                "hydroobject_processed_1",
                 "edges",
                 "nodes",
             ])
-        return self.hydroobjecten_processed_1
+        return self.hydroobject_processed_1
 
 
     def generate_order_no_order_code_for_other_waterlines(self):
@@ -733,9 +733,9 @@ class GeneratorGebiedsOrde(GeneratorBasis):
 
         Returns
         -------
-        self.outflow_nodes_overige_watergangen: gpd.GeoDataFrame
+        self.outflow_nodes_overige_watergang: gpd.GeoDataFrame
             Geodataframe containing the outflow points of the overige watergang in the hydroobjects
-        self.overige_watergangen_processed_4: gpd.GeoDataFrame
+        self.overige_watergang_processed_4: gpd.GeoDataFrame
             Geodataframe containing the processed overige watergangen, including the order levels and order codes
         """
         logging.info(f"   x generate order code for overige watergangen")
@@ -750,12 +750,12 @@ class GeneratorGebiedsOrde(GeneratorBasis):
             return ",".join([str(i) for i in lst])
 
         # check if values are strings and change into lists
-        if self.outflow_nodes_overige_watergangen is None:
+        if self.outflow_nodes_overige_watergang is None:
             return None, None
         
         logging.info(f"     - coupling overige watergangen to outflow_nodes")
         
-        outflow_nodes_overige_watergangen = self.outflow_nodes_overige_watergangen[
+        outflow_nodes_overige_watergang = self.outflow_nodes_overige_watergang[
             ["nodeID", "geometry"]
         ].sjoin(
             self.nodes[
@@ -769,7 +769,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
             ],
             how="left",
         )
-        outflow_nodes = outflow_nodes_overige_watergangen[
+        outflow_nodes = outflow_nodes_overige_watergang[
             [
                 "nodeID",
                 "downstream_edges",
@@ -807,12 +807,12 @@ class GeneratorGebiedsOrde(GeneratorBasis):
 
         # filter out outflow_nodes without downstream_order_no
         logging.info(f"     - filter overige watergangen without downstream order no")
-        outflow_nodes_overige_watergangen = outflow_nodes_overige_watergangen[
-            ~outflow_nodes_overige_watergangen["downstream_order_no"].isnull()
+        outflow_nodes_overige_watergang = outflow_nodes_overige_watergang[
+            ~outflow_nodes_overige_watergang["downstream_order_no"].isnull()
         ]
 
-        self.outflow_nodes_overige_watergangen = (
-            outflow_nodes_overige_watergangen.drop(
+        self.outflow_nodes_overige_watergang = (
+            outflow_nodes_overige_watergang.drop(
                 columns=["downstream_edges", "downstream_order_no", "downstream_order_code"],
                 errors="ignore",
             ).merge(
@@ -824,13 +824,13 @@ class GeneratorGebiedsOrde(GeneratorBasis):
             )
         ).drop(columns="index_right")
 
-        if self.overige_watergangen_processed_3 is not None:
-            edges = self.overige_watergangen_processed_3.merge(
-                self.outflow_nodes_overige_watergangen[
+        if self.overige_watergang_processed_3 is not None:
+            edges = self.overige_watergang_processed_3.merge(
+                self.outflow_nodes_overige_watergang[
                     ["nodeID", "downstream_edges", "downstream_order_no", "downstream_order_code"]
                 ],
                 how="left",
-                left_on="outflow_node",
+                left_on="outflow_nodes",
                 right_on="nodeID",
             )
             edges = edges.sort_values("downstream_order_code").drop_duplicates(subset="geometry", keep="first")
@@ -849,19 +849,19 @@ class GeneratorGebiedsOrde(GeneratorBasis):
                 + "-X"
                 + edges["order_code_no"].astype(str).str.zfill(4)
             )
-            self.overige_watergangen_processed_4 = edges.copy()
-            logging.info(f"     - overige watergangen with order code: {len(self.overige_watergangen_processed_4)}")
+            self.overige_watergang_processed_4 = edges.copy()
+            logging.info(f"     - overige watergangen with order code: {len(self.overige_watergang_processed_4)}")
         
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
                 "outflow_edges",
                 "outflow_nodes",
-                "outflow_nodes_overige_watergangen",
-                "overige_watergangen_processed_4",
+                "outflow_nodes_overige_watergang",
+                "overige_watergang_processed_4",
             ])
         return (
-            self.outflow_nodes_overige_watergangen,
-            self.overige_watergangen_processed_4,
+            self.outflow_nodes_overige_watergang,
+            self.overige_watergang_processed_4,
         )
 
 

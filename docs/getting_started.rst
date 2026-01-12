@@ -27,27 +27,27 @@ De basis-data bestaat uit:
 
 Datasets voor het watersysteem:
 
-- **rws_wateren.gpkg**: Polygonen van RWS-wateren inclusief officiële code
-- **hydroobjecten.gpkg**: A-/B-watergangen (hoofdwatergangen waterschappen)
-- **hydroobjecten_extra.gpkg**: Extra hoofdwatergangen optioneel toe te voegen
-- **overige_watergangen.gpkg**: C-watergangen (lijn-elementen afgeleid van waterdelen)
+- **rws_water.gpkg**: Polygonen van RWS-wateren inclusief officiële code
+- **hydroobject.gpkg**: A-/B-watergangen (hoofdwatergangen waterschappen)
+- **hydroobject_extra.gpkg**: Extra hoofdwatergangen optioneel toe te voegen
+- **overige_watergang.gpkg**: C-watergangen (lijn-elementen afgeleid van waterdelen)
 
 Datasets die gebruikt worden in de analyse van de 'Duikergenerator' (om te bepalen of er lijn-elementen gekruist worden):
 
-- **keringen.gpkg**: waterkeringen
-- **nwb.gpkg**: centerlines van alle wegen (nationaal wegen bestand)
-- **snelwegen.gpkg**: centerlines van de snelwegen
-- **spoorwegen.gpkg**: centerlines van de spoorwegen
-- **peilgebieden.gpkg**: peilgebieden (polygonen) om de peilgebeidsgrenzen mee te nemen.
+- **kering.gpkg**: waterkering
+- **weg.gpkg**: centerlines van alle wegen (nationaal wegen bestand)
+- **snelweg.gpkg**: centerlines van de snelweg
+- **spoorweg.gpkg**: centerlines van de spoorweg
+- **peilgebied.gpkg**: peilgebied (polygonen) om de peilgebeidsgrenzen mee te nemen.
 
 Topografische hoogtemodel (raster data) voor afleiden afwateringseenheden. In dit geval GHG-raster, maar kan ook maaiveld (DTM):
 
-- **GHG_2000-2010_L1.NC** Het rasterbestand kan apart worden opgegeven en ingeladen.
+- **GHG.NC** Het rasterbestand kan apart worden opgegeven en ingeladen.
 
 Afleiden deelstroomgebieden middels uitstroompunten:
 
-- **inflow_outflow_points.gpkg**: punten die worden opgegeven als uitstroompunt waarvoor dan stroomgebieden worden afgeleid.
-- **inflow_outflow_splits.gpkg**: Voor splitsingen in het netwerk kan worden opgegeven welke richting voorrang heeft, zodat overlap voorkomen wordt. Deze locaties worden bij elke analyse ook gedetecteerd en weggeschreven.
+- **outflow_nodes.gpkg**: punten die worden opgegeven als uitstroompunt waarvoor dan stroomgebieden worden afgeleid.
+- **splitsing.gpkg**: Voor splitsingen in het netwerk kan worden opgegeven welke richting voorrang heeft, zodat overlap voorkomen wordt. Deze locaties worden bij elke analyse ook gedetecteerd en weggeschreven.
 
 
 Gebruik van de (voorbeeld-)notebooks

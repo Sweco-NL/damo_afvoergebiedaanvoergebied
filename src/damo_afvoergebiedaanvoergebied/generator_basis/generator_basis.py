@@ -7,7 +7,7 @@ import pandas as pd
 import rioxarray
 import xarray
 from pydantic import BaseModel, ConfigDict
-from ..utils.preprocess import preprocess_hydroobjecten
+from ..utils.preprocess import preprocess_hydroobject
 from ..utils.create_graph import create_graph_from_edges
 from ..utils.network_functions import (
     calculate_angles_of_edges_at_nodes,
@@ -168,10 +168,10 @@ class GeneratorBasis(BaseModel):
                 logging.info(f" * dataset {required_dataset} is missing - check if absolutely required")
 
 
-    def use_processed_hydroobjecten(self, processed_file="processed", force_preprocess=False, snapping_distance=0.05):
-        """actualize hydroobjecten and overige_watergangen
+    def use_processed_hydroobject(self, processed_file="processed", force_preprocess=False, snapping_distance=0.05):
+        """actualize hydroobject and overige_watergang
 
-        replaces hydroobjecten and overige_watergangen with the newest processed attributes
+        replaces hydroobject and overige_watergang with the newest processed attributes
 
         Parameters
         ----------
@@ -181,7 +181,7 @@ class GeneratorBasis(BaseModel):
         if self.snapping_distance is not None:
             snapping_distance = self.snapping_distance
 
-        for watergang in ["hydroobjecten", "overige_watergangen"]:
+        for watergang in ["hydroobject", "overige_watergang"]:
             if getattr(self, watergang, None) is None:
                 logging.info(f"     - attribute {watergang} does not exist")
                 continue
@@ -200,9 +200,9 @@ class GeneratorBasis(BaseModel):
            
             if force_preprocess or watergang_processed_file_name is None:
                 logging.info(f"     - preprocessing dataset {watergang}")
-                waterline = self.generate_or_use_preprocessed_hydroobjecten(
+                waterline = self.generate_or_use_preprocessed_hydroobject(
                     waterline=watergang,
-                    snapping_distance=snapping_distance if watergang == "hydroobjecten" else None
+                    snapping_distance=snapping_distance if watergang == "hydroobject" else None
                 )
                 setattr(self, watergang, waterline)
             else:
@@ -212,7 +212,7 @@ class GeneratorBasis(BaseModel):
                 setattr(self, watergang, gpd.read_file(watergang_processed_file_name))
 
 
-    def generate_or_use_preprocessed_hydroobjecten(
+    def generate_or_use_preprocessed_hydroobject(
         self, waterline, preprocessed_file="preprocessed", snapping_distance=0.05
     ):
         files_in_dir = self.dir_results.glob("**/*")
@@ -231,7 +231,7 @@ class GeneratorBasis(BaseModel):
             gdf_waterline = getattr(self, waterline)
             len_gdf_waterline = len(gdf_waterline)
             if snapping_distance is not None:
-                gdf_waterline, gdf_waterline_snapped = preprocess_hydroobjecten(
+                gdf_waterline, gdf_waterline_snapped = preprocess_hydroobject(
                     gdf_waterline, snapping_distance=snapping_distance
                 )
                 if self.write_results:
@@ -250,13 +250,13 @@ class GeneratorBasis(BaseModel):
             return gdf_waterline
         
 
-    def create_graph_from_network(self, water_lines=["hydroobjecten"], processed="processed"):
+    def create_graph_from_network(self, water_lines=["hydroobject"], processed="processed"):
         """Turns a linestring layer containing waterlines into a graph of edges and nodes. 
 
         Parameters
         ----------
         water_lines : list, optional
-            List of waterline files names used to create graph, must refer to geopackages containing linestrings, by default ["hydroobjecten"]
+            List of waterline files names used to create graph, must refer to geopackages containing linestrings, by default ["hydroobject"]
 
         Returns
         -------
@@ -298,7 +298,7 @@ class GeneratorBasis(BaseModel):
         min_difference_discharge_factor=2.0
     ):
         logging.info("   x find downstream upstream edges")
-        if "specific_discharge" not in self.nodes:
+        if "specifieke_afvoer" not in self.nodes:
             logging.info(f"     - use angle using min_difference_angle [{min_difference_angle}deg]")
             self.nodes = select_downstream_upstream_edges_angle(
                 self.nodes, min_difference_angle=min_difference_angle

@@ -11,24 +11,24 @@ from .general_functions import (
 )
 
 
-def preprocess_hydroobjecten(hydroobjecten, snapping_distance=0.05):
+def preprocess_hydroobject(hydroobject, snapping_distance=0.05):
     # explode
-    hydroobjecten = hydroobjecten.explode()
+    hydroobject = hydroobject.explode()
 
-    # Setup hydroobjecten correctly
-    hydroobjecten = remove_z_dims(hydroobjecten)
+    # Setup hydroobject correctly
+    hydroobject = remove_z_dims(hydroobject)
 
     # check duplicates
-    hydroobjecten = check_duplicate_codes(hydroobjecten, "code")
+    hydroobject = check_duplicate_codes(hydroobject, "code")
 
-    # Snap hydroobjecten
-    hydroobjecten = snap_unconnected_endpoints_to_endpoint_or_line(
-        hydroobjecten, snapping_distance=snapping_distance
+    # Snap hydroobject
+    hydroobject = snap_unconnected_endpoints_to_endpoint_or_line(
+        hydroobject, snapping_distance=snapping_distance
     )
 
-    hydroobjecten_snapped = hydroobjecten.copy()
+    hydroobject_snapped = hydroobject.copy()
 
-    # Split_hydroobjecten
-    hydroobjecten = split_waterways_by_endpoints(hydroobjecten, hydroobjecten)
+    # Split_hydroobject
+    hydroobject = split_waterways_by_endpoints(hydroobject, hydroobject)
 
-    return hydroobjecten, hydroobjecten_snapped
+    return hydroobject, hydroobject_snapped

@@ -12,7 +12,7 @@ def run_generator_duikers(
     waterschap: str = None,
     distance_vertices: float = 10.0,
     max_culvert_length: float = 40.0,
-    preprocess_hydroobjecten: bool = True,
+    preprocess_hydroobject: bool = True,
     read_results: bool = False,
     write_results: bool = False,
     create_html_map: bool = False,
@@ -48,7 +48,7 @@ def run_generator_duikers(
         dir_basisdata=dir_basisdata,
         dir_results=dir_results,
         waterschap=waterschap,
-        preprocess_hydroobjecten=preprocess_hydroobjecten,
+        preprocess_hydroobject=preprocess_hydroobject,
         snapping_distance=snapping_distance,
         read_results=read_results,
         write_results=write_results,
@@ -79,16 +79,16 @@ def run_generator_duikers(
     culvert.post_process_potential_culverts()
 
     # split hydroobjects at endpoints culverts
-    culvert.splits_hydroobjecten_by_endpoints_of_culverts_and_combine()
+    culvert.splits_hydroobject_by_endpoints_of_culverts_and_combine()
 
     # check if culverts are in the right direction
     culvert.check_culverts_direction()
 
     culvert.combine_culvert_with_line()
 
-    culvert.splits_hydroobjecten_by_endpoind_of_culverts_and_combine_2()
+    culvert.splits_hydroobject_by_endpoind_of_culverts_and_combine_2()
 
-    culvert.get_shortest_path_from_overige_watergangen_to_hydroobjects(
+    culvert.get_shortest_path_from_overige_watergang_to_hydroobjects(
         write_results=write_results
     )
 

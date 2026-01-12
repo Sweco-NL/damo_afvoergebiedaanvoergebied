@@ -68,28 +68,28 @@ class GeneratorAfvoergebieden(GeneratorBasis):
     crs: int = 28992
     
     required_results: list[str] = [
-        "hydroobjecten",
-        "hydroobjecten_processed_0", 
-        "overige_watergangen", 
-        "outflow_nodes_overige_watergangen",
-        "overige_watergangen_processed_3", 
-        "overige_watergangen_processed_4", 
+        "hydroobject",
+        "hydroobject_processed_0", 
+        "overige_watergang", 
+        "outflow_nodes_overige_watergang",
+        "overige_watergang_processed_3", 
+        "overige_watergang_processed_4", 
         "potential_culverts_5", 
         "outflow_nodes",
         "edges", 
         "nodes",
-        "all_waterways_0",
-        "drainage_units_0",
-        "drainage_units_0_gdf",
+        "alle_watergangen_0",
+        "afvoergebied_0",
+        "afvoergebied_0_gdf",
     ]
 
-    hydroobjecten: gpd.GeoDataFrame = None
-    hydroobjecten_processed_0: gpd.GeoDataFrame = None
+    hydroobject: gpd.GeoDataFrame = None
+    hydroobject_processed_0: gpd.GeoDataFrame = None
     
-    overige_watergangen: gpd.GeoDataFrame = None
-    overige_watergangen_processed_3: gpd.GeoDataFrame = None
-    overige_watergangen_processed_4: gpd.GeoDataFrame = None
-    outflow_nodes_overige_watergangen: gpd.GeoDataFrame = None
+    overige_watergang: gpd.GeoDataFrame = None
+    overige_watergang_processed_3: gpd.GeoDataFrame = None
+    overige_watergang_processed_4: gpd.GeoDataFrame = None
+    outflow_nodes_overige_watergang: gpd.GeoDataFrame = None
     potential_culverts_5: gpd.GeoDataFrame = None
 
     outflow_nodes: gpd.GeoDataFrame = None
@@ -101,9 +101,9 @@ class GeneratorAfvoergebieden(GeneratorBasis):
 
     new_resolution: float = 5.0*5.0
 
-    all_waterways_0: gpd.GeoDataFrame = None
-    all_waterways_0_buffer: gpd.GeoDataFrame = None
-    all_waterways_1: gpd.GeoDataFrame = None
+    alle_watergangen_0: gpd.GeoDataFrame = None
+    alle_watergangen_0_buffer: gpd.GeoDataFrame = None
+    alle_watergangen_1: gpd.GeoDataFrame = None
 
     ghg_waterways: xarray.Dataset = None
     ghg_waterways_distance: xarray.Dataset = None
@@ -121,16 +121,16 @@ class GeneratorAfvoergebieden(GeneratorBasis):
     flow_direction_d16_ind: xarray.Dataset = None
     flow_direction_d16_fills: xarray.Dataset = None
     
-    drainage_units_0: xarray.Dataset = None
-    drainage_units_0_gdf: gpd.GeoDataFrame = None
-    drainage_units_1: xarray.Dataset = None
-    drainage_units_1_gdf: gpd.GeoDataFrame = None
-    drainage_units_2: xarray.Dataset = None
-    drainage_units_2_gdf: gpd.GeoDataFrame = None
-    drainage_units_3: xarray.Dataset = None
-    drainage_units_3_gdf: gpd.GeoDataFrame = None
-    drainage_units_4: xarray.Dataset = None
-    drainage_units_4_gdf: gpd.GeoDataFrame = None
+    afvoergebied_0: xarray.Dataset = None
+    afvoergebied_0_gdf: gpd.GeoDataFrame = None
+    afvoergebied_1: xarray.Dataset = None
+    afvoergebied_1_gdf: gpd.GeoDataFrame = None
+    afvoergebied_2: xarray.Dataset = None
+    afvoergebied_2_gdf: gpd.GeoDataFrame = None
+    afvoergebied_3: xarray.Dataset = None
+    afvoergebied_3_gdf: gpd.GeoDataFrame = None
+    afvoergebied_4: xarray.Dataset = None
+    afvoergebied_4_gdf: gpd.GeoDataFrame = None
 
     edges: gpd.GeoDataFrame = None
     nodes: gpd.GeoDataFrame = None
@@ -195,24 +195,24 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         else:
             edges = self.edges[["code", "geometry"]].reset_index(drop=True)
 
-        self.all_waterways_0 = edges[["code", "geometry"]].reset_index(drop=True)
+        self.alle_watergangen_0 = edges[["code", "geometry"]].reset_index(drop=True)
         # do the same for the other waterways and combine
-        if self.overige_watergangen_processed_4 is not None:
-            self.all_waterways_0 = pd.concat([
-                self.all_waterways_0,
-                self.overige_watergangen_processed_4[["code", "geometry"]]
+        if self.overige_watergang_processed_4 is not None:
+            self.alle_watergangen_0 = pd.concat([
+                self.alle_watergangen_0,
+                self.overige_watergang_processed_4[["code", "geometry"]]
             ]).reset_index(drop=True)
         # add depth
-        self.all_waterways_0["depth_waterways"] = depth_waterways
+        self.alle_watergangen_0["depth_waterways"] = depth_waterways
 
         logging.info("     - give each waterway an unique id")
-        self.all_waterways_0["drainage_unit_id"] = self.all_waterways_0.index
-        self.all_waterways_0["color_id"] = np.random.shuffle(np.arange(len(self.all_waterways_0)))
-        self.all_waterways_0_buffer = self.all_waterways_0.copy()
-        self.all_waterways_0_buffer.geometry = self.all_waterways_0.geometry.buffer(buffer_waterways, cap_style="flat")
+        self.alle_watergangen_0["drainage_unit_id"] = self.alle_watergangen_0.index
+        self.alle_watergangen_0["color_id"] = np.random.shuffle(np.arange(len(self.alle_watergangen_0)))
+        self.alle_watergangen_0_buffer = self.alle_watergangen_0.copy()
+        self.alle_watergangen_0_buffer.geometry = self.alle_watergangen_0.geometry.buffer(buffer_waterways, cap_style="flat")
         
         ghg_waterways = make_geocube(
-            vector_data=self.all_waterways_0_buffer,
+            vector_data=self.alle_watergangen_0_buffer,
             measurements=["depth_waterways"],
             like=self.ghg_processed,
         )["depth_waterways"].fillna(0.0)
@@ -236,42 +236,42 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         if self.write_results:
             self.export_results_to_gpkg_or_nc(
                 list_layers=[
-                    "all_waterways_0", 
-                    "all_waterways_0_buffer", 
+                    "alle_watergangen_0", 
+                    "alle_watergangen_0_buffer", 
                     "ghg_processed"
                 ]
             )
         return self.ghg_processed
 
 
-    def generate_drainage_units(self, iterations=2000, iteration_group=100, flow_method="d8"):
+    def generate_afvoergebied(self, iterations=2000, iteration_group=100, flow_method="d8"):
         logging.info("   x generate drainage units for each waterway")
         # create raster with unique id of each waterway
         logging.info("     - give each waterway an unique id")
-        if self.all_waterways_0_buffer is None or self.ghg_processed is None:
+        if self.alle_watergangen_0_buffer is None or self.ghg_processed is None:
             raise ValueError("   x run preprocess_ghg to preprocess the data")
 
-        self.drainage_units_0 = make_geocube(
-            vector_data=self.all_waterways_0_buffer,
+        self.afvoergebied_0 = make_geocube(
+            vector_data=self.alle_watergangen_0_buffer,
             measurements=["drainage_unit_id"],
             like=self.ghg_processed,
         )["drainage_unit_id"].fillna(-1)
-        self.drainage_units_0.name = "drainage_units_0"
-        self.drainage_units_0.attrs["_FillValue"] = -1
+        self.afvoergebied_0.name = "afvoergebied_0"
+        self.afvoergebied_0.attrs["_FillValue"] = -1
         
         if self.write_results:
             self.export_results_to_gpkg_or_nc(
                 list_layers=[
-                    "drainage_units_0", 
+                    "afvoergebied_0", 
                 ]
             )
 
         # PYFLWDIR
         if self.method == "pyflwdir":
             logging.info("   x run pyflwdir")
-            self.drainage_units_0, self.ghg_processed_adapt, flow_direction = run_pyflwdir(
+            self.afvoergebied_0, self.ghg_processed_adapt, flow_direction = run_pyflwdir(
                 dem=self.ghg_processed,
-                waterways=self.drainage_units_0,
+                waterways=self.afvoergebied_0,
                 iterations=iterations,
                 iteration_group=iteration_group,
                 flow_method=flow_method,
@@ -292,18 +292,18 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         else:
             raise ValueError("method wrong")
 
-        self.drainage_units_0_gdf = None
+        self.afvoergebied_0_gdf = None
 
         logging.info(f"     - polygonize rasters to polygons")
-        if self.drainage_units_0.dims == ("y", "x"):
-            gdf = imod.prepare.polygonize(self.drainage_units_0)
+        if self.afvoergebied_0.dims == ("y", "x"):
+            gdf = imod.prepare.polygonize(self.afvoergebied_0)
         else:
-            gdf = imod.prepare.polygonize(self.drainage_units_0[0])
+            gdf = imod.prepare.polygonize(self.afvoergebied_0[0])
 
         gdf = gdf.rename(columns={"value": "drainage_unit_id"})
         gdf["drainage_unit_id"] = gdf["drainage_unit_id"].astype(int)
         gdf = gdf.dissolve(by="drainage_unit_id", aggfunc="first").reset_index()
-        gdf = gdf.set_crs(self.hydroobjecten.crs)
+        gdf = gdf.set_crs(self.hydroobject.crs)
         random_color_id = np.random.randint(0, 25, size=len(gdf))
         gdf["color_id"] = random_color_id
 
@@ -314,170 +314,170 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         gdf = gdf.dissolve(by="drainage_unit_id").reset_index()
 
         gdf = gdf.merge(
-            self.all_waterways_0[["code", "drainage_unit_id"]],
+            self.alle_watergangen_0[["code", "drainage_unit_id"]],
             how="left",
             on="drainage_unit_id",
         )
 
-        self.drainage_units_0_gdf = gdf.copy()
+        self.afvoergebied_0_gdf = gdf.copy()
 
-        # if self.drainage_units_0.dims != ("y", "x"):
-        #     drainage_units_0 = self.drainage_units_0[0]
+        # if self.afvoergebied_0.dims != ("y", "x"):
+        #     afvoergebied_0 = self.afvoergebied_0[0]
         # else:
-        #     drainage_units_0 = self.drainage_units_0
+        #     afvoergebied_0 = self.afvoergebied_0
 
-        # self.drainage_units_0 = dataarray_from_gdf(
-        #     drainage_units_0, 
-        #     self.drainage_units_0_gdf, 
-        #     "drainage_units_0"
+        # self.afvoergebied_0 = dataarray_from_gdf(
+        #     afvoergebied_0, 
+        #     self.afvoergebied_0_gdf, 
+        #     "afvoergebied_0"
         # )
 
         if self.write_results:
             self.export_results_to_gpkg_or_nc(
                 list_layers=[
                     "flow_direction_d16",
-                    "drainage_units_0",
-                    "drainage_units_0_gdf",
+                    "afvoergebied_0",
+                    "afvoergebied_0_gdf",
                 ]
             )
-        return self.drainage_units_0
+        return self.afvoergebied_0
 
 
-    def aggregate_drainage_units(self):
-        self.drainage_units_1 = None
-        self.drainage_units_1_gdf = None
-        self.drainage_units_2 = None
-        self.drainage_units_2_gdf = None
-        self.drainage_units_3 = None
-        self.drainage_units_3_gdf = None
-        self.drainage_units_4 = None
-        self.drainage_units_4_gdf = None
+    def aggregate_afvoergebied(self):
+        self.afvoergebied_1 = None
+        self.afvoergebied_1_gdf = None
+        self.afvoergebied_2 = None
+        self.afvoergebied_gdf = None
+        self.afvoergebied_3 = None
+        self.afvoergebied_3_gdf = None
+        self.afvoergebied_4 = None
+        self.afvoergebied_4_gdf = None
 
         logging.info("   x aggregation/lumping of drainage units: aggregate 'overige watergangen'")
         logging.info("     - define new drainage_unit_ids for all 'overige watergangen'")
 
         self.edges["downstream_edges"] = self.edges["code"]
-        all_waterways_1 = self.all_waterways_0.merge(
+        alle_watergangen_1 = self.alle_watergangen_0.merge(
             pd.concat([
                 self.edges[["code", "downstream_edges", "order_code"]], 
-                self.overige_watergangen_processed_4[["code", "downstream_edges", "downstream_order_code"]]
+                self.overige_watergang_processed_4[["code", "downstream_edges", "downstream_order_code"]]
             ]),
             how="left",
             on="code"
         )
 
-        all_waterways_1["order_code"] = all_waterways_1["order_code"].fillna(all_waterways_1["downstream_order_code"])
-        all_waterways_1 = all_waterways_1[all_waterways_1["downstream_edges"] != ''].copy()
-        all_waterways_1 = all_waterways_1[all_waterways_1["order_code"] != ''].copy()
-        self.all_waterways_1 = all_waterways_1.copy()
+        alle_watergangen_1["order_code"] = alle_watergangen_1["order_code"].fillna(alle_watergangen_1["downstream_order_code"])
+        alle_watergangen_1 = alle_watergangen_1[alle_watergangen_1["downstream_edges"] != ''].copy()
+        alle_watergangen_1 = alle_watergangen_1[alle_watergangen_1["order_code"] != ''].copy()
+        self.alle_watergangen_1 = alle_watergangen_1.copy()
 
         if self.write_results:
             self.export_results_to_gpkg_or_nc(
                 list_layers=[
-                    "all_waterways_1"
+                    "alle_watergangen_1"
                 ]
             )
         
-        logging.info(f"     - aggregate sub drainage units: replace {len(all_waterways_1)} drainage_unit_ids")
-        # drainage_units_1_gdf = gpd.sjoin(
-        #     self.drainage_units_0_gdf,
-        #     self.all_waterways_1.drop(columns=["color_id", "drainage_unit_id"]),
+        logging.info(f"     - aggregate sub drainage units: replace {len(alle_watergangen_1)} drainage_unit_ids")
+        # afvoergebied_1_gdf = gpd.sjoin(
+        #     self.afvoergebied_0_gdf,
+        #     self.alle_watergangen_1.drop(columns=["color_id", "drainage_unit_id"]),
         #     how="left",
         #     predicate="intersects"
         # )
-        # drainage_units_1_gdf = drainage_units_1_gdf.merge(
-        #     self.all_waterways_1[["geometry", "downstream_edges"]].rename(columns={"geometry": "waterway_geometry"}), 
+        # afvoergebied_1_gdf = afvoergebied_1_gdf.merge(
+        #     self.alle_watergangen_1[["geometry", "downstream_edges"]].rename(columns={"geometry": "waterway_geometry"}), 
         #     how="left", 
         #     on="downstream_edges", 
         # )
-        # drainage_units_1_gdf['overlap_length'] = (
-        #     drainage_units_1_gdf
+        # afvoergebied_1_gdf['overlap_length'] = (
+        #     afvoergebied_1_gdf
         #     .geometry
         #     .intersection(
-        #         drainage_units_1_gdf.waterway_geometry
+        #         afvoergebied_1_gdf.waterway_geometry
         #     ).length
         # )
-        # drainage_units_1_gdf = drainage_units_1_gdf.loc[
-        #     drainage_units_1_gdf.groupby('drainage_unit_id')['overlap_length'].idxmax()
+        # afvoergebied_1_gdf = afvoergebied_1_gdf.loc[
+        #     afvoergebied_1_gdf.groupby('drainage_unit_id')['overlap_length'].idxmax()
         # ]
-        # self.drainage_units_1_gdf = (
-        #     drainage_units_1_gdf
+        # self.afvoergebied_1_gdf = (
+        #     afvoergebied_1_gdf
         #     .reset_index(drop=True)
         #     .drop(columns=["index_right", "waterway_geometry", "overlap_length"])
         # )
-        # self.drainage_units_1_gdf = drainage_units_1_gdf.drop(columns="waterway_geometry")
-        self.drainage_units_1_gdf = self.drainage_units_0_gdf.merge(
-            self.all_waterways_1.drop(columns=["color_id", "geometry"]),
+        # self.afvoergebied_1_gdf = afvoergebied_1_gdf.drop(columns="waterway_geometry")
+        self.afvoergebied_1_gdf = self.afvoergebied_0_gdf.merge(
+            self.alle_watergangen_1.drop(columns=["color_id", "geometry"]),
             how="left",
             on="drainage_unit_id"
         )
         
-        self.drainage_units_1_gdf["downstream_order_code"] = self.drainage_units_1_gdf["downstream_order_code"].fillna("")
-        self.drainage_units_1_gdf = self.drainage_units_1_gdf.sort_values("downstream_order_code", ascending=True)
-        self.drainage_units_2_gdf = (
-            self.drainage_units_1_gdf
+        self.afvoergebied_1_gdf["downstream_order_code"] = self.afvoergebied_1_gdf["downstream_order_code"].fillna("")
+        self.afvoergebied_1_gdf = self.afvoergebied_1_gdf.sort_values("downstream_order_code", ascending=True)
+        self.afvoergebied_2_gdf = (
+            self.afvoergebied_1_gdf
             .dissolve(by="downstream_edges")
             .drop(columns="downstream_order_code")
             .reset_index()
         )
-        random_color_id = np.random.randint(0, 25, size=len(self.drainage_units_2_gdf))
-        self.drainage_units_2_gdf["color_id"] = random_color_id
+        random_color_id = np.random.randint(0, 25, size=len(self.afvoergebied_2_gdf))
+        self.afvoergebied_2_gdf["color_id"] = random_color_id
 
-        self.drainage_units_3_gdf = self.drainage_units_2_gdf.dissolve(by="order_code").reset_index()
-        random_color_id = np.random.randint(0, 25, size=len(self.drainage_units_3_gdf))
-        self.drainage_units_3_gdf["color_id"] = random_color_id
-        self.drainage_units_3_gdf["order_code_no"] = self.drainage_units_3_gdf.order_code.str[:6]
+        self.afvoergebied_3_gdf = self.afvoergebied_2_gdf.dissolve(by="order_code").reset_index()
+        random_color_id = np.random.randint(0, 25, size=len(self.afvoergebied_3_gdf))
+        self.afvoergebied_3_gdf["color_id"] = random_color_id
+        self.afvoergebied_3_gdf["order_code_no"] = self.afvoergebied_3_gdf.order_code.str[:6]
 
-        self.drainage_units_4_gdf = self.drainage_units_3_gdf.dissolve("order_code_no").reset_index()
-        random_color_id = np.random.randint(0, 25, size=len(self.drainage_units_4_gdf))
-        self.drainage_units_4_gdf["color_id"] = random_color_id
+        self.afvoergebied_4_gdf = self.afvoergebied_3_gdf.dissolve("order_code_no").reset_index()
+        random_color_id = np.random.randint(0, 25, size=len(self.afvoergebied_4_gdf))
+        self.afvoergebied_4_gdf["color_id"] = random_color_id
 
-        self.drainage_units_1 = self.drainage_units_0.copy()
-        self.drainage_units_1 = dataarray_from_gdf(
-            self.drainage_units_1[0], 
-            self.drainage_units_1_gdf, 
-            "drainage_units_1"
+        self.afvoergebied_1 = self.afvoergebied_0.copy()
+        self.afvoergebied_1 = dataarray_from_gdf(
+            self.afvoergebied_1[0], 
+            self.afvoergebied_1_gdf, 
+            "afvoergebied_1"
         )
-        self.drainage_units_2 = self.drainage_units_0.copy()
-        self.drainage_units_2 = dataarray_from_gdf(
-            self.drainage_units_2[0], 
-            self.drainage_units_2_gdf, 
-            "drainage_units_2"
-        )
-
-        self.drainage_units_3 = self.drainage_units_0.copy()
-        self.drainage_units_3 = dataarray_from_gdf(
-            self.drainage_units_3[0], 
-            self.drainage_units_3_gdf, 
-            "drainage_units_3"
+        self.afvoergebied_2 = self.afvoergebied_0.copy()
+        self.afvoergebied_2 = dataarray_from_gdf(
+            self.afvoergebied_2[0], 
+            self.afvoergebied_2_gdf, 
+            "afvoergebied_2"
         )
 
-        self.drainage_units_4 = self.drainage_units_0.copy()
-        self.drainage_units_4 = dataarray_from_gdf(
-            self.drainage_units_4[0], 
-            self.drainage_units_4_gdf, 
-            "drainage_units_4"
+        self.afvoergebied_3 = self.afvoergebied_0.copy()
+        self.afvoergebied_3 = dataarray_from_gdf(
+            self.afvoergebied_3[0], 
+            self.afvoergebied_3_gdf, 
+            "afvoergebied_3"
+        )
+
+        self.afvoergebied_4 = self.afvoergebied_0.copy()
+        self.afvoergebied_4 = dataarray_from_gdf(
+            self.afvoergebied_4[0], 
+            self.afvoergebied_4_gdf, 
+            "afvoergebied_4"
         )
 
         if self.write_results:
             self.export_results_to_gpkg_or_nc(
                 list_layers=[
-                    "drainage_units_1_gdf",
-                    "drainage_units_2_gdf",
-                    "drainage_units_3_gdf",
-                    "drainage_units_4_gdf",
-                    "drainage_units_1",
-                    "drainage_units_2",
-                    "drainage_units_3",
-                    "drainage_units_4",
+                    "afvoergebied_1_gdf",
+                    "afvoergebied_2_gdf",
+                    "afvoergebied_3_gdf",
+                    "afvoergebied_4_gdf",
+                    "afvoergebied_1",
+                    "afvoergebied_2",
+                    "afvoergebied_3",
+                    "afvoergebied_4",
                 ]
             )
-        return self.drainage_units_2_gdf
+        return self.afvoergebied_2_gdf
 
 
     def generate_folium_map(self, html_file_name:str="", **kwargs):
         if html_file_name == '':
-            html_file_name = self.name + "_drainage_units"
+            html_file_name = self.name + "_afvoergebied"
         self.folium_map = generate_folium_map(
             self, 
             html_file_name=html_file_name, 

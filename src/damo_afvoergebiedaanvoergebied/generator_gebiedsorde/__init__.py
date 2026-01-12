@@ -15,7 +15,7 @@ def run_generator_gebiedsorde(
     generate_order_no: bool = True,
     max_order_no: int = 100,
     generate_order_code: bool = True,
-    generate_order_code_sub_waterlines: bool = False,
+    generate_order_code_overig: bool = False,
     order_for_each_edge: bool = True,
     water_lines: list[str] = None,
     read_results: bool = True,
@@ -24,6 +24,7 @@ def run_generator_gebiedsorde(
     open_html: bool = False,
     snapping_distance: float = 0.05,
 ) -> GeneratorGebiedsOrde:
+
     start_time = time.time()
     order = GeneratorGebiedsOrde(
         path=path,
@@ -38,6 +39,7 @@ def run_generator_gebiedsorde(
     if generate_order_no:
         if order.edges is None:
             order.create_graph_from_network(water_lines=water_lines)
+
         order.analyse_netwerk_add_information_to_nodes_edges()
         
         if not generate_new_outflow_nodes and order.outflow_nodes is not None:
@@ -56,7 +58,7 @@ def run_generator_gebiedsorde(
             order_for_each_edge=order_for_each_edge
         )
 
-    if generate_order_code_sub_waterlines:
+    if generate_order_code_overig:
         order.generate_order_no_order_code_for_other_waterlines()
 
     if create_html_map:

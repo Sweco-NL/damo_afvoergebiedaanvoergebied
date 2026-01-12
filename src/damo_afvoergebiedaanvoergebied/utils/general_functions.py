@@ -432,11 +432,11 @@ def get_endpoints_from_lines(lines: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 
 
 def snap_unconnected_endpoints_to_endpoint_or_line(
-    hydroobjecten, snapping_distance=0.05
+    hydroobject, snapping_distance=0.05
 ):
-    hydroobjecten = hydroobjecten.explode()
+    hydroobject = hydroobject.explode()
 
-    endpoints = get_endpoints_from_lines(hydroobjecten)
+    endpoints = get_endpoints_from_lines(hydroobject)
 
     endpoints["ID"] = endpoints.index
     endpoints = endpoints[
@@ -490,12 +490,12 @@ def snap_unconnected_endpoints_to_endpoint_or_line(
             return LineString(new_coords), "snapped"
         return row["geometry"], "unchanged"
 
-    hydroobjecten[["geometry", "status"]] = hydroobjecten.apply(
+    hydroobject[["geometry", "status"]] = hydroobject.apply(
         lambda row: replace_last_coordinate(row, point_df), axis=1, result_type="expand"
     )
 
     joined_lines = gpd.sjoin(
-        endpoints, hydroobjecten, how="left", predicate="intersects"
+        endpoints, hydroobject, how="left", predicate="intersects"
     )
 
     joined_lines = joined_lines[
@@ -558,12 +558,12 @@ def snap_unconnected_endpoints_to_endpoint_or_line(
             row["geometry"]
             if isinstance(row["geometry"], (shapely.geometry.base.BaseGeometry, list))
             else None,
-            hydroobjecten.loc[hydroobjecten["code"] == row["code"], "geometry"].values[
+            hydroobject.loc[hydroobject["code"] == row["code"], "geometry"].values[
                 0
             ]
             if not pd.isna(row["code"])
-            and not hydroobjecten.loc[
-                hydroobjecten["code"] == row["code"], "geometry"
+            and not hydroobject.loc[
+                hydroobject["code"] == row["code"], "geometry"
             ].empty
             else None,
         ),
@@ -600,13 +600,13 @@ def snap_unconnected_endpoints_to_endpoint_or_line(
             return LineString(new_coords), "snapped"
         return row["geometry"], row["status"]
 
-    hydroobjecten[["geometry", "status"]] = hydroobjecten.apply(
+    hydroobject[["geometry", "status"]] = hydroobject.apply(
         lambda row: replace_coordinate_with_projection(row, point_df_line),
         axis=1,
         result_type="expand",
     )
 
-    return hydroobjecten
+    return hydroobject
 
 
 def check_duplicate_codes(gdf, column):

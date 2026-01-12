@@ -22,7 +22,7 @@ def run_generator_afvoergebieden(
     smooth_distance: float = 25.0,
     iterations: int = 2000,
     iteration_group: int = 100,
-    drainage_units_cmap: str = "Pastel2",
+    afvoergebied_cmap: str = "Pastel2",
     read_results: bool = False,
     write_results: bool = False,
     create_html_map: bool = False,
@@ -92,14 +92,14 @@ def run_generator_afvoergebieden(
                 smooth_distance=smooth_distance,
             )
         if process:
-            gdu.generate_drainage_units(
+            gdu.generate_afvoergebied(
                 iterations=iterations,
                 iteration_group=iteration_group,
                 flow_method=flow_method,
             )
 
         if postprocess:
-            gdu.aggregate_drainage_units()
+            gdu.aggregate_afvoergebied()
 
     if create_html_map:
         gdu.generate_folium_map()

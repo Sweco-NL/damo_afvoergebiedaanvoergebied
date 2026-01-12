@@ -42,16 +42,16 @@ class GeneratorNetworkLumping(GeneratorBasis):
     write_results: bool = False
 
     required_results: list[str] = [
-        "hydroobjecten",
-        "hydroobjecten_processed_1"
+        "hydroobject",
+        "hydroobject_processed_1"
     ]
 
-    hydroobjecten: gpd.GeoDataFrame = None
-    hydroobjecten_extra: gpd.GeoDataFrame = None
+    hydroobject: gpd.GeoDataFrame = None
+    hydroobject_extra: gpd.GeoDataFrame = None
     rivieren: gpd.GeoDataFrame = None
 
-    hydroobjecten_processed_0: gpd.GeoDataFrame = None
-    hydroobjecten_processed_1: gpd.GeoDataFrame = None
+    hydroobject_processed_0: gpd.GeoDataFrame = None
+    hydroobject_processed_1: gpd.GeoDataFrame = None
 
     afwateringseenheden: gpd.GeoDataFrame = None
 
@@ -74,13 +74,13 @@ class GeneratorNetworkLumping(GeneratorBasis):
     folium_map: folium.Map = None
     folium_html_path: str = None
 
-    def create_graph_from_network(self, water_lines=["hydroobjecten"]):
+    def create_graph_from_network(self, water_lines=["hydroobject"]):
         """Turns a linestring layer containing waterlines into a graph of edges and nodes. 
 
         Parameters
         ----------
         water_lines : list, optional
-            List of waterline files names used to create graph, must refer to geopackages containing linestrings, by default ["hydroobjecten"]
+            List of waterline files names used to create graph, must refer to geopackages containing linestrings, by default ["hydroobject"]
 
         Returns
         -------
@@ -463,7 +463,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             logging.info(logging_message)
         return self.inflow_outflow_splits_2
 
-    def assign_drainage_units_to_outflow_points_based_on_id(self):
+    def assign_afvoergebied_to_outflow_points_based_on_id(self):
         self.inflow_outflow_edges["code"] = self.inflow_outflow_edges["code"].astype(
             str
         )
@@ -485,7 +485,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             self.inflow_outflow_areas[upstream_downstream_columns].fillna(False)
         )
 
-    def assign_drainage_units_to_outflow_points_based_on_length_hydroobject(self):
+    def assign_afvoergebied_to_outflow_points_based_on_length_hydroobject(self):
         if self.afwateringseenheden is None:
             return None
         self.afwateringseenheden["unique_id"] = self.afwateringseenheden.index
@@ -533,7 +533,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             )
         return self.inflow_outflow_areas
 
-    def dissolve_assigned_drainage_units(self, smooth_area=False):
+    def dissolve_assigned_afvoergebied(self, smooth_area=False):
         if self.inflow_outflow_areas is None:
             return None
         inflow_outflow_areas = None

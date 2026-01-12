@@ -12,7 +12,7 @@ def run_generator_network_lumping(
     dir_results: str = "1_resultaat",
     direction: str = "upstream",
     water_lines: list[str] = None,
-    drainage_units_from_results: str = "drainage_units_1_gdf.gpkg",
+    afvoergebied_from_results: str = "afvoergebied_1_gdf.gpkg",
     include_areas_based_on_id: bool = False,
     include_areas_based_on_length: bool = False,
     no_inflow_outflow_points: int = None,
@@ -39,19 +39,19 @@ def run_generator_network_lumping(
         no_inflow_outflow_points=no_inflow_outflow_points,
     )
     if network.afwateringseenheden is None:
-        path_drainage_units = Path(network.dir_results, drainage_units_from_results)
-        if path_drainage_units.exists():
-            network.afwateringseenheden = gpd.read_file(path_drainage_units)
+        path_afvoergebied = Path(network.dir_results, afvoergebied_from_results)
+        if path_afvoergebied.exists():
+            network.afwateringseenheden = gpd.read_file(path_afvoergebied)
 
     network.calculate_angles_of_edges_at_nodes()
     network.select_downstream_upstream_edges_angle(min_difference_angle=20.0)
 
     if include_areas_based_on_id:
-        network.assign_drainage_units_to_outflow_points_based_on_id()
-        network.dissolve_assigned_drainage_units(smooth_area=smooth_area)
+        network.assign_afvoergebied_to_outflow_points_based_on_id()
+        network.dissolve_assigned_afvoergebied(smooth_area=smooth_area)
     elif include_areas_based_on_length:
-        network.assign_drainage_units_to_outflow_points_based_on_length_hydroobject()
-        network.dissolve_assigned_drainage_units(smooth_area=smooth_area)
+        network.assign_afvoergebied_to_outflow_points_based_on_length_hydroobject()
+        network.dissolve_assigned_afvoergebied(smooth_area=smooth_area)
 
     if detect_split_points:
         network.detect_split_points()

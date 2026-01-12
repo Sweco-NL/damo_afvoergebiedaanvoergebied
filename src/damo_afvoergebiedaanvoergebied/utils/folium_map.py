@@ -18,9 +18,9 @@ def generate_folium_map(
     order_labels=True,
     drop_duplicate_codes=True,
     show_other_waterways_culverts=False,
-    drainage_units_cmap="Pastel2",
-    drainage_units_opacity=0.5,
-    specific_discharge_cmap="turbo",
+    afvoergebied_cmap="Pastel2",
+    afvoergebied_opacity=0.5,
+    specifieke_afvoer_cmap="turbo",
     html_file_name=None, 
     base_map="Light Mode", 
     save_html=True,
@@ -34,11 +34,11 @@ def generate_folium_map(
     def is_attribute_not_none(obj, attribute):
         return hasattr(obj, attribute) and getattr(obj, attribute) is not None
 
-    if not is_attribute_not_none(generator, "hydroobjecten"):
-        raise ValueError("Generator does not have hydroobjecten")
+    if not is_attribute_not_none(generator, "hydroobject"):
+        raise ValueError("Generator does not have hydroobject")
 
     # Calculate the extent (bounding box) of your GeoDataFrame
-    hydro_4326 = generator.hydroobjecten.to_crs(4326).copy()
+    hydro_4326 = generator.hydroobject.to_crs(4326).copy()
     bounds = hydro_4326.total_bounds  # returns (minx, miny, maxx, maxy)
     
     # Center the map around the mean coordinates of the bounds
@@ -50,19 +50,19 @@ def generate_folium_map(
     )
     logging.info('   x creating map layers')
 
-    if is_attribute_not_none(generator, "rws_wateren"):
-        logging.info('     - rws_wateren')
+    if is_attribute_not_none(generator, "rws_water"):
+        logging.info('     - rws_water')
         folium.GeoJson(
-            generator.rws_wateren.geometry,
-            name="RWS_Wateren",
+            generator.rws_water.geometry,
+            name="rws_water",
             z_index=0,
         ).add_to(m)
 
-    if is_attribute_not_none(generator, "hydroobjecten"):
-        logging.info('     - hydroobjecten')
+    if is_attribute_not_none(generator, "hydroobject"):
+        logging.info('     - hydroobject')
         add_lines_to_map(
             m=m,
-            lines_gdf=generator.hydroobjecten,
+            lines_gdf=generator.hydroobject,
             layer_name="AB-Watergangen",
             control=True,
             lines=True,
@@ -164,7 +164,7 @@ def generate_folium_map(
     
     if is_attribute_not_none(generator, "outflow_nodes"):
         fg = folium.FeatureGroup(
-            name=f"Uitstroompunten in RWS-water", control=True
+            name=f"outflow_nodesen in RWS-water", control=True
         ).add_to(m)
 
         logging.info('     - rws_water: outflow nodes')
@@ -174,7 +174,7 @@ def generate_folium_map(
             outflow_nodes = generator.outflow_nodes.copy()
         folium.GeoJson(
             outflow_nodes,
-            name="Uitstroompunten RWS-wateren",
+            name="outflow_nodesen RWS-wateren",
             marker=folium.Circle(
                 radius=25, fill_color="red", fill_opacity=0.4, color="red", weight=3
             ),
@@ -190,12 +190,12 @@ def generate_folium_map(
             fg=fg,
         )
 
-    if is_attribute_not_none(generator, "overige_watergangen"):
+    if is_attribute_not_none(generator, "overige_watergang"):
         logging.info('     - other waterways - without culverts')
         add_lines_to_map(
             m=m,
-            lines_gdf=generator.overige_watergangen[["geometry"]],
-            layer_name=f"C-Watergangen - Zonder duikers ({len(generator.overige_watergangen)})",
+            lines_gdf=generator.overige_watergang[["geometry"]],
+            layer_name=f"C-Watergangen - Zonder duikers ({len(generator.overige_watergang)})",
             line_color="lightblue",
             control=True,
             lines=True,
@@ -224,11 +224,11 @@ def generate_folium_map(
                 break
             show_other_waterways_culverts = False
 
-    if is_attribute_not_none(generator, f"outflow_nodes_overige_watergangen"):
+    if is_attribute_not_none(generator, f"outflow_nodes_overige_watergang"):
         logging.info(f'     - other waterways - outflow nodes')
         folium.GeoJson(
-            generator.outflow_nodes_overige_watergangen.geometry,
-            name="C-Watergangen - Uitstroompunten",
+            generator.outflow_nodes_overige_watergang.geometry,
+            name="C-Watergangen - outflow_nodesen",
             marker=folium.Circle(
                 radius=3,
                 fill_color="orange",
@@ -240,28 +240,28 @@ def generate_folium_map(
             show=False,
         ).add_to(m)
 
-    if is_attribute_not_none(generator, f"overige_watergangen_processed_4"):
-        overige_watergangen_processed = generator.overige_watergangen_processed_4.copy()
-    elif is_attribute_not_none(generator, f"overige_watergangen_processed_3"):
-        overige_watergangen_processed = generator.overige_watergangen_processed_3.copy()
+    if is_attribute_not_none(generator, f"overige_watergang_processed_4"):
+        overige_watergang_processed = generator.overige_watergang_processed_4.copy()
+    elif is_attribute_not_none(generator, f"overige_watergang_processed_3"):
+        overige_watergang_processed = generator.overige_watergang_processed_3.copy()
     else:
-        overige_watergangen_processed = None
+        overige_watergang_processed = None
 
-    if overige_watergangen_processed is not None:
+    if overige_watergang_processed is not None:
         logging.info(f'     - other waterways - aggregated per outflow node')
         add_categorized_lines_to_map(
             m=m,
-            lines_gdf=overige_watergangen_processed,
-            layer_name=f"C-Watergangen - Gegroepeerd per uitstroompunt",
+            lines_gdf=overige_watergang_processed,
+            layer_name=f"C-Watergangen - Gegroepeerd per outflow_nodes",
             control=True,
             lines=True,
-            line_color_column="outflow_node",
+            line_color_column="outflow_nodes",
             line_color_cmap=None,
             show=False,
             z_index=2,
         )
         
-        if order_labels and "order_code" in overige_watergangen_processed.columns:
+        if order_labels and "order_code" in overige_watergang_processed.columns:
             logging.info('     - other waterways - order code (labels)')
             fg = folium.FeatureGroup(
                 name=f"C-watergangen - Orde-code (labels)",
@@ -271,7 +271,7 @@ def generate_folium_map(
             ).add_to(m)
 
             add_labels_to_points_lines_polygons(
-                gdf=overige_watergangen_processed[["geometry", "order_code"]],
+                gdf=overige_watergang_processed[["geometry", "order_code"]],
                 column="order_code",
                 label_fontsize=8,
                 label_decimals=1,
@@ -332,121 +332,121 @@ def generate_folium_map(
             dy=dy,
         )
 
-    if is_attribute_not_none(generator, f"drainage_units_0"):
+    if is_attribute_not_none(generator, f"afvoergebied_0"):
         logging.info(f'     - drainage units (raster, level 0)')
-        drainage_units_0 = generator.drainage_units_0.where(generator.drainage_units_0 > -1.0)
-        drainage_units_0 = drainage_units_0.rio.write_crs(generator.crs)
+        afvoergebied_0 = generator.afvoergebied_0.where(generator.afvoergebied_0 > -1.0)
+        afvoergebied_0 = afvoergebied_0.rio.write_crs(generator.crs)
         add_graduated_raster_to_map(
             m=m,
-            raster=drainage_units_0,
+            raster=afvoergebied_0,
             layer_name="Afwateringseenheden - basis",
             unit="unique id",
             control=True,
             vmin=0,
-            vmax=int(generator.drainage_units_0.data.max()),
-            cmap=drainage_units_cmap,
+            vmax=int(generator.afvoergebied_0.data.max()),
+            cmap=afvoergebied_cmap,
             legend=False,
-            opacity=drainage_units_opacity,
+            opacity=afvoergebied_opacity,
             show=False,
             dx=dx,
             dy=dy,
         )
 
-    if is_attribute_not_none(generator, f"drainage_units_1"):
+    if is_attribute_not_none(generator, f"afvoergebied_1"):
         logging.info(f'     - drainage units (raster, level 1)')
-        drainage_units_1 = generator.drainage_units_1.where(generator.drainage_units_1 > -1.0)
-        drainage_units_1 = drainage_units_1.rio.write_crs(generator.crs)
+        afvoergebied_1 = generator.afvoergebied_1.where(generator.afvoergebied_1 > -1.0)
+        afvoergebied_1 = afvoergebied_1.rio.write_crs(generator.crs)
         add_graduated_raster_to_map(
             m=m,
-            raster=drainage_units_1,
+            raster=afvoergebied_1,
             layer_name="Afwateringseenheden (A/B/C watergangen)",
             unit="unique id",
             control=True,
             vmin=0,
-            vmax=int(generator.drainage_units_1.data.max()),
-            cmap=drainage_units_cmap,
+            vmax=int(generator.afvoergebied_1.data.max()),
+            cmap=afvoergebied_cmap,
             legend=False,
-            opacity=drainage_units_opacity,
+            opacity=afvoergebied_opacity,
             show=True,
             dx=dx,
             dy=dy,
         )
     
-    if is_attribute_not_none(generator, f"drainage_units_2"):
+    if is_attribute_not_none(generator, f"afvoergebied_2"):
         logging.info(f'     - drainage units (raster, level 2)')
-        drainage_units_2 = generator.drainage_units_2.where(generator.drainage_units_2 > -1.0)
-        drainage_units_2 = drainage_units_2.rio.write_crs(generator.crs)
+        afvoergebied_2 = generator.afvoergebied_2.where(generator.afvoergebied > -1.0)
+        afvoergebied_2 = afvoergebied_2.rio.write_crs(generator.crs)
         add_graduated_raster_to_map(
             m=m,
-            raster=drainage_units_2,
+            raster=afvoergebied_2,
             layer_name="Afwateringseenheden (A/B watergangen)",
             unit="unique id",
             control=True,
             vmin=0,
-            vmax=int(generator.drainage_units_2.data.max()),
-            cmap=drainage_units_cmap,
+            vmax=int(generator.afvoergebied_2.data.max()),
+            cmap=afvoergebied_cmap,
             legend=False,
-            opacity=drainage_units_opacity,
+            opacity=afvoergebied_opacity,
             show=False,
             dx=dx,
             dy=dy,
         )
 
-    if is_attribute_not_none(generator, f"drainage_units_3"):
+    if is_attribute_not_none(generator, f"afvoergebied_3"):
         logging.info(f'     - drainage units (raster, level 3)')
-        drainage_units_3 = generator.drainage_units_3.where(generator.drainage_units_3 > -1.0)
-        drainage_units_3 = drainage_units_3.rio.write_crs(generator.crs)
+        afvoergebied_3 = generator.afvoergebied_3.where(generator.afvoergebied_3 > -1.0)
+        afvoergebied_3 = afvoergebied_3.rio.write_crs(generator.crs)
         add_graduated_raster_to_map(
             m=m,
-            raster=drainage_units_3,
+            raster=afvoergebied_3,
             layer_name="Afwateringseenheden (orde-code)",
             unit="unique id",
             control=True,
             vmin=0,
-            vmax=int(generator.drainage_units_3.data.max()),
-            cmap=drainage_units_cmap,
+            vmax=int(generator.afvoergebied_3.data.max()),
+            cmap=afvoergebied_cmap,
             legend=False,
-            opacity=drainage_units_opacity,
+            opacity=afvoergebied_opacity,
             show=False,
             dx=dx,
             dy=dy,
         )
 
-    if is_attribute_not_none(generator, f"drainage_units_4"):
+    if is_attribute_not_none(generator, f"afvoergebied_4"):
         logging.info(f'     - drainage units (raster, level 4)')
-        drainage_units_4 = generator.drainage_units_4.where(generator.drainage_units_4 > -1.0)
-        drainage_units_4 = drainage_units_4.rio.write_crs(generator.crs)
+        afvoergebied_4 = generator.afvoergebied_4.where(generator.afvoergebied_4 > -1.0)
+        afvoergebied_4 = afvoergebied_4.rio.write_crs(generator.crs)
         add_graduated_raster_to_map(
             m=m,
-            raster=drainage_units_4,
+            raster=afvoergebied_4,
             layer_name="Afwateringseenheden (stroomgebied)",
             unit="unique id",
             control=True,
             vmin=0,
-            vmax=int(generator.drainage_units_4.data.max()),
-            cmap=drainage_units_cmap,
+            vmax=int(generator.afvoergebied_4.data.max()),
+            cmap=afvoergebied_cmap,
             legend=False,
-            opacity=drainage_units_opacity,
+            opacity=afvoergebied_opacity,
             show=False,
             dx=dx,
             dy=dy,
         )
 
     if is_attribute_not_none(generator, "edges"):
-        if "total_specific_discharge" in generator.edges.columns:
+        if "total_specifieke_afvoer" in generator.edges.columns:
             edges = generator.edges[
-                generator.edges["total_specific_discharge"] > 0.0
-            ].sort_values("total_specific_discharge", ascending=True)
+                generator.edges["total_specifieke_afvoer"] > 0.0
+            ].sort_values("total_specifieke_afvoer", ascending=True)
             
             logging.info('     - edges - total specific discharge')
             add_categorized_lines_to_map(
                 m=m,
-                lines_gdf=edges[["geometry", "total_specific_discharge"]],
+                lines_gdf=edges[["geometry", "total_specifieke_afvoer"]],
                 layer_name="AB-watergangen - Total specific discharge",
                 control=True,
                 lines=True,
-                line_color_column="total_specific_discharge",
-                line_color_cmap=specific_discharge_cmap,
+                line_color_column="total_specifieke_afvoer",
+                line_color_cmap=specifieke_afvoer_cmap,
                 label=False,
                 line_weight=3,
                 z_index=2,
@@ -456,12 +456,12 @@ def generate_folium_map(
             logging.info('     - edges - total specific discharge (log10)')
             add_categorized_lines_to_map(
                 m=m,
-                lines_gdf=edges[["geometry", "log10_total_specific_discharge"]],
+                lines_gdf=edges[["geometry", "log10_total_specifieke_afvoer"]],
                 layer_name="AB-watergangen - Total specific discharge (log10)",
                 control=True,
                 lines=True,
-                line_color_column="log10_total_specific_discharge",
-                line_color_cmap=specific_discharge_cmap,
+                line_color_column="log10_total_specifieke_afvoer",
+                line_color_cmap=specifieke_afvoer_cmap,
                 label=False,
                 line_weight=3,
                 z_index=2,
@@ -477,15 +477,15 @@ def generate_folium_map(
             ).add_to(m)
 
             add_labels_to_points_lines_polygons(
-                gdf=edges[["geometry", "total_specific_discharge"]],
-                column="total_specific_discharge",
+                gdf=edges[["geometry", "total_specifieke_afvoer"]],
+                column="total_specifieke_afvoer",
                 label_fontsize=8,
                 label_decimals=1,
                 fg=fg,
             )
 
             edges_left = generator.edges[
-                generator.edges["total_specific_discharge"] <= 0.0
+                generator.edges["total_specifieke_afvoer"] <= 0.0
             ]
             add_lines_to_map(
                 m=m,
