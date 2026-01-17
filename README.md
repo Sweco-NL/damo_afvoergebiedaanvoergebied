@@ -1,6 +1,6 @@
-## Workflows network-analyses op hydrologische basisdata waterschappen
+## Workflow voor hydrologische basisdata waterschappen
 
-o.a. voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afwateringseenheden, stroomgebieden afleiden, automatische orde-codering. Bekijk de uitgebreide documentatie via de [read-the-docs](https://generator-drainage-units.readthedocs.io/en/latest/)
+o.a. voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afwateringseenheden, automatische orde-codering, stroomgebieden afleiden. Bekijk de uitgebreide documentatie via de [read-the-docs](https://damo-afvoergebiedaanvoergebied.readthedocs.io/en/latest/)
 
 
 ### Installatie environment
@@ -14,10 +14,10 @@ pixi install
 ```
 
 ### Voorbereiding project
-Om de verschillende generators te kunnen draaien, moet er in de lokale clone van de repository een bestand `.env` worden toegevoegd:
+Om de verschillende workflows te kunnen draaien, moet er in de lokale clone van de repository een bestand `.env` worden toegevoegd:
 
 ```
-📁 generator_drainage_units
+📁 damo_afvoergebiedaanvoergebied
 ├── ..
 └── .env
 ```
@@ -27,38 +27,35 @@ Deze bevat een `BASE_DIR`, de locatie waar per `case_name` data `basisdata` word
 BASE_DIR="d:\pad\naar\mijn\analyses"
 ```
 
-De binnen de folder `BASE_DIR` zit een sub-folder `case_name`, bijvoorbeeld `Leuvenumse_beek`, waaronder in een map `0_basisdata` alle gegevens zijn opgeslagen die nodig zijn voor het uitvoeren van de generatoren. In `1_resultaat` komen alle resultaten.
+De binnen de folder `BASE_DIR` zit een sub-folder `case_name`, bijvoorbeeld `Leuvenumse_beek`, waaronder in een map `0_basisdata` alle gegevens zijn opgeslagen die nodig zijn voor het uitvoeren van de workflows. In `1_resultaat` komen alle resultaten.
 
 ```
 📁 BASE_DIR
 └── 📁 case_name
     ├── 📁 0_basisdata
-    │   ├── GHG_2000-2010_L1.NC
-    │   ├── hydroobjecten.gpkg
-    │   ├── inflow_outflow_points.gpkg
-    │   ├── inflow_outflow_splits.gpkg
-    │   ├── keringen.gpkg
-    │   ├── nwb.gpkg
-    │   ├── outflow_nodes.gpkg (optional: in case of predefined outflow_nodes)
-    │   ├── overige_watergangen.gpkg
-    │   ├── peilgebieden.gpkg
-    │   ├── rws_wateren.gpkg
-    │   ├── snelwegen.gpkg
-    │   ├── spoorwegen.gpkg
+    │   ├── ghg.nc
+    │   ├── hydroobject.gpkg
+    │   ├── kering.gpkg
+    │   ├── weg.gpkg
+    │   ├── overige_watergang.gpkg
+    │   ├── peilgebied.gpkg
+    │   ├── rws_water.gpkg
+    │   ├── snelweg.gpkg
+    │   ├── spoorweg.gpkg
     └── 📁 1_resultaat
         ├── ...
 ```
 
 ### Genereren uitvoer
 
-In het mapje `notebooks` vindt je drie notebooks waarmee je de generatoren kunt draaien. Voor een beschrijving van de generatoren zie de [documentatie](https://generator-drainage-units.readthedocs.io/en/latest/description_workflows.html#generatorculvertlocations-workflow-duiker-locaties).
+In het mapje `notebooks` vindt je drie notebooks waarmee je de workflows kunt draaien. Voor een beschrijving van de workflows zie de [documentatie](https://damo-afvoergebiedaanvoergebied.readthedocs.io/en/latest/description_workflows.html#GeneratorDuikers-workflow-duiker-locaties).
 
 ```
-📁 generator_drainage_units
+📁 damo_afvoergebiedaanvoergebied
 ├── ...
 ├── 📁 notebooks
-│   ├── run_generator_culvert_locations.ipynb
+│   ├── run_generator_duikers.ipynb
 │   ├── run_generator_order_code.ipynb
-│   └── run_generator_drainage_units_d16.ipynb
+│   └── run_generator_afvoergebieden_d16.ipynb
 ├── ...
 ```

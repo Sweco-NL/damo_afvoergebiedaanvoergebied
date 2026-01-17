@@ -9,7 +9,7 @@ import sys
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "GeneratorDrainageUnits"
+project = "DAMO_AfvoergebiedAanvoergebied"
 copyright = "2025, Sweco"
 author = "Harm Nomden, Anais Wens"
 release = "2025/1/31"

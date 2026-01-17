@@ -1,7 +1,7 @@
 Installatie en gebruik van de workflows
 =====================
 
-Download voor gebruik de public repository. Daarin zit zowel de package generator_drainage_units als enkele voorbeeldscripts inclusief testdata.
+Download voor gebruik de public repository. Daarin zit zowel de package damo_afvoergebiedaanvoergebied als enkele voorbeeldscripts inclusief testdata.
 
 
 Installatie environment
@@ -27,27 +27,27 @@ De basis-data bestaat uit:
 
 Datasets voor het watersysteem:
 
-- **rws_wateren.gpkg**: Polygonen van RWS-wateren inclusief officiële code
-- **hydroobjecten.gpkg**: A-/B-watergangen (hoofdwatergangen waterschappen)
-- **hydroobjecten_extra.gpkg**: Extra hoofdwatergangen optioneel toe te voegen
-- **overige_watergangen.gpkg**: C-watergangen (lijn-elementen afgeleid van waterdelen)
+- **rws_water.gpkg**: Polygonen van RWS-wateren inclusief officiële code
+- **hydroobject.gpkg**: A-/B-watergangen (hoofdwatergangen waterschappen)
+- **hydroobject_extra.gpkg**: Extra hoofdwatergangen optioneel toe te voegen
+- **overige_watergang.gpkg**: C-watergangen (lijn-elementen afgeleid van waterdelen)
 
 Datasets die gebruikt worden in de analyse van de 'Duikergenerator' (om te bepalen of er lijn-elementen gekruist worden):
 
-- **keringen.gpkg**: waterkeringen
-- **nwb.gpkg**: centerlines van alle wegen (nationaal wegen bestand)
-- **snelwegen.gpkg**: centerlines van de snelwegen
-- **spoorwegen.gpkg**: centerlines van de spoorwegen
-- **peilgebieden.gpkg**: peilgebieden (polygonen) om de peilgebeidsgrenzen mee te nemen.
+- **kering.gpkg**: waterkering
+- **weg.gpkg**: centerlines van alle wegen (nationaal wegen bestand)
+- **snelweg.gpkg**: centerlines van de snelweg
+- **spoorweg.gpkg**: centerlines van de spoorweg
+- **peilgebied.gpkg**: peilgebied (polygonen) om de peilgebeidsgrenzen mee te nemen.
 
 Topografische hoogtemodel (raster data) voor afleiden afwateringseenheden. In dit geval GHG-raster, maar kan ook maaiveld (DTM):
 
-- **GHG_2000-2010_L1.NC** Het rasterbestand kan apart worden opgegeven en ingeladen.
+- **GHG.NC** Het rasterbestand kan apart worden opgegeven en ingeladen.
 
 Afleiden deelstroomgebieden middels uitstroompunten:
 
-- **inflow_outflow_points.gpkg**: punten die worden opgegeven als uitstroompunt waarvoor dan stroomgebieden worden afgeleid.
-- **inflow_outflow_splits.gpkg**: Voor splitsingen in het netwerk kan worden opgegeven welke richting voorrang heeft, zodat overlap voorkomen wordt. Deze locaties worden bij elke analyse ook gedetecteerd en weggeschreven.
+- **outflow_nodes.gpkg**: punten die worden opgegeven als uitstroompunt waarvoor dan stroomgebieden worden afgeleid.
+- **splitsing.gpkg**: Voor splitsingen in het netwerk kan worden opgegeven welke richting voorrang heeft, zodat overlap voorkomen wordt. Deze locaties worden bij elke analyse ook gedetecteerd en weggeschreven.
 
 
 Gebruik van de (voorbeeld-)notebooks
@@ -58,16 +58,16 @@ De analyse inclusief brondata en de resultaten komt in een map terecht. In de no
 
 De verschillende workflows kunnen los gedraaid worden, maar er zit ook een volgorde in:
 
-- GeneratorCulvertLocations: bereid het watersysteem helemaal voor, voert voorbewerking uit op de A-/B-watergangen, verbindt de C-watergangen middels duikers, etc; 
-- GeneratorOrderLevels: Genereert order-nummers en orde-codering voor alle (A-/B-/C-)watergangen; 
-- GeneratorDrainageUnits: Genereert de afwateringseenheden (polygonen); 
-- GeneratorNetworkLumping: Genereert de deelstroomgebieden voor uitstroompunten, (sluitend) waternetwerk en afwateringseenheden.
+- Workflow Duikers: bereid het watersysteem helemaal voor, voert voorbewerking uit op de A-/B-watergangen, verbindt de C-watergangen middels duikers, etc; 
+- Workflow GebiedsOrde: Genereert order-nummers en orde-codering voor alle (A-/B-/C-)watergangen; 
+- Workflow Afvoergebieden: Genereert de afwateringseenheden (polygonen); 
+- Workflow NetworkLumping: Genereert de deelstroomgebieden voor uitstroompunten, (sluitend) waternetwerk en afwateringseenheden.
 
 Om de analyses uit te voeren zijn voor iedere analyse losse functies geschreven:
 
-- `run_generator_culvert_locations() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#generator_drainage_units.generator_culvert_locations.run_generator_culvert_locations>`_
-- `run_generator_order_levels() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#generator_drainage_units.generator_order_levels.run_generator_order_levels>`_
-- `run_generator_drainage_units() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#generator_drainage_units.generator_network_lumping.run_generator_network_lumping>`_
-- `run_generator_network_lumping() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#generator_drainage_units.generator_network_lumping.run_generator_network_lumping>`_
+- `run_generator_duikers() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#damo_afvoergebiedaanvoergebied.generator_duikers.run_generator_duikers>`_
+- `run_generator_gebiedsorde() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#damo_afvoergebiedaanvoergebied.generator_gebiedsorde.run_generator_gebiedsorde>`_
+- `run_damo_afvoergebiedaanvoergebied() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#damo_afvoergebiedaanvoergebied.generator_network_lumping.run_generator_network_lumping>`_
+- `run_generator_network_lumping() <https://generator-drainage-units.readthedocs.io/en/latest/api_docs.html#damo_afvoergebiedaanvoergebied.generator_network_lumping.run_generator_network_lumping>`_
 
 Alle functies hebben eigenlijk alleen het path nodig waar de map met basisdata staat. De resultaatmap wordt automatisch aangemaakt. Indien gewenst kunnen extra parameters worden meegegeven voor het draaien van de functies.

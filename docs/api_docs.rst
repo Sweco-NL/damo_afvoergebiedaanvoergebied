@@ -2,84 +2,84 @@
 API Documentatie
 ================
 
-generator_drainage_units
+damo_afvoergebiedaanvoergebied
 ------------------------
 
-GeneratorCulvertLocations
+Workflow Duikers
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Generates culverts to connect the lower level hydroobjects and connect them to the hydroobjects
 
-.. automodule:: generator_drainage_units.generator_culvert_locations
+.. automodule:: damo_afvoergebiedaanvoergebied.generator_duikers
     :members:
     :undoc-members:
     :private-members:
 
-.. automodule:: generator_drainage_units.generator_culvert_locations.generator_culvert_locations
+.. automodule:: damo_afvoergebiedaanvoergebied.generator_duikers.generator_duikers
     :members:
     :undoc-members:
     :private-members:
 
 
-GeneratorOrderLevels
+Workflow GebiedsOrde
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Generates order levels and order codes for all hydroobjects including lower level hydroobjects
 
-.. automodule:: generator_drainage_units.generator_order_levels
+.. automodule:: damo_afvoergebiedaanvoergebied.generator_gebiedsorde
     :members:
     :undoc-members:
     :private-members:
 
-.. automodule:: generator_drainage_units.generator_order_levels.generator_order_levels
+.. automodule:: damo_afvoergebiedaanvoergebied.generator_gebiedsorde.generator_gebiedsorde
     :members:
     :undoc-members:
     :private-members:
 
 
-GeneratorDrainageUnits
+Workflow Afvoergebieden
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Generates drainage units for each hydroobject based on a terrain model
 
-.. automodule:: generator_drainage_units.generator_drainage_units
+.. automodule:: damo_afvoergebiedaanvoergebied.generator_afvoergebieden
     :members:
     :undoc-members:
     :private-members:
 
-.. automodule:: generator_drainage_units.generator_drainage_units.generator_drainage_units
+.. automodule:: damo_afvoergebiedaanvoergebied.generator_afvoergebieden.generator_afvoergebieden
     :members:
     :undoc-members:
     :private-members:
 
 
-GeneratorNetworkLumping
+Workflow NetworkLumping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Generates upstream (sub)basins for predefined outflow points
 
-.. automodule:: generator_drainage_units.generator_network_lumping
+.. automodule:: damo_afvoergebiedaanvoergebied.generator_network_lumping
     :members:
     :undoc-members:
     :private-members:
 
-.. automodule:: generator_drainage_units.generator_network_lumping.generator_network_lumping
+.. automodule:: damo_afvoergebiedaanvoergebied.generator_network_lumping.generator_network_lumping
     :members:
     :undoc-members:
     :private-members:
 
 
-GeneratorBasis
+Workflow Basis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Used for all generators to load all data from dir_basisdata and dir_results
+Used for all workflows to load all data from dir_basisdata and dir_results
 
-.. automodule:: generator_drainage_units.generator_basis
+.. automodule:: damo_afvoergebiedaanvoergebied.generator_basis
     :members:
     :undoc-members:
     :private-members:
 
-.. automodule:: generator_drainage_units.generator_basis.generator_basis
+.. automodule:: damo_afvoergebiedaanvoergebied.generator_basis.generator_basis
     :members:
     :undoc-members:
     :private-members:
@@ -88,32 +88,32 @@ Used for all generators to load all data from dir_basisdata and dir_results
 Utils
 ^^^^
 
-.. automodule:: generator_drainage_units.utils.create_graph
+.. automodule:: damo_afvoergebiedaanvoergebied.utils.create_graph
     :members:
     :undoc-members:
     :private-members:
 
-.. automodule:: generator_drainage_units.utils.folium_utils
+.. automodule:: damo_afvoergebiedaanvoergebied.utils.folium_utils
     :members:
     :undoc-members:
     :private-members:
 
-.. automodule:: generator_drainage_units.utils.general_functions
+.. automodule:: damo_afvoergebiedaanvoergebied.utils.general_functions
     :members:
     :undoc-members:
     :private-members:
 
-.. automodule:: generator_drainage_units.utils.network_functions
+.. automodule:: damo_afvoergebiedaanvoergebied.utils.network_functions
     :members:
     :undoc-members:
     :private-members:
 
-.. automodule:: generator_drainage_units.utils.pandas_xlsx_tables
+.. automodule:: damo_afvoergebiedaanvoergebied.utils.pandas_xlsx_tables
     :members:
     :undoc-members:
     :private-members:
 
-.. automodule:: generator_drainage_units.utils.preprocess
+.. automodule:: damo_afvoergebiedaanvoergebied.utils.preprocess
     :members:
     :undoc-members:
     :private-members:
