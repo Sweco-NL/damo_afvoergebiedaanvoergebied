@@ -125,7 +125,8 @@ class GeneratorGebiedsOrde(GeneratorBasis):
 
 
     def generate_rws_code_for_outflow_points(self, search_range_outflow_nodes=50.0):
-        """Generates an RWS code for al outflow points into rws water bodies. These are the points where the water flows out of the management area of the water board and therefore the start of the orde codes of the edges.
+        """Generates an RWS code for al outflow points into rws water bodies. '
+        These are the points where the water flows out of the management area of the water board and therefore the start of the orde codes of the edges.
 
         Parameters
         ----------
@@ -722,8 +723,6 @@ class GeneratorGebiedsOrde(GeneratorBasis):
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
                 "hydroobject_processed_1",
-                "edges",
-                "nodes",
             ])
         return self.hydroobject_processed_1
 

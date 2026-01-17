@@ -11,17 +11,15 @@ def run_generator_afvoergebieden(
     dir_results: Path = None,
     waterschap: str = None,
     method: str = "pyflwdir",
-    flow_method: str = "d8",
     ghg_file_name: str = None,
     preprocess: bool = False,
     process: bool = False,
     postprocess: bool = False,
+    water_lines: list[str] = None,
     resolution: float = 2.0,
     depth_waterways: float = 1.0,
     buffer_waterways: float = 2.5,
     smooth_distance: float = 25.0,
-    iterations: int = 2000,
-    iteration_group: int = 100,
     afvoergebied_cmap: str = "Pastel2",
     read_results: bool = False,
     write_results: bool = False,
@@ -55,8 +53,6 @@ def run_generator_afvoergebieden(
         _description_, by default 2.5
     smooth_distance : float, optional
         _description_, by default 25.0
-    iterations : int, optional
-        _description_, by default 2000
     method : str, optional
         _description_, by default "d8"
 
@@ -79,12 +75,14 @@ def run_generator_afvoergebieden(
         read_results=read_results, 
         write_results=write_results,
         method=method,
-        flow_method=flow_method,
     )
     if ghg_file_name is not None:
         gdu.read_ghg(ghg_file_name=ghg_file_name)
 
         if preprocess:
+            if gdu.edges is None:
+                gdu.create_graph_from_network(water_lines=water_lines)
+            
             gdu.preprocess_ghg(
                 resolution=resolution, 
                 depth_waterways=depth_waterways,
@@ -92,11 +90,7 @@ def run_generator_afvoergebieden(
                 smooth_distance=smooth_distance,
             )
         if process:
-            gdu.generate_afvoergebied(
-                iterations=iterations,
-                iteration_group=iteration_group,
-                flow_method=flow_method,
-            )
+            gdu.generate_afvoergebied()
 
         if postprocess:
             gdu.aggregate_afvoergebied()
