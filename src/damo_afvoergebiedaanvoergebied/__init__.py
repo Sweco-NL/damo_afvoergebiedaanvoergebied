@@ -18,3 +18,7 @@ from .generator_specifieke_afvoer import (
     run_generator_specifieke_afvoer, 
     GeneratorSpecifiekeAfvoer
 )
+
+from .generator_basis import (
+    GeneratorBasis,
+)

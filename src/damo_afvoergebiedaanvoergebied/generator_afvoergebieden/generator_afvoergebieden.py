@@ -9,7 +9,8 @@ import numpy as np
 import pandas as pd
 import pyflwdir
 import rioxarray
-import xarray
+import xarray as xr
+import networkx as nx
 from geocube.api.core import make_geocube
 from pydantic import ConfigDict
 from rasterio.enums import Resampling
@@ -22,7 +23,7 @@ from ..utils.pyflwdir import run_pyflwdir
 from ..utils.folium_map import generate_folium_map
 
 
-def change_flow_direction_d8_to_d16(dir_d8):
+def change_stroomrichting_d8_to_d16(dir_d8):
     """Change flow direction from D8 to D16."""
     dir_d16 = dir_d8.copy()
     for i, j in zip([1, 2, 4, 8, 16, 32, 64, 128], [7, 9, 11, 13, 15, 1, 3, 5]):
@@ -74,10 +75,7 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         "outflow_nodes_overige_watergang",
         "overige_watergang_processed_3", 
         "overige_watergang_processed_4", 
-        "potential_culverts_5", 
         "outflow_nodes",
-        "edges", 
-        "nodes",
         "alle_watergangen_0",
         "afvoergebied_0",
         "afvoergebied_0_gdf",
@@ -85,19 +83,19 @@ class GeneratorAfvoergebieden(GeneratorBasis):
 
     hydroobject: gpd.GeoDataFrame = None
     hydroobject_processed_0: gpd.GeoDataFrame = None
+    hydroobject_processed_1: gpd.GeoDataFrame = None
     
     overige_watergang: gpd.GeoDataFrame = None
     overige_watergang_processed_3: gpd.GeoDataFrame = None
     overige_watergang_processed_4: gpd.GeoDataFrame = None
     outflow_nodes_overige_watergang: gpd.GeoDataFrame = None
-    potential_culverts_5: gpd.GeoDataFrame = None
 
     outflow_nodes: gpd.GeoDataFrame = None
 
     ghg_file_name: str = None
-    ghg: xarray.Dataset = None
-    ghg_filled: xarray.Dataset = None
-    ghg_fills: xarray.Dataset = None
+    ghg: xr.Dataset = None
+    ghg_filled: xr.Dataset = None
+    ghg_fills: xr.Dataset = None
 
     new_resolution: float = 5.0*5.0
 
@@ -105,36 +103,28 @@ class GeneratorAfvoergebieden(GeneratorBasis):
     alle_watergangen_0_buffer: gpd.GeoDataFrame = None
     alle_watergangen_1: gpd.GeoDataFrame = None
 
-    ghg_waterways: xarray.Dataset = None
-    ghg_waterways_distance: xarray.Dataset = None
+    ghg_waterways: xr.Dataset = None
+    ghg_waterways_distance: xr.Dataset = None
 
-    ghg_processed: xarray.Dataset = None
-    ghg_processed_adapt: xarray.Dataset = None
+    ghg_processed: xr.Dataset = None
 
     flw: pyflwdir.FlwdirRaster = None
 
-    flow_direction: xarray.Dataset = None
-    flow_direction_d8: xarray.Dataset = None
-    flow_direction_d8_ind: xarray.Dataset = None
-    flow_direction_d8_fills: xarray.Dataset = None
-    flow_direction_d16: xarray.Dataset = None
-    flow_direction_d16_ind: xarray.Dataset = None
-    flow_direction_d16_fills: xarray.Dataset = None
-    
-    afvoergebied_0: xarray.Dataset = None
+    afvoergebied_0: xr.Dataset = None
     afvoergebied_0_gdf: gpd.GeoDataFrame = None
-    afvoergebied_1: xarray.Dataset = None
+    afvoergebied_1: xr.Dataset = None
     afvoergebied_1_gdf: gpd.GeoDataFrame = None
-    afvoergebied_2: xarray.Dataset = None
+    afvoergebied_2: xr.Dataset = None
     afvoergebied_2_gdf: gpd.GeoDataFrame = None
-    afvoergebied_3: xarray.Dataset = None
+    afvoergebied_3: xr.Dataset = None
     afvoergebied_3_gdf: gpd.GeoDataFrame = None
-    afvoergebied_4: xarray.Dataset = None
+    afvoergebied_4: xr.Dataset = None
     afvoergebied_4_gdf: gpd.GeoDataFrame = None
 
     edges: gpd.GeoDataFrame = None
     nodes: gpd.GeoDataFrame = None
-    
+    graph: nx.DiGraph = None
+
     folium_map: folium.Map = None
     folium_html_path: str = None
 
@@ -169,39 +159,22 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         )
         self.ghg_processed.name = "ghg_processed"
 
-        logging.info("     - fill holes")
-        self.ghg_filled = self.ghg_processed.copy()
-        self.flow_direction_d8 = self.ghg_processed.copy()
-        self.flow_direction_d8.name = "flow_direction_d8"
-        self.flow_direction_d8 = self.flow_direction_d8.astype(np.int32)
-
-        # use pyflwdir to fill depressions in the GHG data and get D8-direction
-        self.ghg_filled.data[0], self.flow_direction_d8.data[0] = pyflwdir.fill_depressions(
-            self.ghg_filled.data[0],
-            nodata=self.ghg_filled._FillValue,
-        )
-        # find out where holes are filled
-        self.ghg_fills = self.ghg_filled - self.ghg
-        # get D8-direction and corresponding D16-direction
-        self.flow_direction_d8_fills = self.flow_direction_d8.where(self.ghg_fills>0.001).fillna(-1).astype(np.int32)
-        self.flow_direction_d16_fills = change_flow_direction_d8_to_d16(self.flow_direction_d8_fills)
-
         logging.info("     - select waterways and add depth at waterways")
         # combine all waterways and filter on order_no
         if "order_no" in self.edges.columns:
             edges = self.edges[["code", "order_no", "geometry"]].reset_index(drop=True)
-            # select only with order_no
             edges = edges[edges["order_no"]>0]
         else:
             edges = self.edges[["code", "geometry"]].reset_index(drop=True)
 
         self.alle_watergangen_0 = edges[["code", "geometry"]].reset_index(drop=True)
-        # do the same for the other waterways and combine
-        if self.overige_watergang_processed_4 is not None:
-            self.alle_watergangen_0 = pd.concat([
-                self.alle_watergangen_0,
-                self.overige_watergang_processed_4[["code", "geometry"]]
-            ]).reset_index(drop=True)
+
+        # # do the same for the other waterways and combine
+        # if self.overige_watergang_processed_4 is not None:
+        #     self.alle_watergangen_0 = pd.concat([
+        #         self.alle_watergangen_0,
+        #         self.overige_watergang_processed_4[["code", "geometry"]]
+        #     ]).reset_index(drop=True)
         # add depth
         self.alle_watergangen_0["depth_waterways"] = depth_waterways
 
@@ -222,7 +195,7 @@ class GeneratorAfvoergebieden(GeneratorBasis):
             ghg_waterways==0.0, 
             sampling=2.0,
         )
-        ghg_waterways_distance = xarray.DataArray(
+        ghg_waterways_distance = xr.DataArray(
             ghg_waterways_distance, 
             dims=ghg_waterways.dims, 
             coords=ghg_waterways.coords
@@ -244,7 +217,7 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         return self.ghg_processed
 
 
-    def generate_afvoergebied(self, iterations=2000, iteration_group=100, flow_method="d8"):
+    def generate_afvoergebied(self):
         logging.info("   x generate drainage units for each waterway")
         # create raster with unique id of each waterway
         logging.info("     - give each waterway an unique id")
@@ -268,25 +241,32 @@ class GeneratorAfvoergebieden(GeneratorBasis):
 
         # PYFLWDIR
         if self.method == "pyflwdir":
-            logging.info("   x run pyflwdir")
-            self.afvoergebied_0, self.ghg_processed_adapt, flow_direction = run_pyflwdir(
-                dem=self.ghg_processed,
-                waterways=self.afvoergebied_0,
-                iterations=iterations,
-                iteration_group=iteration_group,
-                flow_method=flow_method,
-                flow_direction_d16_fills=self.flow_direction_d16_fills
+            logging.info("     - run pyflwdir to create drainage units (basins)")
+            flw_pyflwdir = pyflwdir.from_dem(
+                data=self.ghg_processed.data[0],
+                nodata=self.ghg_processed._FillValue,
+                transform=self.ghg_processed.rio.transform(),
+                latlon=False,
             )
-            if flow_method == "d8":
-                # self.flow_direction_d8 = self.ghg_processed.copy()
-                self.flow_direction_d8.data = flow_direction.reshape(
-                    self.ghg_processed.data.shape
-                )
-                self.flow_direction_d8.name = "flow_direction_d8"
-                self.flow_direction_d8.attrs["_FillValue"] = -1
-            elif flow_method == "d16":
-                self.flow_direction_d16 = flow_direction.copy()
-                self.flow_direction_d16.name = "flow_direction_d16"
+            self.flw = flw_pyflwdir
+            
+            idx = self.afvoergebied_0.astype(np.int32).data.flatten()
+            idxs = np.where(idx > 0)[0]
+            ids = idx[idx > 0]
+
+            self.afvoergebied_0 = xr.DataArray(
+                self.flw.basins(
+                    idxs=idxs,
+                    ids=ids
+                ),
+                dims=("y", "x"),
+                coords={
+                    "y": self.ghg_processed.y, 
+                    "x": self.ghg_processed.x
+                },
+                name="afvoergebied_0",
+            )
+
         elif self.method == "pcraster":
             raise ValueError("method pcraster not yet installed")
         else:
@@ -335,7 +315,6 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         if self.write_results:
             self.export_results_to_gpkg_or_nc(
                 list_layers=[
-                    "flow_direction_d16",
                     "afvoergebied_0",
                     "afvoergebied_0_gdf",
                 ]
@@ -347,7 +326,7 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         self.afvoergebied_1 = None
         self.afvoergebied_1_gdf = None
         self.afvoergebied_2 = None
-        self.afvoergebied_gdf = None
+        self.afvoergebied_2_gdf = None
         self.afvoergebied_3 = None
         self.afvoergebied_3_gdf = None
         self.afvoergebied_4 = None
@@ -379,35 +358,8 @@ class GeneratorAfvoergebieden(GeneratorBasis):
             )
         
         logging.info(f"     - aggregate sub drainage units: replace {len(alle_watergangen_1)} drainage_unit_ids")
-        # afvoergebied_1_gdf = gpd.sjoin(
-        #     self.afvoergebied_0_gdf,
-        #     self.alle_watergangen_1.drop(columns=["color_id", "drainage_unit_id"]),
-        #     how="left",
-        #     predicate="intersects"
-        # )
-        # afvoergebied_1_gdf = afvoergebied_1_gdf.merge(
-        #     self.alle_watergangen_1[["geometry", "downstream_edges"]].rename(columns={"geometry": "waterway_geometry"}), 
-        #     how="left", 
-        #     on="downstream_edges", 
-        # )
-        # afvoergebied_1_gdf['overlap_length'] = (
-        #     afvoergebied_1_gdf
-        #     .geometry
-        #     .intersection(
-        #         afvoergebied_1_gdf.waterway_geometry
-        #     ).length
-        # )
-        # afvoergebied_1_gdf = afvoergebied_1_gdf.loc[
-        #     afvoergebied_1_gdf.groupby('drainage_unit_id')['overlap_length'].idxmax()
-        # ]
-        # self.afvoergebied_1_gdf = (
-        #     afvoergebied_1_gdf
-        #     .reset_index(drop=True)
-        #     .drop(columns=["index_right", "waterway_geometry", "overlap_length"])
-        # )
-        # self.afvoergebied_1_gdf = afvoergebied_1_gdf.drop(columns="waterway_geometry")
         self.afvoergebied_1_gdf = self.afvoergebied_0_gdf.merge(
-            self.alle_watergangen_1.drop(columns=["color_id", "geometry"]),
+            self.alle_watergangen_1.drop(columns=["color_id", "code", "geometry"]),
             how="left",
             on="drainage_unit_id"
         )
@@ -432,33 +384,6 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         random_color_id = np.random.randint(0, 25, size=len(self.afvoergebied_4_gdf))
         self.afvoergebied_4_gdf["color_id"] = random_color_id
 
-        self.afvoergebied_1 = self.afvoergebied_0.copy()
-        self.afvoergebied_1 = dataarray_from_gdf(
-            self.afvoergebied_1[0], 
-            self.afvoergebied_1_gdf, 
-            "afvoergebied_1"
-        )
-        self.afvoergebied_2 = self.afvoergebied_0.copy()
-        self.afvoergebied_2 = dataarray_from_gdf(
-            self.afvoergebied_2[0], 
-            self.afvoergebied_2_gdf, 
-            "afvoergebied_2"
-        )
-
-        self.afvoergebied_3 = self.afvoergebied_0.copy()
-        self.afvoergebied_3 = dataarray_from_gdf(
-            self.afvoergebied_3[0], 
-            self.afvoergebied_3_gdf, 
-            "afvoergebied_3"
-        )
-
-        self.afvoergebied_4 = self.afvoergebied_0.copy()
-        self.afvoergebied_4 = dataarray_from_gdf(
-            self.afvoergebied_4[0], 
-            self.afvoergebied_4_gdf, 
-            "afvoergebied_4"
-        )
-
         if self.write_results:
             self.export_results_to_gpkg_or_nc(
                 list_layers=[
@@ -466,6 +391,39 @@ class GeneratorAfvoergebieden(GeneratorBasis):
                     "afvoergebied_2_gdf",
                     "afvoergebied_3_gdf",
                     "afvoergebied_4_gdf",
+                ]
+            )
+
+        self.afvoergebied_1 = self.afvoergebied_0.copy()
+        self.afvoergebied_1 = dataarray_from_gdf(
+            self.afvoergebied_1, 
+            self.afvoergebied_1_gdf, 
+            "afvoergebied_1"
+        )
+        self.afvoergebied_2 = self.afvoergebied_0.copy()
+        self.afvoergebied_2 = dataarray_from_gdf(
+            self.afvoergebied_2, 
+            self.afvoergebied_2_gdf, 
+            "afvoergebied_2"
+        )
+
+        self.afvoergebied_3 = self.afvoergebied_0.copy()
+        self.afvoergebied_3 = dataarray_from_gdf(
+            self.afvoergebied_3, 
+            self.afvoergebied_3_gdf, 
+            "afvoergebied_3"
+        )
+
+        self.afvoergebied_4 = self.afvoergebied_0.copy()
+        self.afvoergebied_4 = dataarray_from_gdf(
+            self.afvoergebied_4, 
+            self.afvoergebied_4_gdf, 
+            "afvoergebied_4"
+        )
+
+        if self.write_results:
+            self.export_results_to_gpkg_or_nc(
+                list_layers=[
                     "afvoergebied_1",
                     "afvoergebied_2",
                     "afvoergebied_3",

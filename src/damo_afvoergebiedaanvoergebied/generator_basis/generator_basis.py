@@ -5,7 +5,7 @@ import folium
 import geopandas as gpd
 import pandas as pd
 import rioxarray
-import xarray
+import xarray as xr
 from pydantic import BaseModel, ConfigDict
 from ..utils.preprocess import preprocess_hydroobject
 from ..utils.create_graph import create_graph_from_edges
@@ -17,6 +17,14 @@ from ..utils.network_functions import (
     select_downstream_upstream_edges_angle,
     select_downstream_upstream_edges_discharge,
 )
+
+
+def drop_band_dim(da):
+    if "band" not in da.dims:
+        return da
+    if da.sizes["band"] == 1:
+        return da.squeeze("band", drop=True)
+    return da.isel(band=0)
 
 
 class GeneratorBasis(BaseModel):
@@ -132,7 +140,9 @@ class GeneratorBasis(BaseModel):
                         setattr(self, f.stem, gpd.read_file(f, layer=f.stem))
                     if f.suffix in [".nc", ".NC"]:
                         with rioxarray.open_rasterio(f) as raster:
-                            setattr(self, f.stem, raster.load())
+                            ds = drop_band_dim(raster.load())
+                            ds.name = f.stem
+                            setattr(self, f.stem, ds)
 
         logging.info(f"   x read basisdata")
         if self.dir_basisdata is not None and self.dir_basisdata.exists():
@@ -163,7 +173,10 @@ class GeneratorBasis(BaseModel):
                     if f.suffix == ".gpkg":
                         setattr(self, f.stem, gpd.read_file(f, layer=f.stem))
                     if f.suffix in [".nc", ".NC"]:
-                        setattr(self, f.stem, rioxarray.open_rasterio(f))
+                        with rioxarray.open_rasterio(f) as raster:
+                            ds = drop_band_dim(raster.load())
+                            ds.name = f.stem
+                            setattr(self, f.stem, ds)
             if getattr(self, required_dataset) is None:
                 logging.info(f" * dataset {required_dataset} is missing - check if absolutely required")
 
@@ -281,6 +294,7 @@ class GeneratorBasis(BaseModel):
                     gdf_water_line = gdf_water_line_processed.copy()
             if gdf_water_line is None:
                 continue
+            gdf_water_line["source"] = water_line
             if edges is None:
                 edges = gdf_water_line.explode()
             else:
@@ -351,7 +365,7 @@ class GeneratorBasis(BaseModel):
             elif isinstance(result, gpd.GeoDataFrame):
                 logging.info(f"     - {layer} ({len(result)})")
                 result.to_file(Path(dir_output, f"{layer}.gpkg"))
-            elif isinstance(result, xarray.DataArray) or isinstance(result, xarray.Dataset):
+            elif isinstance(result, xr.DataArray) or isinstance(result, xr.Dataset):
                 logging.info(f"     - {layer} (netcdf)")
                 netcdf_file_path = Path(dir_output, f"{layer}.nc")
                 if netcdf_file_path.exists():

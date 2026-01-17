@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 import pyflwdir
 import rioxarray
-import xarray
 import networkx as nx
 import rasterstats
 import xarray as xr
@@ -66,8 +65,7 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
     split_nodes: gpd.GeoDataFrame = None
 
     file_name_specifieke_afvoer: str = None
-    specifieke_afvoer: xarray.Dataset = None
-    specifieke_afvoer_filled: xarray.Dataset = None
+    specifieke_afvoer: xr.Dataset = None
     
     edges: gpd.GeoDataFrame = None
     nodes: gpd.GeoDataFrame = None
@@ -159,8 +157,6 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
         self.specifieke_afvoer = self.specifieke_afvoer.rename_vars({"__xarray_dataarray_variable__": "specifieke_afvoer"})
         if self.specifieke_afvoer.rio.crs is None:
             self.specifieke_afvoer = self.specifieke_afvoer.rio.write_crs(28992)
-        # interpolate
-        self.specifieke_afvoer = self.specifieke_afvoer.interpolate_na(dim="x", method="nearest")
         return self.specifieke_afvoer
     
 
@@ -170,12 +166,12 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
             f"   x add specific discharge to discharge units"
         )
         if 0 <= level_discharge_units <= 4:
-            discharge_units_file_path = Path(self.dir_results, f"afvoergebied_{level_discharge_units}_gdf.gpkg")
-            if discharge_units_file_path.exists():
-                self.afvoergebied_gdf = gpd.read_file(discharge_units_file_path)
+            file_path_afvoergebied = Path(self.dir_results, f"afvoergebied_{level_discharge_units}_gdf.gpkg")
+            if file_path_afvoergebied.exists():
+                self.afvoergebied_gdf = gpd.read_file(file_path_afvoergebied)
                 area_afvoergebied = self.afvoergebied_gdf.geometry.area.sum()/10000.0
                 logging.info(
-                    f"     - afvoergebied level{level_discharge_units} [{len(self.afvoergebied_gdf)}] with area {round(area_afvoergebied, 2)}[ha]"
+                    f"     - afvoergebied level {level_discharge_units} [{len(self.afvoergebied_gdf)}] with area {round(area_afvoergebied, 2)}[ha]"
                 )
 
         if self.afvoergebied_gdf is None or use_specifieke_afvoer<0.0:
@@ -197,7 +193,7 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
             self.afvoergebied_gdf = afvoergebied_gdf.rename(
                 columns={"sum": "specifieke_afvoer", "mean": "mean_specifieke_afvoer"}
             )
-            self.afvoergebied_gdf["specifieke_afvoer"] = self.afvoergebied_gdf["specifieke_afvoer"]*25*25/1000/24/3600
+            self.afvoergebied_gdf["specifieke_afvoer"] = self.afvoergebied_gdf["specifieke_afvoer"] * 25 * 25 / 1000 / 24 / 3600
             self.afvoergebied_gdf["specifieke_afvoer"] = self.afvoergebied_gdf["specifieke_afvoer"].fillna(0.0)
             
         elif use_specifieke_afvoer > 0:
@@ -206,6 +202,12 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
 
         total_specifieke_afvoer = self.afvoergebied_gdf["specifieke_afvoer"].sum() / 1000.0
         logging.info(f"     - total specific discharge: {round(total_specifieke_afvoer, 2)} [m3/s]")
+
+        if self.write_results:
+            self.export_results_to_gpkg_or_nc(list_layers=[
+                "afvoergebied_gdf",
+            ])        
+
         return self.afvoergebied_gdf
 
 
@@ -227,7 +229,10 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
                 left_on="code", 
                 right_on="code"
             )
-            self.edges = self.edges.merge(
+            self.edges = self.edges.drop(
+                columns=["specifieke_afvoer"], 
+                errors="ignore"
+            ).merge(
                 specifieke_afvoer,
                 how="left", 
                 left_on="code", 

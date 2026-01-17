@@ -374,7 +374,7 @@ def generate_folium_map(
     
     if is_attribute_not_none(generator, f"afvoergebied_2"):
         logging.info(f'     - drainage units (raster, level 2)')
-        afvoergebied_2 = generator.afvoergebied_2.where(generator.afvoergebied > -1.0)
+        afvoergebied_2 = generator.afvoergebied_2.where(generator.afvoergebied_2 > -1.0)
         afvoergebied_2 = afvoergebied_2.rio.write_crs(generator.crs)
         add_graduated_raster_to_map(
             m=m,
@@ -500,15 +500,11 @@ def generate_folium_map(
                 z_index=0,
             )
         
-    if is_attribute_not_none(generator, "nodes"):
+    if is_attribute_not_none(generator, "split_nodes"):
         logging.info('     - split nodes')
-        split_points_downstreams = generator.nodes[
-            (generator.nodes["no_downstream_edges"] > 1) &
-            (generator.nodes["no_upstream_edges"] > 0)
-        ].copy()
         folium.GeoJson(
-            split_points_downstreams,
-            name=f"Splitsingspunten benedenstrooms ({len(split_points_downstreams)})",
+            generator.split_nodes,
+            name=f"Splitsingspunten benedenstrooms ({len(generator.split_nodes)})",
             marker=folium.Circle(
                 radius=25, fill_color="purple", fill_opacity=0.4, color="purple", weight=3
             ),

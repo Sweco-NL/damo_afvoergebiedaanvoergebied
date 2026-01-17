@@ -42,6 +42,7 @@ class GeneratorDuikers(GeneratorBasis):
 
     hydroobject: gpd.GeoDataFrame = None
     overige_watergang: gpd.GeoDataFrame = None
+
     bebouwing: gpd.GeoDataFrame = None
     kering: gpd.GeoDataFrame = None
     nwb: gpd.GeoDataFrame = None
@@ -92,6 +93,59 @@ class GeneratorDuikers(GeneratorBasis):
         super().__init__(**kwargs)
         if self.path is not None:
             self.use_processed_hydroobject(force_preprocess=True)
+            self.create_unique_codes()
+
+
+    def create_unique_codes(self, column="code"):
+        """Make sure hydroobject and overige_watergang have unique code names"""
+        if self.hydroobject is None or self.overige_watergang is None:
+            raise ValueError(" x hydroobject or overige_watergang not loaded")
+
+        logging.info(f" x Check for duplicate codes in hydroobject and overige_watergang")
+
+        def make_unique_codes(gdf, col="code"):
+            if col not in gdf.columns:
+                return gdf
+            s = gdf[col].astype("string").fillna("")
+            if s.is_unique:
+                return gdf
+            counts = s.groupby(s).cumcount()
+            gdf[col] = np.where(counts == 0, s, s + "_" + counts.astype(str))
+            return gdf
+
+        # check hydroobject
+        if self.hydroobject["code"].duplicated().sum() > 0:
+            duplicated_codes = self.hydroobject[self.hydroobject["code"].duplicated()]["code"].unique()
+            logging.info(f"     - hydroobject has non-unique codes: {duplicated_codes}")
+            self.hydroobject = make_unique_codes(self.hydroobject)
+
+        # check overige_watergang
+        if self.overige_watergang["code"].duplicated().sum() > 0:
+            duplicated_codes = self.overige_watergang[self.overige_watergang["code"].duplicated()]["code"].unique()
+            logging.info(f"     - overige_watergang has non-unique codes: {duplicated_codes}")
+            self.overige_watergang = make_unique_codes(self.overige_watergang)
+
+        # check between hydroobject and overige_watergang
+        hydroobject = self.hydroobject[["code"]].astype("string")
+        hydroobject["source"] = "hydroobject"
+        overige_watergang = self.overige_watergang[["code"]].astype("string")
+        overige_watergang["source"] = "overige_watergang"
+        
+        combined = pd.concat([
+            hydroobject.astype("string"),
+            overige_watergang.astype("string")
+        ])
+        if combined["code"].duplicated().sum() > 0:
+            duplicated_codes = combined.loc[combined["code"].duplicated(), "code"].unique()
+            logging.info(f"     - hydroobject and overige_watergang have overlapping codes: {duplicated_codes}")
+            combined = make_unique_codes(combined)
+            self.hydroobject["code"] = combined[combined["source"] == "hydroobject"]["code"].values
+            self.overige_watergang["code"] = combined[combined["source"] == "overige_watergang"]["code"].values
+
+        duplicated_codes = combined.loc[combined["code"].duplicated(), "code"].unique()
+        logging.info(f"     - hydroobject and overige_watergang have overlapping codes: {duplicated_codes}")
+
+        logging.info("   x hydroobject and overige_watergang have unique codes")
 
 
     def generate_vertices_along_waterlines(
@@ -176,13 +230,8 @@ class GeneratorDuikers(GeneratorBasis):
         if isinstance(write_results, bool):
             self.write_results = write_results
 
-        if self.write_results:
-            self.export_results_to_gpkg_or_nc(
-                list_layers=[
-                    "water_line_pnts"
-                ]
-            )
         return self.water_line_pnts, self.duplicates
+
 
     def find_potential_culvert_locations(
         self,
@@ -315,6 +364,7 @@ class GeneratorDuikers(GeneratorBasis):
         )
         return self.potential_culverts_0
 
+
     def check_intersections_potential_culverts(self, read_results=None) -> gpd.GeoDataFrame:
         """Check intersections of culverts with other objects like roads, etc"""
 
@@ -409,6 +459,7 @@ class GeneratorDuikers(GeneratorBasis):
             # ])
             
         return self.potential_culverts_1
+
 
     def assign_scores_to_potential_culverts(
         self, read_results=None
@@ -591,6 +642,7 @@ class GeneratorDuikers(GeneratorBasis):
             f"     - {len(self.potential_culverts_2)} potential culverts remaining"
         )
         return self.potential_culverts_2
+
 
     def select_correct_score_based_on_score_and_length(
         self,
@@ -849,6 +901,7 @@ class GeneratorDuikers(GeneratorBasis):
 
         return self.potential_culverts_3, self.potential_culverts_pre_filter
 
+
     def post_process_potential_culverts(self):
         """Postprocess culverts. removing double culverts, or culverts going to one point from the same waterline. 
 
@@ -926,7 +979,6 @@ class GeneratorDuikers(GeneratorBasis):
         This is done to create a complete and connected network.
         The function also generates the outflow point of the overige_watergang in hydroobjects.
 
-
         Returns
         -------
         self.overige_watergang_processed_0: gpd.GeoDataFrame
@@ -959,7 +1011,6 @@ class GeneratorDuikers(GeneratorBasis):
             self.export_results_to_gpkg_or_nc(list_layers=[
                 "hydroobject_processed_0",
                 "overige_watergang_processed_0",
-                "potential_culverts_pre_filter",
             ])
 
         culverts_hydro = self.potential_culverts_4[
@@ -999,6 +1050,7 @@ class GeneratorDuikers(GeneratorBasis):
             self.hydroobject_processed_0,
             self.outflow_nodes_overige_watergang,
         )
+
 
     def check_culverts_direction(self):
         """Culverts can be generated in the wrong direction compared to the waterlines, if this is the case, they are flipped.
@@ -1099,6 +1151,7 @@ class GeneratorDuikers(GeneratorBasis):
             ])
         return self.overige_watergang_processed_1
 
+
     def splits_hydroobject_by_endpoind_of_culverts_and_combine_2(
         self, write_results=True
     ):
@@ -1123,6 +1176,7 @@ class GeneratorDuikers(GeneratorBasis):
                 "overige_watergang_processed_2",
             ])
         return self.overige_watergang_processed_2
+
 
     def get_shortest_path_from_overige_watergang_to_hydroobjects(
         self, write_results=False

@@ -35,13 +35,13 @@ def define_flowdirection_raster_d16(raster):
         else:
             flow_y += dflow * factory
 
-    flow_direction = flow.copy()
-    flow_direction.data = np.arctan2(flow_x.data, flow_y.data) * 180 / np.pi
-    flow_direction.data = flow_direction.data % 360
-    return flow_direction, flow_x, flow_y            
+    stroomrichting = flow.copy()
+    stroomrichting.data = np.arctan2(flow_x.data, flow_y.data) * 180 / np.pi
+    stroomrichting.data = stroomrichting.data % 360
+    return stroomrichting, flow_x, flow_y            
 
 
-def find_flow_direction_indices(flow_direction, level=1):
+def find_stroomrichting_indices(stroomrichting, level=1):
     if level == 1:
         min_angles = [360.0 / 8.0 * (-1.5 + float(i)) for i in range(8)]
         max_angles = [360.0 / 8.0 * (-0.5 + float(i)) for i in range(8)]
@@ -57,17 +57,17 @@ def find_flow_direction_indices(flow_direction, level=1):
     else:
         raise ValueError(f"   x level {level} not implemented")
 
-    dindices = [dy*len(flow_direction.x) + dx for dx, dy in zip(dxs, dys)]
+    dindices = [dy*len(stroomrichting.x) + dx for dx, dy in zip(dxs, dys)]
 
-    flow_direction_dinf = flow_direction.copy()
-    flow_direction_ind = flow_direction.copy()
+    stroomrichting_dinf = stroomrichting.copy()
+    stroomrichting_ind = stroomrichting.copy()
 
     for min_angle, max_angle, dindex, dinf in zip(min_angles, max_angles, dindices, d_infinities):
-        mask = (flow_direction.data >= min_angle) & (flow_direction.data < max_angle)
-        flow_direction_ind.data[mask] = dindex
-        flow_direction_dinf.data[mask] = dinf
+        mask = (stroomrichting.data >= min_angle) & (stroomrichting.data < max_angle)
+        stroomrichting_ind.data[mask] = dindex
+        stroomrichting_dinf.data[mask] = dinf
     
-    return flow_direction_dinf.fillna(-9999).astype(np.int32), flow_direction_ind.fillna(-9999).astype(np.int32)
+    return stroomrichting_dinf.fillna(-9999).astype(np.int32), stroomrichting_ind.fillna(-9999).astype(np.int32)
 
 
 # get upstream values
@@ -133,7 +133,7 @@ def run_pyflwdir(
     iterations: int = 2000, 
     iteration_group: int = 100, 
     flow_method="d8", 
-    flow_direction_d16_fills=None
+    stroomrichting_d16_fills=None
 ) -> xr.Dataset:
 
     if flow_method == "d8":
@@ -167,7 +167,7 @@ def run_pyflwdir(
         if number_new_filled_cells == 0:
             break
     
-    flow_direction = flw_pyflwdir.idxs_ds.copy()
+    stroomrichting = flw_pyflwdir.idxs_ds.copy()
 
     if flow_method == "d16":
         # create dinf object
@@ -180,26 +180,26 @@ def run_pyflwdir(
         )[0]
         dem.data[dem.data<-9999.0] = np.nan
 
-        flow_direction, _, _ = define_flowdirection_raster_d16(dem)
+        stroomrichting, _, _ = define_flowdirection_raster_d16(dem)
         
-        # flow_direction.data[flow_direction > 360 - 360.0 / 8.0 * 1.5] = \
-        #     flow_direction.data[flow_direction > 360 - 360.0 / 8.0 * 1.5] - 360.0
-        # flow_direction_d8, flow_direction_d8_ind = find_flow_direction_indices(flow_direction, level=1)
-        flow_direction.data[flow_direction > 360 - 360.0 / 16.0 * 2.5] = \
-            flow_direction.data[flow_direction > 360 - 360.0 / 16.0 * 2.5] - 360.0
+        # stroomrichting.data[stroomrichting > 360 - 360.0 / 8.0 * 1.5] = \
+        #     stroomrichting.data[stroomrichting > 360 - 360.0 / 8.0 * 1.5] - 360.0
+        # stroomrichting_d8, stroomrichting_d8_ind = find_stroomrichting_indices(stroomrichting, level=1)
+        stroomrichting.data[stroomrichting > 360 - 360.0 / 16.0 * 2.5] = \
+            stroomrichting.data[stroomrichting > 360 - 360.0 / 16.0 * 2.5] - 360.0
         
-        flow_direction_d16_fills_deg = flow_direction_d16_fills.copy()
+        stroomrichting_d16_fills_deg = stroomrichting_d16_fills.copy()
         for i, j in zip(range(16), np.arange(-45.0, 315.0, 22.5)):
-            flow_direction_d16_fills_deg.data[flow_direction_d16_fills.data==i+1] = j%360
+            stroomrichting_d16_fills_deg.data[stroomrichting_d16_fills.data==i+1] = j%360
 
-        flow_direction = flow_direction_d16_fills_deg.where(flow_direction_d16_fills_deg > -1.0, flow_direction)
-        flow_direction_d16, flow_direction_d16_ind = find_flow_direction_indices(flow_direction, level=2)
+        stroomrichting = stroomrichting_d16_fills_deg.where(stroomrichting_d16_fills_deg > -1.0, stroomrichting)
+        stroomrichting_d16, stroomrichting_d16_ind = find_stroomrichting_indices(stroomrichting, level=2)
         
-        # waterways_flat_d8_index = np.arange(waterways_flat_new.size) + flow_direction_d8_ind.data.ravel()
+        # waterways_flat_d8_index = np.arange(waterways_flat_new.size) + stroomrichting_d8_ind.data.ravel()
         # waterways_flat_d8_index[np.isnan(waterways_flat_d8_index)] = -1.0
         # waterways_flat_d8_index = waterways_flat_d8_index.astype(np.int32)
 
-        waterways_flat_d16_index = np.arange(waterways_flat_new.size) + flow_direction_d16_ind.data.ravel()
+        waterways_flat_d16_index = np.arange(waterways_flat_new.size) + stroomrichting_d16_ind.data.ravel()
         waterways_flat_d16_index[np.isnan(waterways_flat_d16_index)] = -1.0
         waterways_flat_d16_index = waterways_flat_d16_index.astype(np.int32)
         
@@ -228,9 +228,9 @@ def run_pyflwdir(
             if number_new_filled_cells == 0:
                 break
         
-        flow_direction = flow_direction_d16.copy()
+        stroomrichting = stroomrichting_d16.copy()
 
     waterways.data = waterways_flat_new.reshape(
         waterways.data.shape
     )
-    return waterways, dem, flow_direction
+    return waterways, dem, stroomrichting, flw_pyflwdir
