@@ -12,6 +12,7 @@ def run_generator_specifieke_afvoer(
     waterschap: str = None,
     water_lines: list[str] = ["hydroobject"],
     generate_specifieke_afvoer: bool = True,
+    sum_specifieke_afvoer: bool = True,
     level_discharge_units: int = 0, # level discharge units 0/1/2/3
     use_specifieke_afvoer: float = 1.0,
     file_name_specifieke_afvoer: str = None,
@@ -42,6 +43,9 @@ def run_generator_specifieke_afvoer(
             level_discharge_units=level_discharge_units
         )
         afvoer.add_specifieke_afvoer_to_edges()
+        afvoer.fill_specifieke_afvoer_water_supply_structures()
+    
+    if sum_specifieke_afvoer:
         afvoer.sum_specifieke_afvoer_through_network()
     
     if create_html_map:
@@ -49,4 +53,5 @@ def run_generator_specifieke_afvoer(
 
     logging.info(f"   x Case finished in {round(time.time()-start_time, 3)} seconds")
     return afvoer
+
 

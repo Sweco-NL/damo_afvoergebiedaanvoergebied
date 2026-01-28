@@ -211,7 +211,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
         return self.outflow_edges, self.outflow_nodes
 
 
-    def generate_order_level_for_hydroobjects(self, max_order_no:int=100):
+    def generate_order_level_for_hydroobjects(self, max_order_no: int = 1000):
         """Generates the order level of the hydroobjects. A hydroobject will get the same orde as the downstream edge. 
         When a hydroobject is split at a node, the edge with the larger angle difference will get the order number downstream +1.
         The order level will keeping increasing until the complete network has an order level.
@@ -253,6 +253,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
             new_outflow_edges_order = None
 
             for i_edge, outflow_edge in outflow_edges_order.reset_index(drop=True).iterrows():
+
                 # logging.info(f"      * {i_node+1}/{len(outflow_edges)}")
                 outflow_edge_nodes_id, outflow_edge_edges_code, new_outflow_edges = (
                     find_node_edge_ids_in_directed_graph(
@@ -301,7 +302,16 @@ class GeneratorGebiedsOrde(GeneratorBasis):
                         "order_node_no": range(len(outflow_edge_nodes_id[0])),
                     }
                 )
-                outflow_edge_nodes = self.nodes.merge(
+                outflow_edge_nodes = self.nodes.drop(
+                    columns=[
+                        "rws_code",
+                        "rws_code_no",
+                        "rws_order_code",
+                        "order_no",
+                        "outflow_edge",
+                        "order_node_no",
+                    ], errors="ignore"
+                ).merge(
                     outflow_edge_nodes, how="right", on="nodeID"
                 )
                 outflow_edge_nodes = (
@@ -723,6 +733,8 @@ class GeneratorGebiedsOrde(GeneratorBasis):
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
                 "hydroobject_processed_1",
+                "edges",
+                "nodes",
             ])
         return self.hydroobject_processed_1
 
@@ -853,6 +865,8 @@ class GeneratorGebiedsOrde(GeneratorBasis):
         
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
+                "edges",
+                "nodes",
                 "outflow_edges",
                 "outflow_nodes",
                 "outflow_nodes_overige_watergang",

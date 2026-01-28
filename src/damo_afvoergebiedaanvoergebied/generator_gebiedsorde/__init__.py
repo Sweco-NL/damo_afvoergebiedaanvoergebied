@@ -39,6 +39,8 @@ def run_generator_gebiedsorde(
     if generate_order_no:
         if order.edges is None:
             order.create_graph_from_network(water_lines=water_lines)
+        if water_lines is not None:
+            order.edges = order.edges[order.edges["source"].isin(water_lines)]
 
         order.analyse_netwerk_add_information_to_nodes_edges()
         

@@ -621,12 +621,12 @@ def get_start_edges_nodes(edges, nodes, direction="downstream"):
 def sum_edge_node_values_through_network(
     edges, 
     nodes, 
-    edges_nodes="edges", 
-    edges_id_column="code", 
-    nodes_id_column="nodeID", 
-    direction="downstream", 
-    column_to_sum="specifieke_afvoer", 
-    sum_column="total_specifieke_afvoer"
+    edges_nodes: str = "edges", 
+    edges_id_column: str = "code", 
+    nodes_id_column: str = "nodeID", 
+    direction: str = "downstream", 
+    column_to_sum: str = "specifieke_afvoer", 
+    sum_column: str = "total_specifieke_afvoer",
 ):
     nodes = nodes.set_index(nodes_id_column)
     edges = edges.set_index(edges_id_column)
@@ -645,7 +645,8 @@ def sum_edge_node_values_through_network(
         iteration += 1
         # find all start edges and nodes
         start_nodes, other_nodes, start_edges, other_edges = get_start_edges_nodes(
-            other_edges, other_nodes, 
+            other_edges, 
+            other_nodes, 
             direction=direction, 
         )
         logging.info(f"     - Found {len(start_edges)} start edges ({len(other_edges)} left)")

@@ -389,7 +389,12 @@ class GeneratorDuikers(GeneratorBasis):
 
         logging.info("   x check intersections culverts with objects")
         for crossing_object in crossing_objects:
+            logging.info(f"     - check for crossings with {crossing_object}")
             crossing_gdf = getattr(self, crossing_object)
+
+            if crossing_gdf is None:
+                culverts[f"crossings_{crossing_object}"] = np.nan
+                continue
             
             # Perform spatial join
             joined = gpd.sjoin(

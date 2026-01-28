@@ -13,6 +13,7 @@ import rioxarray
 import networkx as nx
 import rasterstats
 import xarray as xr
+from xrspatial.zonal import stats
 from geocube.api.core import make_geocube
 from pydantic import ConfigDict
 from tqdm import tqdm
@@ -44,7 +45,13 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
         "overige_watergang_processed_4", 
         "potential_culverts_5", 
         "outflow_nodes",
-        "edges", 
+        "afvoergebied_0",
+        "afvoergebied_0_gdf",
+        "afvoergebied_1",
+        "afvoergebied_1_gdf",
+        "afvoergebied_2",
+        "afvoergebied_2_gdf",
+        "edges",
         "nodes",
     ]
 
@@ -55,14 +62,24 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
     overige_watergang: gpd.GeoDataFrame = None
     overige_watergang_processed_4: gpd.GeoDataFrame = None
     potential_culverts_5: gpd.GeoDataFrame = None
-    afvoergebied_gdf: gpd.GeoDataFrame = None
 
+    afvoergebied_0: xr.Dataset = None
+    afvoergebied_0_gdf: gpd.GeoDataFrame = None
+    afvoergebied_1: xr.Dataset = None
+    afvoergebied_1_gdf: gpd.GeoDataFrame = None
+    afvoergebied_2: xr.Dataset = None
+    afvoergebied_2_gdf: gpd.GeoDataFrame = None
+    afvoergebied: xr.Dataset = None
+    afvoergebied_gdf: gpd.GeoDataFrame = None
+    
     snapping_distance: float = 0.05
     use_specifieke_afvoer: float = 1.0
 
     outflow_nodes: gpd.GeoDataFrame = None
     splitsing: gpd.GeoDataFrame = None
     split_nodes: gpd.GeoDataFrame = None
+
+    wateraanvoer_kunstwerken: gpd.GeoDataFrame = None
 
     file_name_specifieke_afvoer: str = None
     specifieke_afvoer: xr.Dataset = None
@@ -79,9 +96,9 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
         super().__init__(**kwargs)
         if self.path is not None:
             self.use_processed_hydroobject(force_preprocess=False)
-        # if self.edges is None:
-        self.create_graph_from_network(water_lines=self.water_lines)
-        self.analyse_netwerk_add_information_to_nodes_edges(min_difference_angle=20.0)
+        if self.edges is None:
+            self.create_graph_from_network(water_lines=self.water_lines)
+            self.analyse_netwerk_add_information_to_nodes_edges(min_difference_angle=20.0)
 
 
     def generate_distribution_splits_downstream(self):
@@ -166,41 +183,49 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
             f"   x add specific discharge to discharge units"
         )
         if 0 <= level_discharge_units <= 4:
-            file_path_afvoergebied = Path(self.dir_results, f"afvoergebied_{level_discharge_units}_gdf.gpkg")
-            if file_path_afvoergebied.exists():
-                self.afvoergebied_gdf = gpd.read_file(file_path_afvoergebied)
-                area_afvoergebied = self.afvoergebied_gdf.geometry.area.sum()/10000.0
-                logging.info(
-                    f"     - afvoergebied level {level_discharge_units} [{len(self.afvoergebied_gdf)}] with area {round(area_afvoergebied, 2)}[ha]"
-                )
+            self.afvoergebied = getattr(self, f"afvoergebied_{level_discharge_units}")
+            self.afvoergebied_gdf = getattr(self, f"afvoergebied_{level_discharge_units}_gdf")
+            area_afvoergebied = self.afvoergebied_gdf.geometry.area.sum()/10000.0
+            logging.info(
+                f"     - afvoergebied level {level_discharge_units} [{len(self.afvoergebied_gdf)}] with area {round(area_afvoergebied, 2)}[ha]"
+            )
 
         if self.afvoergebied_gdf is None or use_specifieke_afvoer<0.0:
             logging.info("     - no drainage units or specific discharge defined")
             return self.afvoergebied_gdf
 
         if use_specifieke_afvoer == 0:
-            # TODO: link this to specific discharge area discharge units
             logging.info("     - add distributed specific discharge to afvoergebied [l/s]")
-            afvoergebied_geojson = rasterstats.zonal_stats(
-                self.afvoergebied_gdf,
-                self.specifieke_afvoer["specifieke_afvoer"].data[0],
-                nodata=np.nan,
-                affine=self.specifieke_afvoer.rio.transform(),
-                stats=["sum", "mean"],
-                geojson_out=True
+            # reproject specific afvoer to match afvoergebied
+            afvoergebied = self.afvoergebied.rio.write_crs("EPSG:28992")
+            specifieke_afvoer = self.specifieke_afvoer.rio.reproject_match(afvoergebied)
+            specifieke_afvoer = specifieke_afvoer["specifieke_afvoer"].sel(band=1)
+
+            # xarray spatial for zonal statistics (df with zone, mean, sum)
+            logging.info("     - zonal statistics")
+            df = stats(
+                zones=afvoergebied, 
+                values=specifieke_afvoer,
+                stats_funcs=["mean", "sum"]
             )
-            afvoergebied_gdf = gpd.GeoDataFrame.from_features(afvoergebied_geojson)
-            self.afvoergebied_gdf = afvoergebied_gdf.rename(
-                columns={"sum": "specifieke_afvoer", "mean": "mean_specifieke_afvoer"}
+            logging.info("     - merge with afvoergebied_gdf")
+            self.afvoergebied_gdf = self.afvoergebied_gdf.merge(
+                df[["zone", "mean", "sum"]].rename(columns={
+                    "mean": "mean_specifieke_afvoer",
+                    "sum": "specifieke_afvoer"
+                }),
+                left_on="drainage_unit_id",
+                right_on="zone",
+                how="left"
             )
-            self.afvoergebied_gdf["specifieke_afvoer"] = self.afvoergebied_gdf["specifieke_afvoer"] * 25 * 25 / 1000 / 24 / 3600
+            self.afvoergebied_gdf["specifieke_afvoer"] = self.afvoergebied_gdf["specifieke_afvoer"] * 2 * 2 / 1000 / 24 / 3600
             self.afvoergebied_gdf["specifieke_afvoer"] = self.afvoergebied_gdf["specifieke_afvoer"].fillna(0.0)
             
         elif use_specifieke_afvoer > 0:
-            logging.info(f"     - add homogenic specific discharge {round(use_specifieke_afvoer, 2)} [l/ha/s] to drainage units")
-            self.afvoergebied_gdf["specifieke_afvoer"] = self.afvoergebied_gdf.geometry.area / 10000.0 * use_specifieke_afvoer
+            logging.info(f"     - add homogenic specific discharge {round(use_specifieke_afvoer, 2)} [l/s/ha] to drainage units (results in m3/s!)")
+            self.afvoergebied_gdf["specifieke_afvoer"] = self.afvoergebied_gdf.geometry.area / 10000.0 * use_specifieke_afvoer / 1000.0 * 24.0 * 3600.0
 
-        total_specifieke_afvoer = self.afvoergebied_gdf["specifieke_afvoer"].sum() / 1000.0
+        total_specifieke_afvoer = self.afvoergebied_gdf["specifieke_afvoer"].sum()
         logging.info(f"     - total specific discharge: {round(total_specifieke_afvoer, 2)} [m3/s]")
 
         if self.write_results:
@@ -215,6 +240,10 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
         """Specify specific discharge to edges and nodes."""
         logging.info("   x add specific discharge to edges and nodes")
         # TODO: link this to specific discharge discharge units
+        self.nodes["specifieke_afvoer"] = np.nan
+        self.edges["specifieke_afvoer"] = np.nan
+        self.edges["total_specifieke_afvoer"] = np.nan
+
         if self.afvoergebied_gdf is None:
             self.edges["specifieke_afvoer"] = self.edges.geometry.length / 1000.0
             self.nodes["specifieke_afvoer"] = 0.0
@@ -226,8 +255,7 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
             specifieke_afvoer = self.edges[["code"]].merge(
                 self.afvoergebied_gdf[["code", "specifieke_afvoer"]], 
                 how="left", 
-                left_on="code", 
-                right_on="code"
+                on="code", 
             )
             self.edges = self.edges.drop(
                 columns=["specifieke_afvoer"], 
@@ -235,8 +263,7 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
             ).merge(
                 specifieke_afvoer,
                 how="left", 
-                left_on="code", 
-                right_on="code"
+                on="code", 
             )
             self.edges["specifieke_afvoer"] = self.edges["specifieke_afvoer"].fillna(0.0)
             self.nodes["specifieke_afvoer"] = 0.0
@@ -244,8 +271,42 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
             logging.info(
                 f"     - total discharge added to edges: {total_specifieke_afvoer} [m3/s]"
             )
+
+        self.export_results_to_gpkg_or_nc(list_layers=[
+            "edges",
+            "nodes",
+            "split_nodes",
+        ])
+
         return self.edges, self.nodes
     
+
+    def fill_specifieke_afvoer_water_supply_structures(self):
+        """Fill specific discharge for water supply structures."""
+        logging.info("   x fill (total) specific discharge at water supply structures")
+        if self.wateraanvoer_kunstwerken is None:
+            logging.info("     - no water supply structures defined")
+            return None
+
+        wateraanvoer_edges = self.edges.sjoin(
+            self.wateraanvoer_kunstwerken, 
+            how="inner", 
+            predicate="dwithin",
+            distance=1.0,
+            lsuffix=None, 
+            rsuffix='x'
+        )
+
+        self.edges.loc[wateraanvoer_edges.index, "specifieke_afvoer"] = 0.0
+        self.edges.loc[wateraanvoer_edges.index, "total_specifieke_afvoer"] = 0.0
+
+        self.export_results_to_gpkg_or_nc(list_layers=[
+            "edges",
+            "nodes",
+            "split_nodes",
+        ])
+        return self.edges
+
 
     def sum_specifieke_afvoer_through_network(self):
         """Sum specific discharge through the network."""
@@ -253,15 +314,23 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
         edges = self.edges.copy()
         nodes = self.nodes.copy()
         
+        excl_edges = self.edges[self.edges["total_specifieke_afvoer"]==0.0].copy()
+        logging.info(f"     - {len(excl_edges)} edges excluded (for water supply)")
+        edges = self.edges[self.edges["total_specifieke_afvoer"].isna()].copy()
+
         edges, nodes = sum_edge_node_values_through_network(
             edges=edges, 
             nodes=nodes, 
             edges_id_column="code",
             nodes_id_column="nodeID",
             column_to_sum="specifieke_afvoer", 
-            sum_column="total_specifieke_afvoer"
+            sum_column="total_specifieke_afvoer",
         )
-        edges["log10_total_specifieke_afvoer"] = edges["total_specifieke_afvoer"].apply(lambda x: np.log10(x) if x>0.0 else np.nan)
+        edges["log10_total_specifieke_afvoer"] = edges["total_specifieke_afvoer"].apply(
+            lambda x: np.log10(x) if x>0.0 else np.nan
+        )
+
+        edges = pd.concat([edges, excl_edges], ignore_index=True)
         
         self.edges = edges.copy()
         self.nodes = nodes.copy()

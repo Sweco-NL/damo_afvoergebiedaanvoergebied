@@ -14,7 +14,8 @@ def run_generator_afvoergebieden(
     ghg_file_name: str = None,
     preprocess: bool = False,
     process: bool = False,
-    postprocess: bool = False,
+    postprocess1: bool = False,
+    postprocess2: bool = False,
     water_lines: list[str] = None,
     resolution: float = 2.0,
     depth_waterways: float = 1.0,
@@ -43,7 +44,9 @@ def run_generator_afvoergebieden(
         _description_, by default True
     process : bool, optional
         _description_, by default True
-    postprocess : bool, optional
+    postprocess1 : bool, optional
+        _description_, by default True
+    postprocess2 : bool, optional
         _description_, by default True
     resolution : float, optional
         _description_, by default 2.0
@@ -92,8 +95,11 @@ def run_generator_afvoergebieden(
         if process:
             gdu.generate_afvoergebied()
 
-        if postprocess:
-            gdu.aggregate_afvoergebied()
+        if postprocess1:
+            gdu.aggregate_afvoergebied_tot_2()
+
+        if gdu.afvoergebied_2_gdf is not None and postprocess2:
+            gdu.aggregate_afvoergebied_tot_4()
 
     if create_html_map:
         gdu.generate_folium_map()

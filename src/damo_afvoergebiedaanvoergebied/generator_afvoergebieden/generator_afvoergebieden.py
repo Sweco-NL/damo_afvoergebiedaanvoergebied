@@ -79,6 +79,12 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         "alle_watergangen_0",
         "afvoergebied_0",
         "afvoergebied_0_gdf",
+        "afvoergebied_1",
+        "afvoergebied_1_gdf",
+        "afvoergebied_2",
+        "afvoergebied_2_gdf",
+        "edges",
+        "nodes",
     ]
 
     hydroobject: gpd.GeoDataFrame = None
@@ -170,11 +176,11 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         self.alle_watergangen_0 = edges[["code", "geometry"]].reset_index(drop=True)
 
         # # do the same for the other waterways and combine
-        # if self.overige_watergang_processed_4 is not None:
-        #     self.alle_watergangen_0 = pd.concat([
-        #         self.alle_watergangen_0,
-        #         self.overige_watergang_processed_4[["code", "geometry"]]
-        #     ]).reset_index(drop=True)
+        if self.overige_watergang_processed_4 is not None:
+            self.alle_watergangen_0 = pd.concat([
+                self.alle_watergangen_0,
+                self.overige_watergang_processed_4[["code", "geometry"]]
+            ]).reset_index(drop=True)
         # add depth
         self.alle_watergangen_0["depth_waterways"] = depth_waterways
 
@@ -232,13 +238,6 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         self.afvoergebied_0.name = "afvoergebied_0"
         self.afvoergebied_0.attrs["_FillValue"] = -1
         
-        if self.write_results:
-            self.export_results_to_gpkg_or_nc(
-                list_layers=[
-                    "afvoergebied_0", 
-                ]
-            )
-
         # PYFLWDIR
         if self.method == "pyflwdir":
             logging.info("     - run pyflwdir to create drainage units (basins)")
@@ -322,20 +321,17 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         return self.afvoergebied_0
 
 
-    def aggregate_afvoergebied(self):
+    def aggregate_afvoergebied_tot_2(self):
         self.afvoergebied_1 = None
         self.afvoergebied_1_gdf = None
         self.afvoergebied_2 = None
         self.afvoergebied_2_gdf = None
-        self.afvoergebied_3 = None
-        self.afvoergebied_3_gdf = None
-        self.afvoergebied_4 = None
-        self.afvoergebied_4_gdf = None
 
         logging.info("   x aggregation/lumping of drainage units: aggregate 'overige watergangen'")
         logging.info("     - define new drainage_unit_ids for all 'overige watergangen'")
 
         self.edges["downstream_edges"] = self.edges["code"]
+
         alle_watergangen_1 = self.alle_watergangen_0.merge(
             pd.concat([
                 self.edges[["code", "downstream_edges", "order_code"]], 
@@ -372,25 +368,12 @@ class GeneratorAfvoergebieden(GeneratorBasis):
             .drop(columns="downstream_order_code")
             .reset_index()
         )
-        random_color_id = np.random.randint(0, 25, size=len(self.afvoergebied_2_gdf))
-        self.afvoergebied_2_gdf["color_id"] = random_color_id
-
-        self.afvoergebied_3_gdf = self.afvoergebied_2_gdf.dissolve(by="order_code").reset_index()
-        random_color_id = np.random.randint(0, 25, size=len(self.afvoergebied_3_gdf))
-        self.afvoergebied_3_gdf["color_id"] = random_color_id
-        self.afvoergebied_3_gdf["order_code_no"] = self.afvoergebied_3_gdf.order_code.str[:6]
-
-        self.afvoergebied_4_gdf = self.afvoergebied_3_gdf.dissolve("order_code_no").reset_index()
-        random_color_id = np.random.randint(0, 25, size=len(self.afvoergebied_4_gdf))
-        self.afvoergebied_4_gdf["color_id"] = random_color_id
 
         if self.write_results:
             self.export_results_to_gpkg_or_nc(
                 list_layers=[
                     "afvoergebied_1_gdf",
                     "afvoergebied_2_gdf",
-                    "afvoergebied_3_gdf",
-                    "afvoergebied_4_gdf",
                 ]
             )
 
@@ -406,6 +389,41 @@ class GeneratorAfvoergebieden(GeneratorBasis):
             self.afvoergebied_2_gdf, 
             "afvoergebied_2"
         )
+
+        if self.write_results:
+            self.export_results_to_gpkg_or_nc(
+                list_layers=[
+                    "afvoergebied_1",
+                    "afvoergebied_2",
+                ]
+            )
+        return self.afvoergebied_2_gdf
+
+
+    def aggregate_afvoergebied_tot_4(self):
+        self.afvoergebied_3 = None
+        self.afvoergebied_3_gdf = None
+        self.afvoergebied_4 = None
+        self.afvoergebied_4_gdf = None
+
+        logging.info("   x aggregation/lumping of drainage units to basins")
+        logging.info("     - aggregate sub drainage units to basins (level 3 and 4)")
+        self.afvoergebied_3_gdf = self.afvoergebied_2_gdf.dissolve(by="order_code").reset_index()
+        random_color_id = np.random.randint(0, 25, size=len(self.afvoergebied_3_gdf))
+        self.afvoergebied_3_gdf["color_id"] = random_color_id
+        self.afvoergebied_3_gdf["order_code_no"] = self.afvoergebied_3_gdf.order_code.str[:6]
+
+        self.afvoergebied_4_gdf = self.afvoergebied_3_gdf.dissolve("order_code_no").reset_index()
+        random_color_id = np.random.randint(0, 25, size=len(self.afvoergebied_4_gdf))
+        self.afvoergebied_4_gdf["color_id"] = random_color_id
+
+        if self.write_results:
+            self.export_results_to_gpkg_or_nc(
+                list_layers=[
+                    "afvoergebied_3_gdf",
+                    "afvoergebied_4_gdf",
+                ]
+            )
 
         self.afvoergebied_3 = self.afvoergebied_0.copy()
         self.afvoergebied_3 = dataarray_from_gdf(
@@ -424,13 +442,11 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         if self.write_results:
             self.export_results_to_gpkg_or_nc(
                 list_layers=[
-                    "afvoergebied_1",
-                    "afvoergebied_2",
                     "afvoergebied_3",
                     "afvoergebied_4",
                 ]
             )
-        return self.afvoergebied_2_gdf
+        return self.afvoergebied_4_gdf
 
 
     def generate_folium_map(self, html_file_name:str="", **kwargs):
