@@ -27,6 +27,53 @@ def drop_band_dim(da):
     return da.isel(band=0)
 
 
+def select_downstream_upstream_edges(
+    nodes, 
+    min_difference_angle=10.0, 
+    min_difference_discharge_factor=2.0
+):
+    logging.info("   x find downstream upstream edges")
+    if "specifieke_afvoer" not in nodes:
+        logging.info(f"     - use angle using min_difference_angle [{min_difference_angle}deg]")
+        nodes = select_downstream_upstream_edges_angle(
+            nodes, min_difference_angle=min_difference_angle
+        )
+    else:
+        logging.info(f"     - use discharge distribution [factor{min_difference_discharge_factor:.3f}]")
+        nodes = select_downstream_upstream_edges_discharge(
+            nodes, min_difference_discharge_factor=min_difference_discharge_factor
+        )
+    return nodes
+
+
+
+def analyse_netwerk_add_information_to_nodes_edges(
+    edges,
+    nodes, 
+    min_difference_angle=10.0, 
+    min_difference_discharge_factor=2.0
+):
+    logging.info("   x get upstream downstream edges ids")
+    nodes = define_list_upstream_downstream_edges_ids(
+        node_ids=nodes.nodeID.values, nodes=nodes, edges=edges
+    )
+    logging.info("   x calculate angles of edges to nodes")
+    nodes, edges = calculate_angles_of_edges_at_nodes(
+        nodes=nodes, edges=edges
+    )
+    logging.info("   x calculate discharges of edges to nodes")
+    nodes, edges = calculate_discharges_of_edges_at_nodes(
+        nodes=nodes, edges=edges
+    )
+    logging.info("   x select downstream upstream edges")
+    nodes = select_downstream_upstream_edges(
+        nodes=nodes,
+        min_difference_angle=min_difference_angle,
+        min_difference_discharge_factor=min_difference_discharge_factor
+    )
+    return nodes, edges
+
+
 class GeneratorBasis(BaseModel):
     """Basis class for all Generators
     
@@ -135,7 +182,7 @@ class GeneratorBasis(BaseModel):
         def read_attributes_from_folder(path_dir: Path):
             for f in path_dir.glob("**/*"):
                 if hasattr(self, f.stem):
-                    logging.info(f"     - get dataset {f.stem.upper()}")
+                    logging.info(f"     - load dataset {f.stem.upper()}")
                     if f.suffix == ".gpkg":
                         setattr(self, f.stem, gpd.read_file(f, layer=f.stem))
                     if f.suffix in [".nc", ".NC"]:
@@ -169,7 +216,7 @@ class GeneratorBasis(BaseModel):
                 if f.stem != required_dataset:
                     continue
                 if hasattr(self, f.stem) and getattr(self, f.stem) is None:
-                    logging.info(f"     - get dataset {f.stem.upper()}")
+                    logging.info(f"     - load dataset {f.stem.upper()}")
                     if f.suffix == ".gpkg":
                         setattr(self, f.stem, gpd.read_file(f, layer=f.stem))
                     if f.suffix in [".nc", ".NC"]:
@@ -232,7 +279,7 @@ class GeneratorBasis(BaseModel):
         waterline_preprocessed_file = Path(self.dir_results, f"{waterline}_{preprocessed_file}.gpkg")
         
         if waterline_preprocessed_file in files_in_dir:
-            logging.info(f"     - get dataset preprocessed {waterline}")
+            logging.info(f"     - load dataset preprocessed {waterline}")
             gdf_waterline = gpd.read_file(waterline_preprocessed_file)
 
             return gdf_waterline
@@ -263,13 +310,8 @@ class GeneratorBasis(BaseModel):
             return gdf_waterline
         
 
-    def create_graph_from_network(self, water_lines=["hydroobject"], processed="processed"):
+    def create_graph_from_network(self, processed="processed"):
         """Turns a linestring layer containing waterlines into a graph of edges and nodes. 
-
-        Parameters
-        ----------
-        water_lines : list, optional
-            List of waterline files names used to create graph, must refer to geopackages containing linestrings, by default ["hydroobject"]
 
         Returns
         -------
@@ -280,74 +322,65 @@ class GeneratorBasis(BaseModel):
         self.graph: nx.DiGraph
             Networkx graph containing the edges and nodes
         """
-        
         edges = None
-        for water_line in water_lines:
-            gdf_water_line = getattr(self, water_line)
-            for i in range(10):
-                if not hasattr(self, f"{water_line}_{processed}_{i}"):
-                    break
-                gdf_water_line_processed = getattr(self, f"{water_line}_{processed}_{i}")
-                if gdf_water_line_processed is None:
-                    break
-                else:
-                    gdf_water_line = gdf_water_line_processed.copy()
-            if gdf_water_line is None:
-                continue
-            gdf_water_line["source"] = water_line
-            if edges is None:
-                edges = gdf_water_line.explode()
+
+        if self.edges_hydro is not None:
+            self.edges_hydro["source"] = "hydroobject"
+            if self.edges_overig is not None:
+                edges = pd.concat([
+                    self.edges_hydro,
+                    self.edges_overig
+                ])
             else:
-                edges = pd.concat([edges, gdf_water_line.explode()])
+                edges = self.edges_hydro.copy()
+        else:
+            for line_type in ["hydroobject", "overige_watergang"]:
+                gdf = getattr(self, line_type)
+                for i in range(10):
+                    if not hasattr(self, f"{line_type}_{processed}_{i}"):
+                        break
+                    gdf_processed = getattr(self, f"{line_type}_{processed}_{i}")
+                    if gdf_processed is None:
+                        break
+                    else:
+                        gdf = gdf_processed.copy()
+                if gdf is None:
+                    continue
+                gdf["source"] = line_type
+                if edges is None:
+                    edges = gdf.copy()
+                else:
+                    edges = pd.concat([edges, gdf.explode()])
+
+        for abbr, line_type in zip(["hydro", "overig"], ["hydroobject", "overige_watergang"]):
+            edges_abbr = edges[edges["source"] == line_type]
+            if edges_abbr.empty:
+                setattr(self, f"edges_{abbr}", None)
+            else:
+                setattr(self, f"edges_{abbr}", edges_abbr)
+
+        # only hydroobject
+        self.nodes_hydro, self.edges_hydro, self.graph_hydro = create_graph_from_edges(self.edges_hydro)
+        self.nodes_hydro, self.edges_hydro = analyse_netwerk_add_information_to_nodes_edges(
+            self.edges_hydro,
+            self.nodes_hydro, 
+            min_difference_angle=10.0, 
+            min_difference_discharge_factor=2.0
+        )
+
+        # all edges
         self.nodes, self.edges, self.graph = create_graph_from_edges(edges)
+        self.nodes, self.edges = analyse_netwerk_add_information_to_nodes_edges(
+            self.edges,
+            self.nodes, 
+            min_difference_angle=10.0, 
+            min_difference_discharge_factor=2.0
+        )
+
         logging.info(
             f"   x create network graph ({len(self.edges)} edges, {len(self.nodes)} nodes)"
         )
         return self.nodes, self.edges, self.graph
-
-
-    def select_downstream_upstream_edges(
-        self, 
-        min_difference_angle=10.0, 
-        min_difference_discharge_factor=2.0
-    ):
-        logging.info("   x find downstream upstream edges")
-        if "specifieke_afvoer" not in self.nodes:
-            logging.info(f"     - use angle using min_difference_angle [{min_difference_angle}deg]")
-            self.nodes = select_downstream_upstream_edges_angle(
-                self.nodes, min_difference_angle=min_difference_angle
-            )
-        else:
-            logging.info(f"     - use discharge distribution [factor{min_difference_discharge_factor:.3f}]")
-            self.nodes = select_downstream_upstream_edges_discharge(
-                self.nodes, min_difference_discharge_factor=min_difference_discharge_factor
-            )
-        return self.nodes
-
-
-    def analyse_netwerk_add_information_to_nodes_edges(
-        self, 
-        min_difference_angle=10.0, 
-        min_difference_discharge_factor=2.0
-    ):
-        logging.info("   x get upstream downstream edges ids")
-        self.nodes = define_list_upstream_downstream_edges_ids(
-            node_ids=self.nodes.nodeID.values, nodes=self.nodes, edges=self.edges
-        )
-        logging.info("   x calculate angles of edges to nodes")
-        self.nodes, self.edges = calculate_angles_of_edges_at_nodes(
-            nodes=self.nodes, edges=self.edges
-        )
-        logging.info("   x calculate discharges of edges to nodes")
-        self.nodes, self.edges = calculate_discharges_of_edges_at_nodes(
-            nodes=self.nodes, edges=self.edges
-        )
-        logging.info("   x select downstream upstream edges")
-        self.nodes = self.select_downstream_upstream_edges(
-            min_difference_angle=min_difference_angle,
-            min_difference_discharge_factor=min_difference_discharge_factor
-        )
-        return self.nodes, self.edges
 
 
     def export_results_to_gpkg_or_nc(self, list_layers: list[str] = None, dir_output: str | Path = None):

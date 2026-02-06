@@ -32,7 +32,7 @@ def run_generator_network_lumping(
         dir_basisdata=dir_basisdata,
         dir_results=dir_results,
     )
-    network.create_graph_from_network(water_lines=water_lines)
+    network.create_graph_from_network()
 
     network.find_upstream_downstream_nodes_edges(
         direction=direction,
@@ -62,7 +62,7 @@ def run_generator_network_lumping(
             list_layers=[
                 "inflow_outflow_points",
                 "inflow_outflow_edges",
-                "inflow_outflow_nodes",
+                "inflow_outflow_nodes_hydro",
                 "inflow_outflow_areas",
             ]
         )
