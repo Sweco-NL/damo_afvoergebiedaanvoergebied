@@ -46,7 +46,7 @@ Topografische hoogtemodel (raster data) voor afleiden afwateringseenheden. In di
 
 Afleiden deelstroomgebieden middels uitstroompunten:
 
-- **outflow_nodes.gpkg**: punten die worden opgegeven als uitstroompunt waarvoor dan stroomgebieden worden afgeleid.
+- **outflow_nodes_hydro.gpkg**: punten die worden opgegeven als uitstroompunt waarvoor dan stroomgebieden worden afgeleid.
 - **splitsing.gpkg**: Voor splitsingen in het netwerk kan worden opgegeven welke richting voorrang heeft, zodat overlap voorkomen wordt. Deze locaties worden bij elke analyse ook gedetecteerd en weggeschreven.
 
 

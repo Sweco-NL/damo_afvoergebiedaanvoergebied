@@ -59,7 +59,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
     inflow_outflow_splits: gpd.GeoDataFrame = None
 
     inflow_outflow_edges: gpd.GeoDataFrame = None
-    inflow_outflow_nodes: gpd.GeoDataFrame = None
+    inflow_outflow_nodes_hydro: gpd.GeoDataFrame = None
     inflow_outflow_areas: gpd.GeoDataFrame = None
 
     inflow_outflow_splits_0: gpd.GeoDataFrame = None
@@ -74,7 +74,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
     folium_map: folium.Map = None
     folium_html_path: str = None
 
-    def create_graph_from_network(self, water_lines=["hydroobject"]):
+    def create_graph_from_network(self):
         """Turns a linestring layer containing waterlines into a graph of edges and nodes. 
 
         Parameters
@@ -178,7 +178,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
                 inflow_outflow_splits = splits
             break
 
-        self.inflow_outflow_nodes, self.inflow_outflow_edges, _ = (
+        self.inflow_outflow_nodes_hydro, self.inflow_outflow_edges, _ = (
             find_nodes_edges_for_direction(
                 nodes=self.nodes,
                 edges=self.edges,
@@ -191,19 +191,19 @@ class GeneratorNetworkLumping(GeneratorBasis):
             )
         )
         for i, point in self.inflow_outflow_points.iterrows():
-            self.inflow_outflow_nodes[
+            self.inflow_outflow_nodes_hydro[
                 f"{self.direction}_node_{point['representative_node']}"
-            ] = self.inflow_outflow_nodes[f"{self.direction}_edge_{point['edge_code']}"]
+            ] = self.inflow_outflow_nodes_hydro[f"{self.direction}_edge_{point['edge_code']}"]
             self.inflow_outflow_edges[
                 f"{self.direction}_node_{point['representative_node']}"
             ] = self.inflow_outflow_edges[f"{self.direction}_edge_{point['edge_code']}"]
 
-        self.inflow_outflow_nodes = define_list_upstream_downstream_edges_ids(
-            self.inflow_outflow_nodes.nodeID.unique(),
-            self.inflow_outflow_nodes,
+        self.inflow_outflow_nodes_hydro = define_list_upstream_downstream_edges_ids(
+            self.inflow_outflow_nodes_hydro.nodeID.unique(),
+            self.inflow_outflow_nodes_hydro,
             self.inflow_outflow_edges,
         )
-        return self.inflow_outflow_nodes
+        return self.inflow_outflow_nodes_hydro
 
     def detect_split_points(self):
         """Detect all split points where the basins of two or more outflow/inflow points are connecting
@@ -217,7 +217,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             "   x search for split points based on the basins of outflow/inflow points"
         )
 
-        inflow_outflow_nodes = self.inflow_outflow_points.representative_node.values
+        inflow_outflow_nodes_hydro = self.inflow_outflow_points.representative_node.values
 
         if self.direction == "downstream":
             search_direction = "upstream"
@@ -230,24 +230,24 @@ class GeneratorNetworkLumping(GeneratorBasis):
 
         inflow_outflow_edges = None
 
-        inflow_outflow_nodes = define_list_upstream_downstream_edges_ids(
-            self.inflow_outflow_nodes.nodeID.unique(),
-            self.inflow_outflow_nodes,
+        inflow_outflow_nodes_hydro = define_list_upstream_downstream_edges_ids(
+            self.inflow_outflow_nodes_hydro.nodeID.unique(),
+            self.inflow_outflow_nodes_hydro,
             self.inflow_outflow_edges,
         )
 
-        inflow_outflow_nodes = inflow_outflow_nodes[
-            inflow_outflow_nodes.no_downstream_edges > 1
+        inflow_outflow_nodes_hydro = inflow_outflow_nodes_hydro[
+            inflow_outflow_nodes_hydro.no_downstream_edges > 1
         ]
         inflow_outflow_points_columns = [
             f"{self.direction}_node_{n}"
             for n in self.inflow_outflow_points.representative_node.values
         ]
 
-        for i_node, node in enumerate(inflow_outflow_nodes.nodeID.values):
+        for i_node, node in enumerate(inflow_outflow_nodes_hydro.nodeID.values):
             if i_node % 50 == 0:
                 logging.info(
-                    f"     - detect points: {i_node}/{len(inflow_outflow_nodes)}"
+                    f"     - detect points: {i_node}/{len(inflow_outflow_nodes_hydro)}"
                 )
             upstream_edges = self.inflow_outflow_edges[
                 self.inflow_outflow_edges[node_search] == node
@@ -276,7 +276,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
 
         self.inflow_outflow_splits_0 = define_list_upstream_downstream_edges_ids(
             inflow_outflow_edges[node_search].unique(),
-            self.inflow_outflow_nodes,
+            self.inflow_outflow_nodes_hydro,
             self.inflow_outflow_edges,
         )
 
@@ -355,20 +355,20 @@ class GeneratorNetworkLumping(GeneratorBasis):
 
     def calculate_angles_of_edges_at_nodes(self):
         logging.info("   x calculate angles of edges to nodes")
-        self.inflow_outflow_nodes, self.inflow_outflow_edges = (
+        self.inflow_outflow_nodes_hydro, self.inflow_outflow_edges = (
             calculate_angles_of_edges_at_nodes(
-                nodes=self.inflow_outflow_nodes, edges=self.inflow_outflow_edges
+                nodes=self.inflow_outflow_nodes_hydro, edges=self.inflow_outflow_edges
             )
         )
-        return self.inflow_outflow_nodes
+        return self.inflow_outflow_nodes_hydro
 
 
     def select_downstream_upstream_edges_angle(self, min_difference_angle: str = 20.0):
         logging.info("   x find downstream upstream edges")
-        self.inflow_outflow_nodes = select_downstream_upstream_edges_angle(
-            self.inflow_outflow_nodes, min_difference_angle=min_difference_angle
+        self.inflow_outflow_nodes_hydro = select_downstream_upstream_edges_angle(
+            self.inflow_outflow_nodes_hydro, min_difference_angle=min_difference_angle
         )
-        return self.inflow_outflow_nodes
+        return self.inflow_outflow_nodes_hydro
 
 
     def select_directions_for_splits_based_on_angle(self):
@@ -579,7 +579,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             list_layers=[
                 "inflow_outflow_points",
                 "inflow_outflow_edges",
-                "inflow_outflow_nodes",
+                "inflow_outflow_nodes_hydro",
                 "inflow_outflow_areas",
             ]
         )
@@ -597,7 +597,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
         width_edges: float = 10.0,
         opacity_edges: float = 0.5,
         html_include_units: bool = True,
-        open_html: bool = False,
+        open_html_map: bool = False,
         base_map: str = "OpenStreetMap",
     ):
         """Export results to folium html file
@@ -619,7 +619,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
         i_nodes_colors = np.arange(start=0, stop=no_nodes - 1)
         np.random.shuffle(i_nodes_colors)
         nodes_colors = [nodes_colors(i) for i in i_nodes_colors]
-        nodes_4326 = self.inflow_outflow_nodes.to_crs(4326)
+        nodes_4326 = self.inflow_outflow_nodes_hydro.to_crs(4326)
 
         m = folium.Map(
             location=[nodes_4326.geometry.y.mean(), nodes_4326.geometry.x.mean()],
@@ -638,7 +638,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
         ).add_to(fg)
 
         folium.GeoJson(
-            self.inflow_outflow_nodes,
+            self.inflow_outflow_nodes_hydro,
             marker=folium.Circle(
                 radius=width_edges,
                 fill_color="darkgrey",
@@ -676,7 +676,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             c = matplotlib.colors.rgb2hex(nodes_colors[i])
 
             folium.GeoJson(
-                self.inflow_outflow_nodes.iloc[[node_selection]],
+                self.inflow_outflow_nodes_hydro.iloc[[node_selection]],
                 marker=folium.Circle(
                     radius=width_edges * 2.5,
                     fill_color=c,
@@ -689,7 +689,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             ).add_to(fg)
 
             add_labels_to_points_lines_polygons(
-                gdf=self.inflow_outflow_nodes,
+                gdf=self.inflow_outflow_nodes_hydro,
                 column="order_code",
                 label_fontsize=8,
                 label_decimals=0,
@@ -736,7 +736,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
                 ).add_to(fg)
 
             folium.GeoJson(
-                self.inflow_outflow_nodes.iloc[[node_selection]],
+                self.inflow_outflow_nodes_hydro.iloc[[node_selection]],
                 marker=folium.Circle(
                     radius=width_edges * 2.5,
                     fill_color=c,
@@ -803,6 +803,6 @@ class GeneratorNetworkLumping(GeneratorBasis):
 
         logging.info(f"   x html file saved: {html_file_name}.html")
 
-        if open_html:
+        if open_html_map:
             webbrowser.open(Path(self.path, f"{html_file_name}.html"))
         return m

@@ -16,6 +16,7 @@ def run_generator_duikers(
     read_results: bool = False,
     write_results: bool = False,
     create_html_map: bool = False,
+    open_html_map: bool = False,
     snapping_distance: float = 0.05,
 ) -> GeneratorDuikers:
     """Run Generator Culvert Locations (Duikergenerator)
@@ -49,7 +50,6 @@ def run_generator_duikers(
         dir_results=dir_results,
         waterschap=waterschap,
         preprocess_hydroobject=preprocess_hydroobject,
-        snapping_distance=snapping_distance,
         read_results=read_results,
         write_results=write_results,
     )

@@ -209,6 +209,7 @@ def find_node_edge_ids_in_directed_graph(
         outflow_edge_ids = np.array(outflow_edge_ids)
 
     new_outflow_edges = []
+
     if split_points is None:
         for i in range(outflow_edge_ids.shape[0]):
             # print(f" * {i+1}/{len_outflow_edge_ids} ({(i+1)/len(outflow_edge_ids):.2%})")
@@ -244,7 +245,7 @@ def find_node_edge_ids_in_directed_graph(
             }
 
         for i in range(outflow_edge_ids.shape[0]):
-            # print(f" * {i+1}/{len_outflow_nodes_ids} ({(i+1)/len_outflow_nodes_ids:.2%})", end="\r")
+            # print(f" * {i+1}/{len_outflow_nodes_hydro_ids} ({(i+1)/len_outflow_nodes_hydro_ids:.2%})", end="\r")
             edge_id = outflow_edge_ids[i]
             if direction == "upstream":
                 pred_nodes, pred_edges, new_outflow_edges = (

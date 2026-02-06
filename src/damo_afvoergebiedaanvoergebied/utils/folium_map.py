@@ -24,7 +24,7 @@ def generate_folium_map(
     html_file_name=None, 
     base_map="Light Mode", 
     save_html=True,
-    open_html=False, 
+    open_html_map=False, 
     zoom_start=11,
     zmin=None,
     zmax=None,
@@ -162,19 +162,19 @@ def generate_folium_map(
                     fg=fg,
                 )
     
-    if is_attribute_not_none(generator, "outflow_nodes"):
+    if is_attribute_not_none(generator, "outflow_nodes_hydro"):
         fg = folium.FeatureGroup(
-            name=f"outflow_nodesen in RWS-water", control=True
+            name=f"outflow_nodes_hydroen in RWS-water", control=True
         ).add_to(m)
 
         logging.info('     - rws_water: outflow nodes')
-        if "distance" in generator.outflow_nodes.columns:
-            outflow_nodes = generator.outflow_nodes.dropna(subset="distance")
+        if "distance" in generator.outflow_nodes_hydro.columns:
+            outflow_nodes_hydro = generator.outflow_nodes_hydro.dropna(subset="distance")
         else:
-            outflow_nodes = generator.outflow_nodes.copy()
+            outflow_nodes_hydro = generator.outflow_nodes_hydro.copy()
         folium.GeoJson(
-            outflow_nodes,
-            name="outflow_nodesen RWS-wateren",
+            outflow_nodes_hydro,
+            name="outflow_nodes_hydroen RWS-wateren",
             marker=folium.Circle(
                 radius=25, fill_color="red", fill_opacity=0.4, color="red", weight=3
             ),
@@ -184,7 +184,7 @@ def generate_folium_map(
         ).add_to(fg)
 
         add_labels_to_points_lines_polygons(
-            gdf=outflow_nodes,
+            gdf=outflow_nodes_hydro,
             column="order_code",
             label_fontsize=8,
             fg=fg,
@@ -224,11 +224,11 @@ def generate_folium_map(
                 break
             show_other_waterways_culverts = False
 
-    if is_attribute_not_none(generator, f"outflow_nodes_overige_watergang"):
+    if is_attribute_not_none(generator, f"outflow_nodes_overig"):
         logging.info(f'     - other waterways - outflow nodes')
         folium.GeoJson(
-            generator.outflow_nodes_overige_watergang.geometry,
-            name="C-Watergangen - outflow_nodesen",
+            generator.outflow_nodes_overig.geometry,
+            name="C-Watergangen - outflow_nodes_hydroen",
             marker=folium.Circle(
                 radius=3,
                 fill_color="orange",
@@ -240,8 +240,8 @@ def generate_folium_map(
             show=False,
         ).add_to(m)
 
-    if is_attribute_not_none(generator, f"overige_watergang_processed_4"):
-        overige_watergang_processed = generator.overige_watergang_processed_4.copy()
+    if is_attribute_not_none(generator, f"edges_overig"):
+        overige_watergang_processed = generator.edges_overig.copy()
     elif is_attribute_not_none(generator, f"overige_watergang_processed_3"):
         overige_watergang_processed = generator.overige_watergang_processed_3.copy()
     else:
@@ -252,10 +252,10 @@ def generate_folium_map(
         add_categorized_lines_to_map(
             m=m,
             lines_gdf=overige_watergang_processed,
-            layer_name=f"C-Watergangen - Gegroepeerd per outflow_nodes",
+            layer_name=f"C-Watergangen - Gegroepeerd per outflow_nodes_hydro",
             control=True,
             lines=True,
-            line_color_column="outflow_nodes",
+            line_color_column="outflow_nodes_hydro",
             line_color_cmap=None,
             show=False,
             z_index=2,
@@ -527,6 +527,6 @@ def generate_folium_map(
         m.save(generator.folium_html_path)
 
         logging.info(f"   x html file saved: {html_file_name}.html")
-        if open_html:
+        if open_html_map:
             webbrowser.open(Path(generator.path, f"{html_file_name}.html"))
     return m

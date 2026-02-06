@@ -58,8 +58,6 @@ class GeneratorDuikers(GeneratorBasis):
     water_line_pnts: gpd.GeoDataFrame = None
     duplicates: gpd.GeoDataFrame = None
 
-    snapping_distance: float = 0.05
-
     # potential culverts
     potential_culverts_0: gpd.GeoDataFrame = None           # alle binnen 40m
     potential_culverts_1: gpd.GeoDataFrame = None           # filter kruizingen
@@ -78,12 +76,12 @@ class GeneratorDuikers(GeneratorBasis):
     # overige_watergang including splits by culverts
     overige_watergang_processed_2: gpd.GeoDataFrame = None
 
-    # overige_watergang including outflow_nodes to hydroobjects and redirected
+    # overige_watergang including outflow_nodes_hydro to hydroobjects and redirected
     overige_watergang_processed_3: gpd.GeoDataFrame = None
     overige_watergang_processed_3_nodes: gpd.GeoDataFrame = None
 
     # outflow points from overige watergangen to hydroobject
-    outflow_nodes_overige_watergang: gpd.GeoDataFrame = None
+    outflow_nodes_overig: gpd.GeoDataFrame = None
 
     folium_map: folium.Map = None
     folium_html_path: Path = None
@@ -353,7 +351,7 @@ class GeneratorDuikers(GeneratorBasis):
 
         if self.write_results:
             logging.info(
-                f"     - potential_culverts_0 not written to save space"
+                f"     - potential_culverts_0 not saved to save space"
             )
             # self.export_results_to_gpkg_or_nc(list_layers=[
             #     "potential_culverts_0",
@@ -457,7 +455,7 @@ class GeneratorDuikers(GeneratorBasis):
         self.potential_culverts_1 = culverts.copy()
         if self.write_results:
             logging.info(
-                f"     - potential_culverts_1 not written to save space"
+                f"     - potential_culverts_1 not saved to save space"
             )
             # self.export_results_to_gpkg_or_nc(list_layers=[
             #     "potential_culverts_1",
@@ -638,7 +636,7 @@ class GeneratorDuikers(GeneratorBasis):
         self.potential_culverts_2 = culverts.copy()
         if self.write_results:
             logging.info(
-                f"     - potential_culverts_2 not written to save space"
+                f"     - potential_culverts_2 not saved to save space"
             )
             # self.export_results_to_gpkg_or_nc(list_layers=[
             #     "potential_culverts_2",
@@ -990,7 +988,7 @@ class GeneratorDuikers(GeneratorBasis):
             overige_watergang after the splits from the culverts
         self.hydroobject_processed_0: gpd.GeoDataFrame
             hydroobject after the splits from the culverts
-        self.outflow_nodes_overige_watergang: gpd.GeoDataFrame
+        self.outflow_nodes_overig: gpd.GeoDataFrame
             Outflow points of overige_watergang in hydroobjects
         """
         other_culverts_hydro = self.potential_culverts_4[
@@ -1043,17 +1041,17 @@ class GeneratorDuikers(GeneratorBasis):
             columns={"end_point": "geometry"}
         ).set_geometry("geometry")
 
-        self.outflow_nodes_overige_watergang = end_points_gdf.copy()
+        self.outflow_nodes_overig = end_points_gdf.copy()
         
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
-                "outflow_nodes_overige_watergang",
+                "outflow_nodes_overig",
             ])
 
         return (
             self.overige_watergang_processed_0,
             self.hydroobject_processed_0,
-            self.outflow_nodes_overige_watergang,
+            self.outflow_nodes_overig,
         )
 
 
@@ -1195,7 +1193,7 @@ class GeneratorDuikers(GeneratorBasis):
 
         Returns
         -------
-        outflow_nodes: gpd.GeoDataFrame
+        outflow_nodes_hydro: gpd.GeoDataFrame
             Outflow nodes of the overige_watergang in hydroobject
         overige_watergang_nodes: gpd.GeoDataFrame
             All outflow nodes of overige_watergang
@@ -1215,50 +1213,50 @@ class GeneratorDuikers(GeneratorBasis):
         )
 
         # get outflow points and add nodes information
-        outflow_nodes = (
-            self.outflow_nodes_overige_watergang[
+        outflow_nodes_hydro = (
+            self.outflow_nodes_overig[
                 ["unique_id", "dangling_code", "geometry"]
             ]
             .sjoin(nodes, how="inner")
             .reset_index(drop=True)
             .drop(columns=["index_right"], errors="ignore")
         )
-        self.outflow_nodes_overige_watergang = outflow_nodes.copy()
+        self.outflow_nodes_overig = outflow_nodes_hydro.copy()
         
-        if outflow_nodes.empty:
+        if outflow_nodes_hydro.empty:
             overige_watergang_nodes = None
             edges_cleaned = None
         else:
             # get shortest path including length from all nodes to outflow points
             logging.info(f"     - find shortest path")
-            len_outflow_nodes, matrix = nx.multi_source_dijkstra(
-                G, [int(n) for n in outflow_nodes["nodeID"].values], weight="geometry_len"
+            len_outflow_nodes_hydro, matrix = nx.multi_source_dijkstra(
+                G, [int(n) for n in outflow_nodes_hydro["nodeID"].values], weight="geometry_len"
             )
-            node_to_outflow_nodes = pd.DataFrame(
+            node_to_outflow_nodes_hydro = pd.DataFrame(
                 {
                     "nodeID": matrix.keys(),
-                    "outflow_nodes": [v[0] for v in matrix.values()],
-                    "outflow_nodes_dist": [len_outflow_nodes[node] for node in matrix.keys()],
+                    "outflow_nodes_hydro": [v[0] for v in matrix.values()],
+                    "outflow_nodes_hydro_dist": [len_outflow_nodes_hydro[node] for node in matrix.keys()],
                 }
             )
 
-            # Merge nodes with node_to_outflow_nodes
+            # Merge nodes with node_to_outflow_nodes_hydro
             overige_watergang_nodes = nodes.merge(
-                node_to_outflow_nodes, how="outer", left_on="nodeID", right_on="nodeID"
+                node_to_outflow_nodes_hydro, how="outer", left_on="nodeID", right_on="nodeID"
             )
-            overige_watergang_nodes["outflow_nodes"] = (
-                overige_watergang_nodes["outflow_nodes"].fillna(-999).astype(int)
+            overige_watergang_nodes["outflow_nodes_hydro"] = (
+                overige_watergang_nodes["outflow_nodes_hydro"].fillna(-999).astype(int)
             )
 
             # To get length to outflow point at start and end: merge edges with nodes, first on node_start, then on node_end
             edges = (
                 edges.merge(
                     overige_watergang_nodes[
-                        ["nodeID", "outflow_nodes", "outflow_nodes_dist"]
+                        ["nodeID", "outflow_nodes_hydro", "outflow_nodes_hydro_dist"]
                     ].rename(
                         columns={
-                            "outflow_nodes": "outflow_start",
-                            "outflow_nodes_dist": "outflow_start_dist",
+                            "outflow_nodes_hydro": "outflow_start",
+                            "outflow_nodes_hydro_dist": "outflow_start_dist",
                         }
                     ),
                     how="left",
@@ -1267,11 +1265,11 @@ class GeneratorDuikers(GeneratorBasis):
                 )
                 .merge(
                     overige_watergang_nodes[
-                        ["nodeID", "outflow_nodes", "outflow_nodes_dist"]
+                        ["nodeID", "outflow_nodes_hydro", "outflow_nodes_hydro_dist"]
                     ].rename(
                         columns={
-                            "outflow_nodes": "outflow_end",
-                            "outflow_nodes_dist": "outflow_end_dist",
+                            "outflow_nodes_hydro": "outflow_end",
+                            "outflow_nodes_hydro_dist": "outflow_end_dist",
                         }
                     ),
                     how="left",
@@ -1286,23 +1284,23 @@ class GeneratorDuikers(GeneratorBasis):
 
             def select_shortest_direction(edge):
                 if edge.outflow_end_dist <= edge.outflow_start_dist:
-                    edge.outflow_nodes = edge.outflow_end
-                    edge.outflow_nodes_dist = edge.outflow_end_dist
+                    edge.outflow_nodes_hydro = edge.outflow_end
+                    edge.outflow_nodes_hydro_dist = edge.outflow_end_dist
                 else:
-                    edge.outflow_nodes = edge.outflow_start
-                    edge.outflow_nodes_dist = edge.outflow_start_dist
+                    edge.outflow_nodes_hydro = edge.outflow_start
+                    edge.outflow_nodes_hydro_dist = edge.outflow_start_dist
                     edge.reversed_direction = True
                 return edge
 
-            edges["outflow_nodes"] = -999
-            edges["outflow_nodes_dist"] = -999.0
+            edges["outflow_nodes_hydro"] = -999
+            edges["outflow_nodes_hydro_dist"] = -999.0
             edges["reversed_direction"] = False
             edges["outflow_end_dist"] = edges["outflow_end_dist"].fillna(99999.9)
             edges["outflow_start_dist"] = edges["outflow_start_dist"].fillna(99999.9)
             edges = edges.apply(lambda x: select_shortest_direction(x), axis=1)
 
             # clean edges by removing unconnected edges and reversing direction if required
-            edges_cleaned = edges[edges["outflow_nodes"] != -999]
+            edges_cleaned = edges[edges["outflow_nodes_hydro"] != -999]
             edges_cleaned.loc[edges_cleaned["reversed_direction"], "geometry"] = (
                 edges_cleaned.loc[edges_cleaned["reversed_direction"], "geometry"].reverse()
             )
@@ -1312,11 +1310,11 @@ class GeneratorDuikers(GeneratorBasis):
 
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
-                "outflow_nodes_overige_watergang",
+                "outflow_nodes_overig",
                 "overige_watergang_processed_3_nodes",
                 "overige_watergang_processed_3",
             ])
-        return outflow_nodes, overige_watergang_nodes, edges, edges_cleaned
+        return outflow_nodes_hydro, overige_watergang_nodes, edges, edges_cleaned
 
 
     def generate_folium_map(

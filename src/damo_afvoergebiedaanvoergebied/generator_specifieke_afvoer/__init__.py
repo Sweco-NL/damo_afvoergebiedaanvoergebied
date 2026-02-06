@@ -19,7 +19,7 @@ def run_generator_specifieke_afvoer(
     read_results: bool = False,
     write_results: bool = False,
     create_html_map: bool = False,
-    open_html: bool = False,
+    open_html_map: bool = False,
 ) -> GeneratorSpecifiekeAfvoer:
     start_time = time.time()
     afvoer = GeneratorSpecifiekeAfvoer(
@@ -49,7 +49,7 @@ def run_generator_specifieke_afvoer(
         afvoer.sum_specifieke_afvoer_through_network()
     
     if create_html_map:
-        afvoer.generate_folium_map(open_html=open_html)
+        afvoer.generate_folium_map(open_html_map=open_html_map)
 
     logging.info(f"   x Case finished in {round(time.time()-start_time, 3)} seconds")
     return afvoer

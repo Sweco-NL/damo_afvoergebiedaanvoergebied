@@ -5,6 +5,7 @@
 
 # env settings
 .env
+run_settings.toml
 
 # pyc files (?)
 *.pyc

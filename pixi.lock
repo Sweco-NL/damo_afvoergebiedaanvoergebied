@@ -313,6 +313,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/tblib-3.0.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/threadpoolctl-3.5.0-pyhc1e730c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/tk-8.6.13-h5226925_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/toml-0.10.2-pyhcf101f3_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomli-2.2.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomli-w-1.2.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/toolz-1.0.0-pyhd8ed1ab_1.conda
@@ -1129,7 +1130,7 @@ packages:
 - pypi: ./
   name: damo-afvoergebiedaanvoergebied
   version: 0.1.0
-  sha256: dcaf62f9fc8662add4ea06cc030268b6dac9aeb513a2808fe7d7fb7106883426
+  sha256: 1110e8fc35264a7ce6ab68353020906bc3c7557b9ea0e3a4ad971c7b689e01b8
   requires_dist:
   - ugrid>=0.13.0,<0.14
   - pandas-xlsx-tables>=1.0.0,<2
@@ -4951,6 +4952,18 @@ packages:
   purls: []
   size: 3503410
   timestamp: 1699202577803
+- conda: https://conda.anaconda.org/conda-forge/noarch/toml-0.10.2-pyhcf101f3_3.conda
+  sha256: fd30e43699cb22ab32ff3134d3acf12d6010b5bbaa63293c37076b50009b91f8
+  md5: d0fc809fa4c4d85e959ce4ab6e1de800
+  depends:
+  - python >=3.10
+  - python
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/toml?source=hash-mapping
+  size: 24017
+  timestamp: 1764486833072
 - conda: https://conda.anaconda.org/conda-forge/noarch/tomli-2.2.1-pyhd8ed1ab_1.conda
   sha256: 18636339a79656962723077df9a56c0ac7b8a864329eb8f847ee3d38495b863e
   md5: ac944244f1fed2eb49bae07193ae8215

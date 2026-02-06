@@ -42,17 +42,18 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
         "hydroobject",
         "hydroobject_processed_0", 
         "hydroobject_processed_1", 
-        "overige_watergang_processed_4", 
+        "edges_overig", 
         "potential_culverts_5", 
-        "outflow_nodes",
+        "outflow_nodes_hydro",
         "afvoergebied_0",
         "afvoergebied_0_gdf",
         "afvoergebied_1",
         "afvoergebied_1_gdf",
         "afvoergebied_2",
         "afvoergebied_2_gdf",
-        "edges",
-        "nodes",
+        "edges_hydro",
+        "nodes_hydro",
+        "edges_overig",
     ]
 
     hydroobject: gpd.GeoDataFrame = None
@@ -60,7 +61,7 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
     hydroobject_processed_1: gpd.GeoDataFrame = None
     
     overige_watergang: gpd.GeoDataFrame = None
-    overige_watergang_processed_4: gpd.GeoDataFrame = None
+    edges_overig: gpd.GeoDataFrame = None
     potential_culverts_5: gpd.GeoDataFrame = None
 
     afvoergebied_0: xr.Dataset = None
@@ -75,7 +76,7 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
     snapping_distance: float = 0.05
     use_specifieke_afvoer: float = 1.0
 
-    outflow_nodes: gpd.GeoDataFrame = None
+    outflow_nodes_hydro: gpd.GeoDataFrame = None
     splitsing: gpd.GeoDataFrame = None
     split_nodes: gpd.GeoDataFrame = None
 
@@ -84,6 +85,12 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
     file_name_specifieke_afvoer: str = None
     specifieke_afvoer: xr.Dataset = None
     
+    edges_hydro: gpd.GeoDataFrame = None
+    nodes_hydro: gpd.GeoDataFrame = None
+    graph_hydro: nx.DiGraph = None
+
+    edges_overig: gpd.GeoDataFrame = None
+
     edges: gpd.GeoDataFrame = None
     nodes: gpd.GeoDataFrame = None
     graph: nx.DiGraph = None
@@ -97,8 +104,7 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
         if self.path is not None:
             self.use_processed_hydroobject(force_preprocess=False)
         if self.edges is None:
-            self.create_graph_from_network(water_lines=self.water_lines)
-            self.analyse_netwerk_add_information_to_nodes_edges(min_difference_angle=20.0)
+            self.create_graph_from_network()
 
 
     def generate_distribution_splits_downstream(self):
