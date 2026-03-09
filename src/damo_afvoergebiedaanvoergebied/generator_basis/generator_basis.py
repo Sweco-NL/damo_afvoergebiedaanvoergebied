@@ -1,9 +1,11 @@
 import logging
 from pathlib import Path
+import toml
 
 import folium
 import geopandas as gpd
 import pandas as pd
+import numpy as np
 import rioxarray
 import xarray as xr
 from pydantic import BaseModel, ConfigDict
@@ -11,7 +13,7 @@ from ..utils.preprocess import preprocess_hydroobject
 from ..utils.create_graph import create_graph_from_edges
 from ..utils.network_functions import (
     calculate_angles_of_edges_at_nodes,
-    define_list_upstream_downstream_edges_ids,
+    define_list_upstream_downstream_edges_values,
     find_node_edge_ids_in_directed_graph,
     calculate_discharges_of_edges_at_nodes,
     select_downstream_upstream_edges_angle,
@@ -33,37 +35,48 @@ def select_downstream_upstream_edges(
     min_difference_discharge_factor=2.0
 ):
     logging.info("   x find downstream upstream edges")
-    if "specifieke_afvoer" not in nodes:
+    if "upstream_discharges" in nodes.columns and \
+        "downstream_edges" in nodes.columns:
+        logging.info(f"     - use discharge distribution [factor{min_difference_discharge_factor:.3f}]")
+        nodes = select_downstream_upstream_edges_discharge(
+            nodes, 
+            min_difference_discharge_factor=min_difference_discharge_factor
+        )
+    else:
         logging.info(f"     - use angle using min_difference_angle [{min_difference_angle}deg]")
         nodes = select_downstream_upstream_edges_angle(
             nodes, min_difference_angle=min_difference_angle
         )
-    else:
-        logging.info(f"     - use discharge distribution [factor{min_difference_discharge_factor:.3f}]")
-        nodes = select_downstream_upstream_edges_discharge(
-            nodes, min_difference_discharge_factor=min_difference_discharge_factor
-        )
     return nodes
-
 
 
 def analyse_netwerk_add_information_to_nodes_edges(
     edges,
     nodes, 
     min_difference_angle=10.0, 
-    min_difference_discharge_factor=2.0
+    min_difference_discharge_factor=2.0,
+    discharge_col: str = None,
+    discharge_decimals: int = 6
 ):
     logging.info("   x get upstream downstream edges ids")
-    nodes = define_list_upstream_downstream_edges_ids(
-        node_ids=nodes.nodeID.values, nodes=nodes, edges=edges
+    nodes = define_list_upstream_downstream_edges_values(
+        node_ids=nodes.nodeID.values, 
+        nodes=nodes, 
+        edges=edges,
+        nodes_id_column="nodeID",
+        edges_id_column="code",
     )
     logging.info("   x calculate angles of edges to nodes")
     nodes, edges = calculate_angles_of_edges_at_nodes(
-        nodes=nodes, edges=edges
+        nodes=nodes, 
+        edges=edges
     )
     logging.info("   x calculate discharges of edges to nodes")
     nodes, edges = calculate_discharges_of_edges_at_nodes(
-        nodes=nodes, edges=edges
+        nodes=nodes, 
+        edges=edges,
+        discharge_col=discharge_col,
+        discharge_decimals=discharge_decimals
     )
     logging.info("   x select downstream upstream edges")
     nodes = select_downstream_upstream_edges(
@@ -102,8 +115,12 @@ class GeneratorBasis(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    generator: str = ""
     path: Path = None
-    name: str = None
+    dir_path: Path = None
+
+    case_id: str = None
+    case_name: str = None
     base_dir: Path = None
     waterschap: str = None
 
@@ -118,15 +135,37 @@ class GeneratorBasis(BaseModel):
     folium_map: folium.Map = None
 
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if self.path is not None:
-            self.check_case_path_directory(path=self.path)
-            self.read_data_from_case()
-            self.read_required_data_from_case()
+    def __init__(self, path):
+        super().__init__(path=path)
+        if path is None:
+            raise ValueError("path to case directory is required")
+
+        self.path = path
+        self.dir_path = self.path.parent
+        settings_generator = self.load_toml_file(self.dir_path)
+        self.check_case_path_directory(dir_path=self.dir_path)
+        self.read_data_from_case(settings_generator=settings_generator)
+        self.read_required_data_from_case()
+
+        self.use_processed_hydroobject(force_preprocess=True)
+        self.create_unique_codes()
+        if "edges" in self.__dict__.keys() and "edges_hydro" in self.__dict__.keys():
+            self.create_graph_from_network()
 
 
-    def check_case_path_directory(self, path: Path):
+    def load_toml_file(self, path):
+        toml_path = Path(self.path)
+        if not toml_path.exists():
+            raise ValueError(f"Settings file not found: {toml_path}")
+        settings = toml.load(toml_path)
+        settings_generator = {}
+        for key in ["case", "networkdata", self.generator]:
+            settings_generator.update(settings[key])
+        self.__dict__.update(settings_generator)
+        return settings_generator
+
+
+    def check_case_path_directory(self, dir_path: Path):
         """Check on existence case directory and structure
 
         Parameters
@@ -137,17 +176,16 @@ class GeneratorBasis(BaseModel):
 
         Raises ValueErrors in case directory and 0_basisdata directory not exist
         """
-        if not path.exists() and path.is_dir():
+        if not dir_path.exists() and dir_path.is_dir():
             raise ValueError(
                 f"provided path [{path}] does not exist or is not a directory"
             )
-        self.path = path
-        self.name = self.path.name
-        logging.info(f' ### Waterschap "{self.waterschap.capitalize()}" Case "{self.name.capitalize()}" ###')
+        self.case_id = self.dir_path.name
+        logging.info(f' ### Waterschap "{self.waterschap.capitalize()}" Case "{self.case_id.capitalize()}" ###')
 
         # check if directories 0_basisdata and 1_resultaat exist
         if isinstance(self.dir_basisdata, str):
-            self.dir_basisdata = Path(self.path, self.dir_basisdata)
+            self.dir_basisdata = Path(self.dir_path, self.dir_basisdata)
         if not isinstance(self.dir_basisdata, Path) or not self.dir_basisdata.exists():
             raise ValueError(
                 f"provided [{self.dir_basisdata}] is not a path or does not exist"
@@ -155,16 +193,16 @@ class GeneratorBasis(BaseModel):
 
         if self.dir_results is not None:
             if isinstance(self.dir_results, str):
-                self.dir_results = Path(self.path, self.dir_results)
+                self.dir_results = Path(self.dir_path, self.dir_results)
             if isinstance(self.dir_results, Path):
                 if not self.dir_results.exists():
                     self.dir_results.mkdir(parents=True, exist_ok=True)
 
-        logging.info(f"     - dir basisdata    = {self.dir_basisdata}")
-        logging.info(f"     - dir results      = {self.dir_results}")
+        logging.info(f"     - dir basisdata = {self.dir_basisdata}")
+        logging.info(f"     - dir results   = {self.dir_results}")
 
 
-    def read_data_from_case(self, path: Path = None, read_results: bool = None):
+    def read_data_from_case(self, dir_path: Path = None, read_results: bool = None, settings_generator: dict = None):
         """Read data from case: including basis data and intermediate results
 
         Parameters
@@ -176,20 +214,31 @@ class GeneratorBasis(BaseModel):
         read_results : bool, optional
             if True, it reads already all resulst from, by default None
         """
-        if path is not None and path.exists():
-            self.check_case_path_directory(path=path)
+        if dir_path is not None and dir_path.exists():
+            self.check_case_path_directory(dir_path=dir_path)
 
         def read_attributes_from_folder(path_dir: Path):
-            for f in path_dir.glob("**/*"):
-                if hasattr(self, f.stem):
-                    logging.info(f"     - load dataset {f.stem.upper()}")
-                    if f.suffix == ".gpkg":
-                        setattr(self, f.stem, gpd.read_file(f, layer=f.stem))
-                    if f.suffix in [".nc", ".NC"]:
-                        with rioxarray.open_rasterio(f) as raster:
-                            ds = drop_band_dim(raster.load())
-                            ds.name = f.stem
-                            setattr(self, f.stem, ds)
+
+            def read_file_and_set_attr(path_f, attr_name):
+                if not path_f.exists():
+                    logging.info(f"   * file {path_f} does not exist")
+                    return
+
+                logging.info(f"     - load dataset {attr_name.upper()} from file {path_f.name}")
+                if path_f.suffix == ".gpkg":
+                    setattr(self, attr_name, gpd.read_file(path_f, layer=attr_name))
+                elif path_f.suffix in [".nc", ".NC"]:
+                    with rioxarray.open_rasterio(path_f) as raster:
+                        ds = drop_band_dim(raster.load())
+                        ds.name = attr_name
+                        setattr(self, attr_name, ds)
+
+            for key in settings_generator.keys():
+                if key.startswith("file_name_"):
+                    read_file_and_set_attr(
+                        Path(self.dir_basisdata, settings_generator[key]), 
+                        key.replace("file_name_", "")
+                    )
 
         logging.info(f"   x read basisdata")
         if self.dir_basisdata is not None and self.dir_basisdata.exists():
@@ -310,6 +359,58 @@ class GeneratorBasis(BaseModel):
             return gdf_waterline
         
 
+    def create_unique_codes(self, column="code"):
+        """Make sure hydroobject and overige_watergang have unique code names"""
+        if self.hydroobject is None or self.overige_watergang is None:
+            raise ValueError(" x hydroobject or overige_watergang not loaded")
+
+        logging.info(f" x Check for duplicate codes in hydroobject and overige_watergang")
+
+        def make_unique_codes(gdf, col="code"):
+            if col not in gdf.columns:
+                return gdf
+            s = gdf[col].astype("string").fillna("")
+            if s.is_unique:
+                return gdf
+            counts = s.groupby(s).cumcount()
+            gdf[col] = np.where(counts == 0, s, s + "_" + counts.astype(str))
+            return gdf
+
+        # check hydroobject
+        if self.hydroobject["code"].duplicated().sum() > 0:
+            duplicated_codes = self.hydroobject[self.hydroobject["code"].duplicated()]["code"].unique()
+            logging.info(f"     - hydroobject has non-unique codes: {duplicated_codes}")
+            self.hydroobject = make_unique_codes(self.hydroobject)
+
+        # check overige_watergang
+        if self.overige_watergang["code"].duplicated().sum() > 0:
+            duplicated_codes = self.overige_watergang[self.overige_watergang["code"].duplicated()]["code"].unique()
+            logging.info(f"     - overige_watergang has non-unique codes: {duplicated_codes}")
+            self.overige_watergang = make_unique_codes(self.overige_watergang)
+
+        # check between hydroobject and overige_watergang
+        hydroobject = self.hydroobject[["code"]].astype("string")
+        hydroobject["source"] = "hydroobject"
+        overige_watergang = self.overige_watergang[["code"]].astype("string")
+        overige_watergang["source"] = "overige_watergang"
+        
+        combined = pd.concat([
+            hydroobject.astype("string"),
+            overige_watergang.astype("string")
+        ])
+        if combined["code"].duplicated().sum() > 0:
+            duplicated_codes = combined.loc[combined["code"].duplicated(), "code"].unique()
+            logging.info(f"     - hydroobject and overige_watergang have overlapping codes: {duplicated_codes}")
+            combined = make_unique_codes(combined)
+            self.hydroobject["code"] = combined[combined["source"] == "hydroobject"]["code"].values
+            self.overige_watergang["code"] = combined[combined["source"] == "overige_watergang"]["code"].values
+
+        duplicated_codes = combined.loc[combined["code"].duplicated(), "code"].unique()
+        logging.info(f"     - hydroobject and overige_watergang have overlapping codes: {duplicated_codes}")
+
+        logging.info("   x hydroobject and overige_watergang have unique codes")
+
+
     def create_graph_from_network(self, processed="processed"):
         """Turns a linestring layer containing waterlines into a graph of edges and nodes. 
 
@@ -324,15 +425,18 @@ class GeneratorBasis(BaseModel):
         """
         edges = None
 
+        logging.info(f"     - add source type and unique edge_ids to edges")
         if self.edges_hydro is not None:
             self.edges_hydro["source"] = "hydroobject"
-            if self.edges_overig is not None:
+            self.edges_hydro["edge_id"] = self.edges_hydro.reset_index().index
+            if self.edges_overig is None:
+                edges = self.edges_hydro.copy()
+            else:
+                self.edges_overig["edge_id"] = self.edges_overig.reset_index().index + len(self.edges_hydro)
                 edges = pd.concat([
                     self.edges_hydro,
                     self.edges_overig
                 ])
-            else:
-                edges = self.edges_hydro.copy()
         else:
             for line_type in ["hydroobject", "overige_watergang"]:
                 gdf = getattr(self, line_type)
@@ -365,7 +469,9 @@ class GeneratorBasis(BaseModel):
             self.edges_hydro,
             self.nodes_hydro, 
             min_difference_angle=10.0, 
-            min_difference_discharge_factor=2.0
+            min_difference_discharge_factor=2.0,
+            discharge_col="total_specifieke_afvoer",
+            discharge_decimals=6
         )
 
         # all edges
@@ -374,11 +480,12 @@ class GeneratorBasis(BaseModel):
             self.edges,
             self.nodes, 
             min_difference_angle=10.0, 
-            min_difference_discharge_factor=2.0
+            min_difference_discharge_factor=2.0,
+            discharge_col="total_specifieke_afvoer",
+            discharge_decimals=6
         )
-
         logging.info(
-            f"   x create network graph ({len(self.edges)} edges, {len(self.nodes)} nodes)"
+            f"   x network graph created ({len(self.edges)} edges, {len(self.nodes)} nodes)"
         )
         return self.nodes, self.edges, self.graph
 

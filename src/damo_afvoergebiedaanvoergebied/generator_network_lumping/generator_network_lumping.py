@@ -24,7 +24,7 @@ from ..utils.general_functions import (
 from ..utils.network_functions import (
     calculate_angles_of_edges_at_nodes,
     select_downstream_upstream_edges_angle,
-    define_list_upstream_downstream_edges_ids,
+    define_list_upstream_downstream_edges_values,
     find_nodes_edges_for_direction,
 )
 
@@ -73,6 +73,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
 
     folium_map: folium.Map = None
     folium_html_path: str = None
+
 
     def create_graph_from_network(self):
         """Turns a linestring layer containing waterlines into a graph of edges and nodes. 
@@ -198,7 +199,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
                 f"{self.direction}_node_{point['representative_node']}"
             ] = self.inflow_outflow_edges[f"{self.direction}_edge_{point['edge_code']}"]
 
-        self.inflow_outflow_nodes_hydro = define_list_upstream_downstream_edges_ids(
+        self.inflow_outflow_nodes_hydro = define_list_upstream_downstream_edges_values(
             self.inflow_outflow_nodes_hydro.nodeID.unique(),
             self.inflow_outflow_nodes_hydro,
             self.inflow_outflow_edges,
@@ -230,7 +231,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
 
         inflow_outflow_edges = None
 
-        inflow_outflow_nodes_hydro = define_list_upstream_downstream_edges_ids(
+        inflow_outflow_nodes_hydro = define_list_upstream_downstream_edges_values(
             self.inflow_outflow_nodes_hydro.nodeID.unique(),
             self.inflow_outflow_nodes_hydro,
             self.inflow_outflow_edges,
@@ -274,7 +275,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
                     inflow_outflow_edges[col].replace(np.nan, False).copy()
                 )
 
-        self.inflow_outflow_splits_0 = define_list_upstream_downstream_edges_ids(
+        self.inflow_outflow_splits_0 = define_list_upstream_downstream_edges_values(
             inflow_outflow_edges[node_search].unique(),
             self.inflow_outflow_nodes_hydro,
             self.inflow_outflow_edges,
@@ -290,7 +291,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             self.inflow_outflow_splits_1 = self.inflow_outflow_splits_0.copy()
         else:
             inflow_outflow_splits = self.inflow_outflow_splits.copy()
-            inflow_outflow_splits = define_list_upstream_downstream_edges_ids(
+            inflow_outflow_splits = define_list_upstream_downstream_edges_values(
                 inflow_outflow_splits.nodeID.unique(),
                 inflow_outflow_splits,
                 self.inflow_outflow_edges,
@@ -378,7 +379,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
             if self.direction == "upstream":
                 # Get upstream angles and edges
                 upstream_angles = row["upstream_angles"]
-                print(upstream_angles)
+                # print(upstream_angles)
                 upstream_edges = row["upstream_edges"]
                 downstream_angles_str = row["downstream_angles"]
                 downstream_edges_str = row["downstream_edges"]
@@ -796,7 +797,7 @@ class GeneratorNetworkLumping(GeneratorBasis):
         self.folium_map = m
 
         if html_file_name is None:
-            html_file_name = self.name + "_network_lumping"
+            html_file_name = self.case_id + "_network_lumping"
 
         self.folium_html_path = Path(self.path, f"{html_file_name}.html")
         m.save(self.folium_html_path)

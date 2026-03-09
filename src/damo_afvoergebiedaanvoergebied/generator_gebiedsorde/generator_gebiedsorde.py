@@ -13,9 +13,8 @@ from ..utils.folium_map import generate_folium_map
 from ..assets import waterschappen_order_codes
 from ..utils.network_functions import (
     calculate_angles_of_edges_at_nodes,
-    define_list_upstream_downstream_edges_ids,
+    define_list_upstream_downstream_edges_values,
     find_node_edge_ids_in_directed_graph,
-    select_downstream_upstream_edges_angle,
 )
 
 
@@ -23,8 +22,11 @@ class GeneratorGebiedsOrde(GeneratorBasis):
     """Module to generate partial networks and order levels for all water bodies,
     based on ..."""
 
+    generator: str = "generator_gebiedsorde"
+
     path: Path = None
-    name: str = None
+    case_id: str = None
+    case_name: str = None
     dir_basisdata: str = "0_basisdata"
     dir_results: str | None = "1_resultaat"
 
@@ -34,6 +36,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
     hydroobject_processed_0: gpd.GeoDataFrame = None
     hydroobject_processed_1: gpd.GeoDataFrame = None
 
+    generate_new_outflow_nodes: bool = False
     snapping_distance: float = 0.05
 
     rws_water: gpd.GeoDataFrame = None
@@ -48,12 +51,17 @@ class GeneratorGebiedsOrde(GeneratorBasis):
         "outflow_nodes_overig",
         "nodes_hydro",
         "edges_hydro",
+        "nodes_overig",
+        "edges_overig",
+        "edges",
+        "nodes"
     ]
 
+    outflow_nodes: gpd.GeoDataFrame = None
     outflow_edges_hydro: gpd.GeoDataFrame = None
     outflow_nodes_hydro: gpd.GeoDataFrame = None
-
     outflow_nodes_overig: gpd.GeoDataFrame = None
+
     overige_watergang: gpd.GeoDataFrame = None
     overige_watergang_processed_3: gpd.GeoDataFrame = None
 
@@ -62,6 +70,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
     graph_hydro: nx.DiGraph = None
 
     edges_overig: gpd.GeoDataFrame = None
+    nodes_overig: gpd.GeoDataFrame = None
 
     edges: gpd.GeoDataFrame = None
     nodes: gpd.GeoDataFrame = None
@@ -71,29 +80,36 @@ class GeneratorGebiedsOrde(GeneratorBasis):
     folium_html_path: Path = None
 
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if self.path is not None:
-            self.use_processed_hydroobject(force_preprocess=False)
+    def generate_outflow_nodes(
+        self, 
+        generate_new_outflow_nodes=False,
+        search_range_outflow_nodes=50.0, 
+        buffer_outflow_nodes=50.0
+    ):
+        if generate_new_outflow_nodes or self.generate_new_outflow_nodes:
+            return self.generate_outflow_nodes_rws_water(
+                search_range_outflow_nodes=search_range_outflow_nodes
+            )
+        else:
+            return self.read_outflow_nodes_with_rws_code(
+                buffer_outflow_nodes=buffer_outflow_nodes
+            )
 
 
-    def read_outflow_nodes_hydro_with_rws_code(self, outflow_nodes_hydro=None, buffer_outflow_nodes_hydro=50.0):
+    def read_outflow_nodes_with_rws_code(self, buffer_outflow_nodes=50.0):
         """Uses the outflow_nodes_hydro from the basisdata directory to search for closest outflow points of 
-        waterways. Only waterways outflow points within a certain distance (buffer_outflow_nodes_hydro) are used.
+        waterways. Only waterways outflow points within a certain distance (buffer_outflow_nodes) are used.
 
         Args:
             outflow_nodes_hydro (gpd.GeoDataFrame): 
                 outflow_nodes_hydro locations with columns: rws_code, rws_code_no, order_code, order_no
-            buffer_outflow_nodes_hydro (float, optional): 
+            buffer_outflow_nodes (float, optional): 
                 maximum distance from node to waterway outflow point. Defaults to 50.0.
 
         Returns:
             gpd.GeoDataFrame: outflow_edges_hydro 
             gpd.GeoDataFrame: outflow_nodes_hydro
         """
-        if outflow_nodes_hydro is not None:
-            self.outflow_nodes_hydro = outflow_nodes_hydro
-
         logging.info("   x find final end nodes hydroobjects (dead ends)")
         # get dead end nodes
         dead_end_edges_hydro = self.edges_hydro[
@@ -112,16 +128,17 @@ class GeneratorGebiedsOrde(GeneratorBasis):
 
         logging.info("   x get dead ends (nodes/edges_hydro) closest to outflow_nodes_hydro")
         dead_end_nodes["distance"] = 0.0
+        self.outflow_nodes_hydro = self.outflow_nodes.copy()
         self.outflow_nodes_hydro[["edge_code", "node_end", "distance", "geometry"]] = self.outflow_nodes_hydro.geometry.apply(
             lambda x: closest_point(x, dead_end_nodes[["edge_code", "node_end", "distance", "geometry"]])
         )
-        if self.outflow_nodes_hydro["distance"].max() > buffer_outflow_nodes_hydro:
+        if self.outflow_nodes_hydro["distance"].max() > buffer_outflow_nodes:
             no_outflow_nodes_hydro = self.outflow_nodes_hydro.loc[
-                self.outflow_nodes_hydro["distance"]>buffer_outflow_nodes_hydro, 
+                self.outflow_nodes_hydro["distance"]>buffer_outflow_nodes, 
                 "order_code"
             ].values
             logging.info(f"   x no dead ends close to outflow_nodes_hydro {no_outflow_nodes_hydro}")
-            self.outflow_nodes_hydro = self.outflow_nodes_hydro[self.outflow_nodes_hydro["distance"] <= buffer_outflow_nodes_hydro]
+            self.outflow_nodes_hydro = self.outflow_nodes_hydro[self.outflow_nodes_hydro["distance"] <= buffer_outflow_nodes]
 
         self.outflow_edges_hydro = self.edges_hydro[["node_end", "geometry"]].merge(
             self.outflow_nodes_hydro.drop(columns=["geometry"]),
@@ -129,13 +146,13 @@ class GeneratorGebiedsOrde(GeneratorBasis):
         return self.outflow_edges_hydro, self.outflow_nodes_hydro
 
 
-    def generate_rws_code_for_outflow_points(self, search_range_outflow_nodes_hydro=50.0):
+    def generate_outflow_nodes_rws_water(self, search_range_outflow_nodes=50.0):
         """Generates an RWS code for al outflow points into rws water bodies. '
         These are the points where the water flows out of the management area of the water board and therefore the start of the orde codes of the edges_hydro.
 
         Parameters
         ----------
-        search_range_outflow_nodes_hydro : float, optional
+        search_range_outflow_nodes : float, optional
             buffers around the RWS water polygons, ensures that outflow points intersect with the RWS water, by default 10.0
 
         Returns
@@ -152,7 +169,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
 
         logging.info("   x generating order code for all outflow edges_hydro")
         rws_water_buffer = self.rws_water[["geometry", "rws_code"]].copy()
-        rws_water_buffer.geometry = rws_water_buffer.buffer(search_range_outflow_nodes_hydro)
+        rws_water_buffer.geometry = rws_water_buffer.buffer(search_range_outflow_nodes)
 
         outflow_edges_hydro = (
             dead_end_edges_hydro.sjoin(rws_water_buffer)
@@ -259,7 +276,6 @@ class GeneratorGebiedsOrde(GeneratorBasis):
 
             for i_edge, outflow_edge in outflow_edges_hydro_order.reset_index(drop=True).iterrows():
 
-                # logging.info(f"      * {i_node+1}/{len(outflow_edges_hydro)}")
                 outflow_edge_nodes_id, outflow_edge_edges_hydro_code, new_outflow_edges_hydro = (
                     find_node_edge_ids_in_directed_graph(
                         from_node_ids=edges_hydro_left.node_start.to_numpy(),
@@ -876,6 +892,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
                 "outflow_nodes_hydro",
                 "outflow_nodes_overig",
                 "edges_overig",
+                "nodes_overig"
             ])
         return (
             self.outflow_nodes_overig,
@@ -885,7 +902,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
 
     def generate_folium_map(self, html_file_name:str="", **kwargs):
         if html_file_name == "":
-            html_file_name = self.name + "_order_code"
+            html_file_name = self.case_id + "_order_code"
         self.folium_map = generate_folium_map(
             self, 
             html_file_name=html_file_name, 

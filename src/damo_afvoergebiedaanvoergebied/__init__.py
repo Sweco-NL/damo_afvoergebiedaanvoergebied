@@ -1,7 +1,7 @@
-from .generator_network_lumping import (
-    run_generator_network_lumping,
-    GeneratorNetworkLumping,
-)
+# from .generator_network_lumping import (
+#     run_generator_network_lumping,
+#     GeneratorNetworkLumping,
+# )
 from .generator_gebiedsorde import (
     run_generator_gebiedsorde, 
     GeneratorGebiedsOrde

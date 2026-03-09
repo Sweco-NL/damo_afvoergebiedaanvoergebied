@@ -140,7 +140,7 @@ def accumulate_values_graph(
     results_edges = np.zeros(np.shape(node_ids))
     logging.info(f"accumulate values using graph for {len(node_ids)} node(s)")
     for i in range(node_ids.shape[0]):
-        print(f" * {i+1}/{len_node_ids} ({(i+1)/len(node_ids):.2%})", end="\r")
+        # print(f" * {i+1}/{len_node_ids} ({(i+1)/len(node_ids):.2%})", end="\r")
         node_id = node_ids[i]
         if direction == "upstream":
             pred_nodes, pred_edges = find_predecessors_graph(
@@ -375,6 +375,8 @@ def calculate_discharges_of_edges_at_nodes(
     nodes: gpd.GeoDataFrame,
     edges: gpd.GeoDataFrame,
     nodes_id_column: str = "nodeID",
+    discharge_col: str = None,
+    discharge_decimals: int = 6
 ):
     """Calculates the angles of the upstream and downstream edges for each node. 
 
@@ -383,7 +385,7 @@ def calculate_discharges_of_edges_at_nodes(
     self.nodes: gpd.GeoDataFrame
         Geodataframe containing nodes between waterlines, including upstream and downstream edges and their angles
     """
-    if "total_specifieke_afvoer" not in edges.columns:
+    if discharge_col not in edges.columns:
         return nodes, edges
     
     for direction, opp_direction in zip(
@@ -391,15 +393,15 @@ def calculate_discharges_of_edges_at_nodes(
     ):
         node_end = "node_end" if direction == "upstream" else "node_start"
         temp = nodes.merge(
-            edges[[node_end, "total_specifieke_afvoer"]].rename(
-                columns={node_end: nodes_id_column, "total_specifieke_afvoer": f"{direction}_discharge"}
+            edges[[node_end, discharge_col]].rename(
+                columns={node_end: nodes_id_column, discharge_col: f"{direction}_discharge"}
             ),
             how="left",
             on=nodes_id_column,
         )
         temp = temp.groupby(nodes_id_column).agg({f"{direction}_discharge": list})
         temp[f"{direction}_discharge"] = temp[f"{direction}_discharge"].apply(
-            lambda x: ",".join([f"{a:.3f}" for a in x if ~np.isnan(a)])
+            lambda x: ",".join([f"{a:.{discharge_decimals}f}" for a in x if ~np.isnan(a)])
         )
         nodes[f"{direction}_discharges"] = temp[f"{direction}_discharge"]
     return nodes, edges
@@ -538,12 +540,12 @@ def select_downstream_upstream_edges_discharge(nodes, min_difference_discharge_f
     return nodes
 
 
-def define_list_upstream_downstream_edges_ids(
+def define_list_upstream_downstream_edges_values(
     node_ids: np.array,
     nodes: gpd.GeoDataFrame,
     edges: gpd.GeoDataFrame,
     nodes_id_column: str = "nodeID",
-    edges_id_column: str = "code",
+    edges_id_column: str = "code"
 ):
     """Get the upstream and downstream edges for each node. 
 
@@ -569,29 +571,32 @@ def define_list_upstream_downstream_edges_ids(
             left_on=nodes_id_column,
             right_on=node_end,
         )
+
+        def list_to_str(x, decimals=5):
+            if (~(isinstance(x[0], float) and np.isnan(x[0])) and x[0] is not None):
+                if isinstance(x[0], float):
+                    return ",".join(f"{_:.{decimals}f}" for _ in x)
+                else:
+                    return ",".join(x)
+            else:
+                return  ",".join([])
+
         nodes_sel[f"{direction}_edges"] = direction_edges.groupby(nodes_id_column).agg(
             {edges_id_column: list}
         )
-
         def len_edges(x):
             if ~(isinstance(x[0], float) and np.isnan(x[0])):
                 return len(x)
             else: 
                 return 0
-
+        
         nodes_sel[f"no_{direction}_edges"] = nodes_sel[f"{direction}_edges"].apply(
             lambda x: len_edges(x)
         )
-
-        def list_to_str(x):
-            if (~(isinstance(x[0], float) and np.isnan(x[0])) and x[0] is not None):
-                return ",".join(x) 
-            else:
-                return  ",".join([])
-
         nodes_sel[f"{direction}_edges"] = nodes_sel[f"{direction}_edges"].apply(
             lambda x: list_to_str(x)
         )
+
     nodes_sel = nodes_sel.reset_index(drop=True)
     return nodes_sel
 
@@ -675,8 +680,8 @@ def sum_edge_node_values_through_network(
         edges = edges[~edges.index.duplicated(keep='first')]
         edges.loc[start_edges.index, sum_column] += start_edges[column_to_sum].values
 
-        specifieke_afvoer_start_nodes = start_edges[["node_end", column_to_sum]].groupby("node_end").sum()
-        nodes.loc[specifieke_afvoer_start_nodes.index, sum_column] += specifieke_afvoer_start_nodes[column_to_sum].values
+        sum_start_nodes = start_edges[["node_end", column_to_sum]].groupby("node_end").sum()
+        nodes.loc[sum_start_nodes.index, sum_column] += sum_start_nodes[column_to_sum].values
         other_nodes = nodes.loc[other_nodes.index]
 
     edges[sum_column] = edges[sum_column].astype(float)
