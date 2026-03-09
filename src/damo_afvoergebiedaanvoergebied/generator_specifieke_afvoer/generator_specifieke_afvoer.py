@@ -24,10 +24,12 @@ from ..utils.network_functions import sum_edge_node_values_through_network
 
 
 class GeneratorSpecifiekeAfvoer(GeneratorBasis):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    generator: str = "generator_specifieke_afvoer"
 
     path: Path = None
-    name: str = None
+    case_id: str = None
+    case_name: str = None
     dir_basisdata: str = "0_basisdata"
     dir_results: str = "1_resultaat"
     waterschap: str = None
@@ -36,14 +38,13 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
     write_results: bool = False
     crs: int = 28992
 
+    accuflux: dict = None
+
     water_lines: list[str] = ["hydroobject"]
     
     required_results: list[str] = [
         "hydroobject",
-        "hydroobject_processed_0", 
-        "hydroobject_processed_1", 
-        "edges_overig", 
-        "potential_culverts_5", 
+        "overige_watergang",
         "outflow_nodes_hydro",
         "afvoergebied_0",
         "afvoergebied_0_gdf",
@@ -56,14 +57,12 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
         "edges_overig",
     ]
 
+    rws_water: gpd.GeoDataFrame = None
+    outflow_nodes: gpd.GeoDataFrame = None
     hydroobject: gpd.GeoDataFrame = None
-    hydroobject_processed_0: gpd.GeoDataFrame = None
-    hydroobject_processed_1: gpd.GeoDataFrame = None
-    
     overige_watergang: gpd.GeoDataFrame = None
     edges_overig: gpd.GeoDataFrame = None
-    potential_culverts_5: gpd.GeoDataFrame = None
-
+    
     afvoergebied_0: xr.Dataset = None
     afvoergebied_0_gdf: gpd.GeoDataFrame = None
     afvoergebied_1: xr.Dataset = None
@@ -97,14 +96,6 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
     
     folium_map: folium.Map = None
     folium_html_path: str = None
-
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if self.path is not None:
-            self.use_processed_hydroobject(force_preprocess=False)
-        if self.edges is None:
-            self.create_graph_from_network()
 
 
     def generate_distribution_splits_downstream(self):
@@ -205,7 +196,6 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
             # reproject specific afvoer to match afvoergebied
             afvoergebied = self.afvoergebied.rio.write_crs("EPSG:28992")
             specifieke_afvoer = self.specifieke_afvoer.rio.reproject_match(afvoergebied)
-            specifieke_afvoer = specifieke_afvoer["specifieke_afvoer"].sel(band=1)
 
             # xarray spatial for zonal statistics (df with zone, mean, sum)
             logging.info("     - zonal statistics")
@@ -220,7 +210,7 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
                     "mean": "mean_specifieke_afvoer",
                     "sum": "specifieke_afvoer"
                 }),
-                left_on="drainage_unit_id",
+                left_on="edge_id",
                 right_on="zone",
                 how="left"
             )
@@ -278,8 +268,13 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
                 f"     - total discharge added to edges: {total_specifieke_afvoer} [m3/s]"
             )
 
+        self.edges_hydro = self.edges[self.edges["source"] == "hydroobject"]
+        self.edges_overig = self.edges[self.edges["source"] == "overige_watergang"]
+
         self.export_results_to_gpkg_or_nc(list_layers=[
             "edges",
+            "edges_hydro",
+            "edges_overig",
             "nodes",
             "split_nodes",
         ])
@@ -306,8 +301,13 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
         self.edges.loc[wateraanvoer_edges.index, "specifieke_afvoer"] = 0.0
         self.edges.loc[wateraanvoer_edges.index, "total_specifieke_afvoer"] = 0.0
 
+        self.edges_hydro = self.edges[self.edges["source"] == "hydroobject"]
+        self.edges_overig = self.edges[self.edges["source"] == "overige_watergang"]
+
         self.export_results_to_gpkg_or_nc(list_layers=[
             "edges",
+            "edges_hydro",
+            "edges_overig",
             "nodes",
             "split_nodes",
         ])
@@ -337,13 +337,18 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
         )
 
         edges = pd.concat([edges, excl_edges], ignore_index=True)
-        
+                
         self.edges = edges.copy()
         self.nodes = nodes.copy()
         
+        self.edges_hydro = self.edges[self.edges["source"] == "hydroobject"]
+        self.edges_overig = self.edges[self.edges["source"] == "overige_watergang"]
+
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
                 "edges",
+                "edges_hydro",
+                "edges_overig",
                 "nodes",
                 "split_nodes",
             ])
@@ -352,7 +357,7 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
 
     def generate_folium_map(self, html_file_name:str="", **kwargs):
         if html_file_name == '':
-            html_file_name = self.name + "_specifieke_afvoer"
+            html_file_name = self.case_id + "_specifieke_afvoer"
         self.folium_map = generate_folium_map(
             self, 
             html_file_name=html_file_name, 

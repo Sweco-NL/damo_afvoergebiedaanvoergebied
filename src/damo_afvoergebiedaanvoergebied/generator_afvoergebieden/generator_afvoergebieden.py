@@ -54,28 +54,24 @@ def dataarray_from_gdf(raster, gdf, raster_name):
 
 
 class GeneratorAfvoergebieden(GeneratorBasis):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    generator: str = "generator_afvoergebieden"
 
     path: Path = None
-    name: str = None
+    case_id: str = None
+    case_name: str = None
     dir_basisdata: str = "0_basisdata"
     dir_results: str = "1_resultaat"
     waterschap: str = None
 
-    method: str = "pyflwdir"
-
+    check_network: bool = True
     read_results: bool = False
     write_results: bool = False
     crs: int = 28992
     
     required_results: list[str] = [
         "hydroobject",
-        "hydroobject_processed_0", 
         "overige_watergang", 
-        "outflow_nodes_overig",
-        "overige_watergang_processed_3", 
-        "edges_overig", 
-        "outflow_nodes_hydro",
         "alle_watergangen_0",
         "afvoergebied_0",
         "afvoergebied_0_gdf",
@@ -89,34 +85,33 @@ class GeneratorAfvoergebieden(GeneratorBasis):
     ]
 
     hydroobject: gpd.GeoDataFrame = None
-    hydroobject_processed_0: gpd.GeoDataFrame = None
-    hydroobject_processed_1: gpd.GeoDataFrame = None
-    
     overige_watergang: gpd.GeoDataFrame = None
-    overige_watergang_processed_3: gpd.GeoDataFrame = None
-    outflow_nodes_overig: gpd.GeoDataFrame = None
-
-    outflow_nodes_hydro: gpd.GeoDataFrame = None
-
+    rws_water: gpd.GeoDataFrame = None
+    outflow_nodes: gpd.GeoDataFrame = None
     snapping_distance: float = 0.05
-
-    ghg_file_name: str = None
-    ghg: xr.Dataset = None
-    ghg_filled: xr.Dataset = None
-    ghg_fills: xr.Dataset = None
-
-    new_resolution: float = 5.0*5.0
 
     alle_watergangen_0: gpd.GeoDataFrame = None
     alle_watergangen_0_buffer: gpd.GeoDataFrame = None
     alle_watergangen_1: gpd.GeoDataFrame = None
 
-    ghg_waterways: xr.Dataset = None
-    ghg_waterways_distance: xr.Dataset = None
+    topo_waterways: xr.Dataset = None
+    topo_waterways_distance: xr.Dataset = None
 
-    ghg_processed: xr.Dataset = None
+    topo_file_name: str = None
+    topo: xr.Dataset = None
+    topo_filled: xr.Dataset = None
+    topo_fills: xr.Dataset = None
+    topo_processed: xr.Dataset = None
 
+    method: str = "pyflwdir"
     flw: pyflwdir.FlwdirRaster = None
+
+    topo_new_resolution: float = 5.0*5.0
+    topo_smooth_distance: float = 25.0
+    topo_smooth_depth: float = 0.2
+    topo_burn_depth_waterways: float = 1000.0
+    topo_burn_width_waterways: float = None
+    topo_max_fill_depth: float = 500.0
 
     afvoergebied_0: xr.Dataset = None
     afvoergebied_0_gdf: gpd.GeoDataFrame = None
@@ -143,114 +138,121 @@ class GeneratorAfvoergebieden(GeneratorBasis):
     folium_html_path: str = None
 
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if self.path is not None:
-            self.use_processed_hydroobject(force_preprocess=False)
-        if self.edges is None:
-            self.create_graph_from_network()
-
-
-    def read_ghg(self, ghg_file_name: str):
+    def read_topo(self, file_name_topo: str = None):
         logging.info("   x read topographical data as input")
-        self.ghg_file_name = ghg_file_name
-        self.ghg = rioxarray.open_rasterio(Path(self.path, self.dir_basisdata, ghg_file_name))
-        self.ghg.name = "ghg"
-        if self.ghg.rio.crs is None:
-            self.ghg = self.ghg.rio.write_crs(28992)
-        return self.ghg
+        if self.topo_type not in ["GHG", "TOPO"]:
+            raise ValueError("   x topo_type must be GHG or TOPO")
+        if file_name_topo is None:
+            file_name_topo = self.file_name_topo
+        self.topo = rioxarray.open_rasterio(Path(self.path, self.dir_basisdata, file_name_topo))
+        self.topo.name = self.topo_type
+        if self.topo.rio.crs is None:
+            self.topo = self.topo.rio.write_crs(28992)
+        return self.topo
     
 
-    def preprocess_ghg(self, resolution=2.0, depth_waterways=1.0, buffer_waterways=None, smooth_distance=25.0):
-        logging.info("   x preprocessing GHG data")
+    def preprocess_topo(self):
+        logging.info("   x preprocessing TOPO/GHG data")
         logging.info("     - resampling data to new resolution")
 
-        self.new_resolution = resolution
-        if buffer_waterways is None:
-            buffer_waterways = 1.5 * resolution
+        if self.topo_burn_width_waterways is None:
+            self.topo_burn_width_waterways = 1.5 * self.topo_new_resolution
 
-        old_resolution = 25.0
-        upscale_factor = old_resolution / resolution
-        new_width = int(np.ceil(self.ghg.rio.width * upscale_factor))
-        new_height = int(np.ceil(self.ghg.rio.height * upscale_factor))
+        topo_old_resolution = get_resolution_2d_array(self.topo)[0]
+        upscale_factor = topo_old_resolution / self.topo_new_resolution
+        new_topo_width = int(np.ceil(self.topo.rio.width * upscale_factor))
+        new_topo_height = int(np.ceil(self.topo.rio.height * upscale_factor))
 
-        self.ghg_processed = self.ghg.rio.reproject(
-            self.ghg.rio.crs,
-            shape=(new_height, new_width),
+        self.topo_processed = self.topo.rio.reproject(
+            self.topo.rio.crs,
+            shape=(new_topo_height, new_topo_width),
             resampling=Resampling.bilinear,
         )
-        self.ghg_processed.name = "ghg_processed"
+        self.topo_processed.name = "topo_processed"
 
         logging.info("     - select waterways and add depth at waterways")
+
         # combine all waterways and filter on order_no
         if "order_edge_no" in self.edges.columns:
-            edges = self.edges[["code", "order_edge_no", "geometry"]].reset_index(drop=True)
-            edges = edges[edges["order_edge_no"]>0]
+            edges = self.edges[["code", "order_edge_no", "edge_id", "geometry"]].reset_index(drop=True)
+            edges = edges[edges["order_edge_no"]>-1]
         else:
-            edges = self.edges[["code", "geometry"]].reset_index(drop=True)
+            edges = self.edges[["code", "edge_id", "geometry"]].reset_index(drop=True)
 
-        self.alle_watergangen_0 = edges[["code", "geometry"]].reset_index(drop=True)
+        self.alle_watergangen_0 = edges[["code", "edge_id", "geometry"]].reset_index(drop=True)
 
         # # do the same for the other waterways and combine
         if self.edges_overig is not None:
             self.alle_watergangen_0 = pd.concat([
                 self.alle_watergangen_0,
-                self.edges_overig[["code", "geometry"]]
+                self.edges_overig[["code", "edge_id", "geometry"]]
             ]).reset_index(drop=True)
         # add depth
-        self.alle_watergangen_0["depth_waterways"] = depth_waterways
+        self.alle_watergangen_0["depth_waterways"] = self.topo_smooth_depth
 
         logging.info("     - give each waterway an unique id")
-        self.alle_watergangen_0["drainage_unit_id"] = self.alle_watergangen_0.index
+        # create buffer around waterways to burn into topo
         self.alle_watergangen_0["color_id"] = np.random.shuffle(np.arange(len(self.alle_watergangen_0)))
         self.alle_watergangen_0_buffer = self.alle_watergangen_0.copy()
-        self.alle_watergangen_0_buffer.geometry = self.alle_watergangen_0.geometry.buffer(buffer_waterways, cap_style="flat")
-        
-        ghg_waterways = make_geocube(
-            vector_data=self.alle_watergangen_0_buffer,
+        self.alle_watergangen_0_buffer.geometry = self.alle_watergangen_0.geometry.buffer(self.topo_burn_width_waterways, cap_style="flat")
+        if self.rws_water is None:
+            alle_wateren = self.alle_watergangen_0.copy()
+        else:
+            alle_wateren = alle_watergangen_0_buffer = pd.concat([
+                self.alle_watergangen_0_buffer,
+                self.rws_water[["rws_code", "geometry"]].copy().rename(columns={"rws_code": "code"})
+            ])
+        alle_wateren["depth_waterways"] = self.topo_smooth_depth
+
+        topo_waterways = make_geocube(
+            vector_data=alle_wateren,
             measurements=["depth_waterways"],
-            like=self.ghg_processed,
+            like=self.topo_processed,
         )["depth_waterways"].fillna(0.0)
+        topo_waterways_burned = topo_waterways.copy()
+        topo_waterways_burned.data[topo_waterways_burned.data>0.0] = self.topo_burn_depth_waterways
 
-        logging.info("     - calculate distance to waterways to add depth")
-        ghg_waterways_distance = distance_transform_edt(
-            ghg_waterways==0.0, 
-            sampling=2.0,
-        )
-        ghg_waterways_distance = xr.DataArray(
-            ghg_waterways_distance, 
-            dims=ghg_waterways.dims, 
-            coords=ghg_waterways.coords
-        )
-        ghg_waterways = depth_waterways * 0.5**(ghg_waterways_distance / smooth_distance)
-        ghg_waterways.data[ghg_waterways.data<0.001] = 0.0
+        if self.topo_smooth_distance > 0.0 and self.topo_smooth_depth > 0.0:
+            logging.info("     - calculate distance to waterways to add depth")
+            topo_waterways_distance = distance_transform_edt(
+                topo_waterways==0.0, 
+                sampling=2.0,
+            )
+            topo_waterways_distance = xr.DataArray(
+                topo_waterways_distance, 
+                dims=topo_waterways.dims, 
+                coords=topo_waterways.coords
+            )
+            topo_waterways = self.topo_smooth_depth * 0.5**(topo_waterways_distance / self.topo_smooth_distance)
+            topo_waterways.data[topo_waterways.data<0.001] = 0.0
+            self.topo_processed.data = self.topo_processed.data - topo_waterways.data
 
-        self.ghg_processed.data = self.ghg_processed.data - ghg_waterways.data
-        self.ghg_processed.data[self.ghg_processed.data<-900.0] = -999.99
+        self.topo_processed.data = self.topo_processed.data - topo_waterways_burned.data
         
         if self.write_results:
             self.export_results_to_gpkg_or_nc(
                 list_layers=[
                     "alle_watergangen_0", 
                     "alle_watergangen_0_buffer", 
-                    "ghg_processed"
+                    "topo_processed"
                 ]
             )
-        return self.ghg_processed
+        return self.topo_processed
 
 
     def generate_afvoergebied(self):
         logging.info("   x generate drainage units for each waterway")
+
         # create raster with unique id of each waterway
-        logging.info("     - give each waterway an unique id")
-        if self.alle_watergangen_0_buffer is None or self.ghg_processed is None:
-            raise ValueError("   x run preprocess_ghg to preprocess the data")
+        logging.info("     - convert waterways to raster with unique id for each waterway")
+        if self.alle_watergangen_0_buffer is None or self.topo_processed is None:
+            raise ValueError("   x run preprocess_topo to preprocess the data")
 
         self.afvoergebied_0 = make_geocube(
             vector_data=self.alle_watergangen_0_buffer,
-            measurements=["drainage_unit_id"],
-            like=self.ghg_processed,
-        )["drainage_unit_id"].fillna(-1)
+            measurements=["edge_id"],
+            like=self.topo_processed,
+        )["edge_id"].fillna(-1)
         self.afvoergebied_0.name = "afvoergebied_0"
         self.afvoergebied_0.attrs["_FillValue"] = -1
         
@@ -258,10 +260,11 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         if self.method == "pyflwdir":
             logging.info("     - run pyflwdir to create drainage units (basins)")
             flw_pyflwdir = pyflwdir.from_dem(
-                data=self.ghg_processed.data[0],
-                nodata=self.ghg_processed._FillValue,
-                transform=self.ghg_processed.rio.transform(),
+                data=self.topo_processed.data[0],
+                nodata=self.topo_processed._FillValue,
+                transform=self.topo_processed.rio.transform(),
                 latlon=False,
+                max_depth=self.topo_max_fill_depth,
             )
             self.flw = flw_pyflwdir
             
@@ -276,16 +279,14 @@ class GeneratorAfvoergebieden(GeneratorBasis):
                 ),
                 dims=("y", "x"),
                 coords={
-                    "y": self.ghg_processed.y, 
-                    "x": self.ghg_processed.x
+                    "y": self.topo_processed.y, 
+                    "x": self.topo_processed.x
                 },
                 name="afvoergebied_0",
             )
 
-        elif self.method == "pcraster":
-            raise ValueError("method pcraster not yet installed")
         else:
-            raise ValueError("method wrong")
+            raise ValueError("method wrong. only pyflwdir available")
 
         self.afvoergebied_0_gdf = None
 
@@ -295,23 +296,23 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         else:
             gdf = imod.prepare.polygonize(self.afvoergebied_0[0])
 
-        gdf = gdf.rename(columns={"value": "drainage_unit_id"})
-        gdf["drainage_unit_id"] = gdf["drainage_unit_id"].astype(int)
-        gdf = gdf.dissolve(by="drainage_unit_id", aggfunc="first").reset_index()
+        gdf = gdf.rename(columns={"value": "edge_id"})
+        gdf["edge_id"] = gdf["edge_id"].astype(int)
+        gdf = gdf.dissolve(by="edge_id", aggfunc="first").reset_index()
         gdf = gdf.set_crs(self.hydroobject.crs)
         random_color_id = np.random.randint(0, 25, size=len(gdf))
         gdf["color_id"] = random_color_id
 
         gdf["drainage_unit_area"] = gdf["geometry"].area
         gdf = gdf.explode().reset_index(drop=True)
-        gdf["part_count"] = gdf[["drainage_unit_id"]].groupby("drainage_unit_id").transform("count").reset_index()
-        gdf = gdf[gdf["drainage_unit_id"] > -1]
-        gdf = gdf.dissolve(by="drainage_unit_id").reset_index()
+        gdf["part_count"] = gdf[["edge_id"]].groupby("edge_id").transform("count").reset_index()
+        gdf = gdf[gdf["edge_id"] > -1]
+        gdf = gdf.dissolve(by="edge_id").reset_index()
 
         gdf = gdf.merge(
-            self.alle_watergangen_0[["code", "drainage_unit_id"]],
+            self.alle_watergangen_0[["code", "edge_id"]],
             how="left",
-            on="drainage_unit_id",
+            on="edge_id",
         )
 
         self.afvoergebied_0_gdf = gdf.copy()
@@ -326,7 +327,7 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         return self.afvoergebied_0
 
 
-    def aggregate_afvoergebied_tot_2(self):
+    def aggregate_afvoergebied_tot_stroomgebied_1(self):
         self.afvoergebied_1 = None
         self.afvoergebied_1_gdf = None
         self.afvoergebied_2 = None
@@ -335,16 +336,26 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         logging.info("   x aggregation/lumping of drainage units: aggregate 'overige watergangen'")
         logging.info("     - define new drainage_unit_ids for all 'overige watergangen'")
 
-        self.edges_hydro["downstream_edges"] = self.edges_hydro["code"]
+        if "order_code" not in self.edges_hydro.columns:
+            logging.error("     - no 'order_code' in edges. First generate order_code before aggregation")
+            return None
 
-        alle_watergangen_1 = self.alle_watergangen_0.merge(
-            pd.concat([
-                self.edges_hydro[["code", "downstream_edges", "order_code"]], 
-                self.edges_overig[["code", "downstream_edges", "downstream_order_code"]]
-            ]),
-            how="left",
-            on="code"
-        )
+        self.edges_hydro["downstream_edges"] = self.edges_hydro["code"]
+        if self.edges_overig is not None:
+            alle_watergangen_1 = self.alle_watergangen_0.merge(
+                pd.concat([
+                    self.edges_hydro[["code", "downstream_edges", "order_code"]], 
+                    self.edges_overig[["code", "downstream_edges", "downstream_order_code"]]
+                ]),
+                how="left",
+                on="code"
+            )
+        else:
+            alle_watergangen_1 = self.alle_watergangen_0.merge(
+                self.edges_hydro[["code", "downstream_edges", "order_code"]],
+                how="left",
+                on="code"
+            )
 
         alle_watergangen_1["order_code"] = alle_watergangen_1["order_code"].fillna(alle_watergangen_1["downstream_order_code"])
         alle_watergangen_1 = alle_watergangen_1[alle_watergangen_1["downstream_edges"] != ''].copy()
@@ -362,7 +373,7 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         self.afvoergebied_1_gdf = self.afvoergebied_0_gdf.merge(
             self.alle_watergangen_1.drop(columns=["color_id", "code", "geometry"]),
             how="left",
-            on="drainage_unit_id"
+            on="edge_id"
         )
         
         self.afvoergebied_1_gdf["downstream_order_code"] = self.afvoergebied_1_gdf["downstream_order_code"].fillna("")
@@ -405,7 +416,7 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         return self.afvoergebied_2_gdf
 
 
-    def aggregate_afvoergebied_tot_4(self):
+    def aggregate_afvoergebied_tot_stroomgebied_2(self):
         self.afvoergebied_3 = None
         self.afvoergebied_3_gdf = None
         self.afvoergebied_4 = None
@@ -456,7 +467,7 @@ class GeneratorAfvoergebieden(GeneratorBasis):
 
     def generate_folium_map(self, html_file_name:str="", **kwargs):
         if html_file_name == '':
-            html_file_name = self.name + "_afvoergebied"
+            html_file_name = self.case_id + "_afvoergebied"
         self.folium_map = generate_folium_map(
             self, 
             html_file_name=html_file_name, 

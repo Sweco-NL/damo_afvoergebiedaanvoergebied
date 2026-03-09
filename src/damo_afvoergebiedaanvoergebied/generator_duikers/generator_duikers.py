@@ -33,15 +33,18 @@ class GeneratorDuikers(GeneratorBasis):
     based on existing water network, other water bodies (c-watergangen),
     roads and level areas (peilgebied)."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    generator: str = "generator_duikers"
+    path: Path
 
-    path: Path = None
-    name: str = None
+    case_id: str = None
+    case_name: str = None
     base_dir: Path = None
     waterschap: str = None
 
     hydroobject: gpd.GeoDataFrame = None
     overige_watergang: gpd.GeoDataFrame = None
+    rws_water: gpd.GeoDataFrame = None
+    outflow_nodes: gpd.GeoDataFrame = None
 
     bebouwing: gpd.GeoDataFrame = None
     kering: gpd.GeoDataFrame = None
@@ -53,6 +56,8 @@ class GeneratorDuikers(GeneratorBasis):
     read_results: bool = False
     write_results: bool = False
 
+    snapping_distance: float = 0.05
+    distance_vertices: float = 10.0
     max_culvert_length: float = None
 
     water_line_pnts: gpd.GeoDataFrame = None
@@ -85,65 +90,6 @@ class GeneratorDuikers(GeneratorBasis):
 
     folium_map: folium.Map = None
     folium_html_path: Path = None
-
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if self.path is not None:
-            self.use_processed_hydroobject(force_preprocess=True)
-            self.create_unique_codes()
-
-
-    def create_unique_codes(self, column="code"):
-        """Make sure hydroobject and overige_watergang have unique code names"""
-        if self.hydroobject is None or self.overige_watergang is None:
-            raise ValueError(" x hydroobject or overige_watergang not loaded")
-
-        logging.info(f" x Check for duplicate codes in hydroobject and overige_watergang")
-
-        def make_unique_codes(gdf, col="code"):
-            if col not in gdf.columns:
-                return gdf
-            s = gdf[col].astype("string").fillna("")
-            if s.is_unique:
-                return gdf
-            counts = s.groupby(s).cumcount()
-            gdf[col] = np.where(counts == 0, s, s + "_" + counts.astype(str))
-            return gdf
-
-        # check hydroobject
-        if self.hydroobject["code"].duplicated().sum() > 0:
-            duplicated_codes = self.hydroobject[self.hydroobject["code"].duplicated()]["code"].unique()
-            logging.info(f"     - hydroobject has non-unique codes: {duplicated_codes}")
-            self.hydroobject = make_unique_codes(self.hydroobject)
-
-        # check overige_watergang
-        if self.overige_watergang["code"].duplicated().sum() > 0:
-            duplicated_codes = self.overige_watergang[self.overige_watergang["code"].duplicated()]["code"].unique()
-            logging.info(f"     - overige_watergang has non-unique codes: {duplicated_codes}")
-            self.overige_watergang = make_unique_codes(self.overige_watergang)
-
-        # check between hydroobject and overige_watergang
-        hydroobject = self.hydroobject[["code"]].astype("string")
-        hydroobject["source"] = "hydroobject"
-        overige_watergang = self.overige_watergang[["code"]].astype("string")
-        overige_watergang["source"] = "overige_watergang"
-        
-        combined = pd.concat([
-            hydroobject.astype("string"),
-            overige_watergang.astype("string")
-        ])
-        if combined["code"].duplicated().sum() > 0:
-            duplicated_codes = combined.loc[combined["code"].duplicated(), "code"].unique()
-            logging.info(f"     - hydroobject and overige_watergang have overlapping codes: {duplicated_codes}")
-            combined = make_unique_codes(combined)
-            self.hydroobject["code"] = combined[combined["source"] == "hydroobject"]["code"].values
-            self.overige_watergang["code"] = combined[combined["source"] == "overige_watergang"]["code"].values
-
-        duplicated_codes = combined.loc[combined["code"].duplicated(), "code"].unique()
-        logging.info(f"     - hydroobject and overige_watergang have overlapping codes: {duplicated_codes}")
-
-        logging.info("   x hydroobject and overige_watergang have unique codes")
 
 
     def generate_vertices_along_waterlines(
@@ -235,8 +181,8 @@ class GeneratorDuikers(GeneratorBasis):
         self,
         water_line_pnts: gpd.GeoDataFrame = None,
         max_culvert_length: float = 40.0,
-        read_results: bool = False,
-        write_results: bool = False,
+        read_results: bool = None,
+        write_results: bool = None,
     ) -> gpd.GeoDataFrame:
         """Find potential culvert locations based on water_line_pnts.
         The connections between two points from different waterlines
@@ -259,9 +205,9 @@ class GeneratorDuikers(GeneratorBasis):
             Locations potential culverts (between different water_lines)
         """
         # check read_results and write_results
-        if isinstance(read_results, bool):
+        if read_results is not None and isinstance(read_results, bool):
             self.read_results = read_results
-        if isinstance(write_results, bool):
+        if write_results is not None and isinstance(write_results, bool):
             self.write_results = write_results
 
         if (
@@ -650,7 +596,7 @@ class GeneratorDuikers(GeneratorBasis):
     def select_correct_score_based_on_score_and_length(
         self,
         read_results=None,
-        factor_angle_on_length=3,
+        factor_angle_on_length=2,
     ) -> gpd.GeoDataFrame:
         """Select the best possible score of culvert for each dangling point. The selection is based on both length of the culvert, angle, and score.
         The angle increases the fictive length of a culvert, where a straight culvert has no increase and a culvert that has an angle of 90 degrees with the waterline has its length increased by the given 'factor_angle_on_length'.
@@ -1324,7 +1270,7 @@ class GeneratorDuikers(GeneratorBasis):
         **kwargs
     ):
         if html_file_name == '':
-            html_file_name = self.name + "_culvert_locations"
+            html_file_name = self.case_id + "_culvert_locations"
         self.folium_map = generate_folium_map(
             self, 
             html_file_name=html_file_name, 

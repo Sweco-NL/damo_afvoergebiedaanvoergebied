@@ -278,16 +278,16 @@ def generate_folium_map(
                 fg=fg,
             )
 
-    if is_attribute_not_none(generator, f"ghg"):
+    if is_attribute_not_none(generator, f"topo"):
         logging.info(f'     - raster topography or groundwaterlevel')
         add_graduated_raster_to_map(
             m=m,
-            raster=generator.ghg,
-            layer_name="GHG",
+            raster=generator.topo,
+            layer_name=generator.topo_type,
             unit="m NAP",
             control=True,
-            vmin=generator.ghg.STATISTICS_MINIMUM if zmin is None else zmin,
-            vmax=generator.ghg.STATISTICS_MAXIMUM if zmax is None else zmax,
+            vmin=generator.topo.STATISTICS_MINIMUM if zmin is None else zmin,
+            vmax=generator.topo.STATISTICS_MAXIMUM if zmax is None else zmax,
             legend=False,
             opacity=1.00,
             show=False,
@@ -296,16 +296,16 @@ def generate_folium_map(
             dy=dy,
         )
 
-    if is_attribute_not_none(generator, f"ghg_processed"):
+    if is_attribute_not_none(generator, f"topo_processed"):
         logging.info(f'     - raster topography or groundwaterlevel (processed)')
         add_graduated_raster_to_map(
             m=m,
-            raster=generator.ghg_processed,
-            layer_name="GHG-processed",
+            raster=generator.topo_processed,
+            layer_name=f"{generator.topo_type}-processed",
             unit="m NAP",
             control=True,
-            vmin=generator.ghg.STATISTICS_MINIMUM if zmin is None else zmin,
-            vmax=generator.ghg.STATISTICS_MAXIMUM if zmax is None else zmax,
+            vmin=generator.topo.STATISTICS_MINIMUM if zmin is None else zmin,
+            vmax=generator.topo.STATISTICS_MAXIMUM if zmax is None else zmax,
             legend=False,
             opacity=1.00,
             show=False,
@@ -314,16 +314,16 @@ def generate_folium_map(
             dy=dy,
         )
 
-    if is_attribute_not_none(generator, f"ghg_processed_adapt"):
+    if is_attribute_not_none(generator, f"topo_processed_adapt"):
         logging.info(f'     - raster topography or groundwaterlevel (adapted)')
         add_graduated_raster_to_map(
             m=m,
-            raster=generator.ghg_processed_adapt,
-            layer_name="GHG-processed-adapt",
+            raster=generator.topo_processed_adapt,
+            layer_name=f"{generator.topo_type}-processed-adapt",
             unit="m NAP",
             control=True,
-            vmin=generator.ghg.STATISTICS_MINIMUM if zmin is None else zmin,
-            vmax=generator.ghg.STATISTICS_MAXIMUM if zmax is None else zmax,
+            vmin=generator.topo.STATISTICS_MINIMUM if zmin is None else zmin,
+            vmax=generator.topo.STATISTICS_MAXIMUM if zmax is None else zmax,
             legend=False,
             opacity=1.00,
             show=False,
@@ -523,7 +523,7 @@ def generate_folium_map(
         if html_file_name is None:
             html_file_name = generator.name
 
-        generator.folium_html_path = Path(generator.path, f"{html_file_name}.html")
+        generator.folium_html_path = Path(generator.path.parent, f"{html_file_name}.html")
         m.save(generator.folium_html_path)
 
         logging.info(f"   x html file saved: {html_file_name}.html")
