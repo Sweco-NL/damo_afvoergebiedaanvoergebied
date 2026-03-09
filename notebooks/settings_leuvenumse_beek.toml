@@ -1,0 +1,65 @@
+[project]
+title = "Netwerk analyse Leuvenumsebeek"
+name = "Harm Nomden"
+email = "harm.nomden@sweco.nl"
+client_contact = "Harmen van de Werfhorst"
+client_email = "hvandewerfhorst@vallei-veluwe.nl"
+
+[case]
+case_id = "Leuvenumse_beek"
+case_name = "Leuvenumse beek"
+waterschap = "Waterschap Vallei en Veluwe"
+dir_basisdata = "0_basisdata"
+dir_resultaten = "1_resultaat"
+
+[networkdata]
+file_name_hydroobject = "hydroobject.gpkg"
+file_name_overige_watergang = "overige_watergang.gpkg"
+file_name_rws_water = "rws_water.gpkg"
+file_name_outflow_nodes = "outflow_nodes.gpkg"
+
+[generator_duikers]
+read_results = false
+write_results = true
+preprocess_hydroobject = true
+snapping_distance = 0.05
+distance_vertices = 10.0
+max_culvert_length = 40.0
+file_name_kering = "kering.gpkg"
+file_name_spoorweg = "spoorweg.gpkg"
+file_name_snelweg = "snelweg.gpkg"
+file_name_peilgebied = "peilgebied.gpkg"
+file_name_nwb = "nwb.gpkg"
+
+[generator_gebiedsorde]
+read_results = true
+write_results = true
+generate_new_outflow_nodes = false
+search_range_outflow_nodes = 50.0
+max_order_no = 100
+snapping_distance = 0.05
+order_for_each_edge = false
+order_code_overig = true
+
+[generator_afvoergebieden]
+read_results = true
+write_results = true
+topo_type = "GHG"               # GHG or TOPO
+file_name_topo = "ghg.nc"
+method = "pyflwdir"
+topo_new_resolution = 2
+topo_smooth_distance = 50.0
+topo_smooth_depth = 0.2
+topo_burn_depth_waterways = 500.0
+topo_burn_width_waterways_factor = 3.0
+topo_max_fill_depth = 250.0
+
+[generator_specifieke_afvoer]
+read_results = true
+write_results = true
+file_name_splitsing = "splitsing.gpkg"
+file_name_wateraanvoer_kunstwerken = "wateraanvoer_kunstwerken.gpkg"
+file_name_specifieke_afvoer = "specifieke_afvoer.nc"
+column_name_specifieke_afvoer = "specifieke_afvoer"
+column_name_total_specifieke_afvoer = "total_specifieke_afvoer"
+
