@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 import toml
+import fiona
 
 import folium
 import geopandas as gpd
@@ -500,11 +501,16 @@ class GeneratorBasis(BaseModel):
             return
         for layer in list_layers:
             result = getattr(self, layer)
+
             if result is None:
                 logging.info(f"     - {layer} not available")
+
             elif isinstance(result, gpd.GeoDataFrame):
                 logging.info(f"     - {layer} ({len(result)})")
-                result.to_file(Path(dir_output, f"{layer}.gpkg"))
+                gpkg_path = Path(dir_output, f"{layer}.gpkg")
+                gpkg_path.unlink(missing_ok=True)
+                result.to_file(gpkg_path, layer=layer)
+
             elif isinstance(result, xr.DataArray) or isinstance(result, xr.Dataset):
                 logging.info(f"     - {layer} (netcdf)")
                 netcdf_file_path = Path(dir_output, f"{layer}.nc")
