@@ -818,7 +818,6 @@ class GeneratorGebiedsOrde(GeneratorBasis):
                 )
             )
 
-
         outflow_nodes_hydro["no_downstream_edges"] = outflow_nodes_hydro["downstream_edges"].apply(lambda x: len(x))
         outflow_nodes_hydro["no_downstream_order_no"] = outflow_nodes_hydro["downstream_order_no"].apply(lambda x: len(x))
         outflow_nodes_hydro["no_downstream_order_code"] = outflow_nodes_hydro["downstream_order_code"].apply(lambda x: len(x))
@@ -855,8 +854,19 @@ class GeneratorGebiedsOrde(GeneratorBasis):
             )
         ).drop(columns="index_right")
 
-        if self.overige_watergang_processed_3 is not None:
-            edges_overig = self.overige_watergang_processed_3.merge(
+        if self.edges_overig is not None:
+            self.edges_overig = self.edges_overig.drop(
+                columns=[
+                    "nodeID", "downstream_edges", "downstream_order_no", "downstream_order_code"
+                ]
+            )
+        elif self.edges_overig is None and self.overige_watergang_processed_3 is not None:
+            self.edges_overig = self.overige_watergang_processed_3.copy()
+        else:
+            self.edges_overig = gpd.GeoDataFrame()
+        
+        if self.edges_overig is not None:
+            edges_overig = self.edges_overig.merge(
                 self.outflow_nodes_overig[
                     ["nodeID", "downstream_edges", "downstream_order_no", "downstream_order_code"]
                 ],
@@ -883,17 +893,25 @@ class GeneratorGebiedsOrde(GeneratorBasis):
             self.edges_overig = edges_overig.copy()
             self.edges_overig["source"] = "overige_watergang"
             logging.info(f"     - overige watergangen with order code: {len(self.edges_overig)}")
-        
+
+        self.edges = pd.concat([
+            self.edges_hydro,
+            self.edges_overig
+        ])
+
         if self.write_results:
-            self.export_results_to_gpkg_or_nc(list_layers=[
-                "edges_hydro",
-                "nodes_hydro",
-                "outflow_edges_hydro",
-                "outflow_nodes_hydro",
-                "outflow_nodes_overig",
-                "edges_overig",
-                "nodes_overig"
-            ])
+            self.export_results_to_gpkg_or_nc(
+                list_layers=[
+                    "edges_hydro",
+                    "nodes_hydro",
+                    "outflow_edges_hydro",
+                    "outflow_nodes_hydro",
+                    "outflow_nodes_overig",
+                    "edges_overig",
+                    "nodes_overig",
+                    "edges"
+                ]
+            )
         return (
             self.outflow_nodes_overig,
             self.edges_overig,

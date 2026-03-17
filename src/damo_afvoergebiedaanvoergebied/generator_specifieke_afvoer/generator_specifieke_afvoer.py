@@ -263,7 +263,7 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
             )
             self.edges["specifieke_afvoer"] = self.edges["specifieke_afvoer"].fillna(0.0)
             self.nodes["specifieke_afvoer"] = 0.0
-            total_specifieke_afvoer = self.edges["specifieke_afvoer"].sum() / 1000.0
+            total_specifieke_afvoer = self.edges["specifieke_afvoer"].sum()
             logging.info(
                 f"     - total discharge added to edges: {total_specifieke_afvoer} [m3/s]"
             )
