@@ -3,6 +3,11 @@
 o.a. voorbewerking waternetwerk, verbinden c-watergangen middels duikers, afwateringseenheden, automatische orde-codering, stroomgebieden afleiden. Bekijk de uitgebreide documentatie via de [read-the-docs](https://damo-afvoergebiedaanvoergebied.readthedocs.io/nl/latest/)
 
 
+DOCUMENTATIE WORDT IN MAART NOG AANGEPAST!
+AFGELOPEN TIJD IS ER VEEL GEWERKT OM ALLERLEI KLEINE BUGS ERUIT TE HALEN.
+DAARNAAST HEBBEN WE DE OVERSTAP GEMAAKT NAAR EEN TOML-BESTAND ALS INPUT WAAR ALLE SETTINGS IN STAAN. DAT MAAKT HET VEEL OVERZICHTELIJKER, MAAR HIERDOOR LOOPT DE DOCUMENTATIE ACHTER.
+
+
 ### Installatie environment
 We gebruiken pixi om de environment op orde te houden. Installatie van pixi (prefix.dev) kan via de Windows Powershell:
 ```
