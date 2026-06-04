@@ -86,7 +86,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
         search_range_outflow_nodes=50.0, 
         buffer_outflow_nodes=50.0
     ):
-        if generate_new_outflow_nodes or self.generate_new_outflow_nodes:
+        if generate_new_outflow_nodes or self.generate_new_outflow_nodes or self.outflow_nodes is None:
             return self.generate_outflow_nodes_rws_water(
                 search_range_outflow_nodes=search_range_outflow_nodes
             )
@@ -217,7 +217,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
             logging.info(logging_message)
 
         logging.info(
-            f"     - total no. outflow_point on outside waters for {self.name}: {len(outflow_edges_hydro_all_waters)}"
+            f"     - total no. outflow_point on outside waters for {self.case_name}: {len(outflow_edges_hydro_all_waters)}"
         )
 
         # set outflow_edges_hydro and set order_no to 2        
