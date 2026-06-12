@@ -23,7 +23,8 @@ def preprocess_hydroobject(hydroobject, snapping_distance=0.05):
 
     # Snap hydroobject
     hydroobject = snap_unconnected_endpoints_to_endpoint_or_line(
-        hydroobject, snapping_distance=snapping_distance
+        hydroobject, 
+        snapping_distance=snapping_distance
     )
 
     hydroobject_snapped = hydroobject.copy()

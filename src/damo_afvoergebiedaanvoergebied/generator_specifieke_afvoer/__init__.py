@@ -12,6 +12,7 @@ def run_generator_specifieke_afvoer(
     create_html_map: bool = False,
     open_html_map: bool = False,
 ) -> GeneratorSpecifiekeAfvoer:
+
     start_time = time.time()
     afvoer = GeneratorSpecifiekeAfvoer(path=path)
 

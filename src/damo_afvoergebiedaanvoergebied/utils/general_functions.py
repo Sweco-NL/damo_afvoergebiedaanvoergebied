@@ -441,7 +441,7 @@ def snap_unconnected_endpoints_to_endpoint_or_line(
     endpoints["ID"] = endpoints.index
     endpoints = endpoints[
         (endpoints["starting_line_count"] == 0) | (endpoints["ending_line_count"] == 0)
-    ]
+    ].copy()
     endpoints = endpoints.rename(columns={"coordinates": "geometry"})
     endpoints = gpd.GeoDataFrame(endpoints, geometry="geometry", crs=28992)
 

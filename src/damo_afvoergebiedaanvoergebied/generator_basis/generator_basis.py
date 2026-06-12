@@ -89,31 +89,6 @@ def analyse_netwerk_add_information_to_nodes_edges(
 
 
 class GeneratorBasis(BaseModel):
-    """Basis class for all Generators
-    
-    Basis class for reading all basis datasets (based on attributes) 
-    from the subdirectory basisdata (dir_basisdata) and optionally read results
-
-    Parameters
-    ----------
-    path : pathlib.Path
-        windowspath to analysis folder
-    name : str
-        String representing name of case (equal to folder name)
-    dir_basisdata : str | pathlib.Path
-        String representing subfolder with basisdata
-    dir_results : str | pathlib.Path
-        String representing subfolder with results
-    read_results : bool
-        setting to know whether results in dir_results should be read
-    write_results : bool
-        setting to know whether results should be written in dir_results
-    required_results : list[str]
-        attributes required as input (in the results directory)
-    folium_map : folium.Map
-        folium map
-    """
-
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     generator: str = ""
@@ -132,6 +107,8 @@ class GeneratorBasis(BaseModel):
     write_results: bool = False
 
     required_results: list[str] = []
+
+    snapping_distance: float = 0.05
 
     folium_map: folium.Map = None
 
@@ -254,7 +231,7 @@ class GeneratorBasis(BaseModel):
     def read_required_data_from_case(self):
         """Check if required results (from previous analyses) is available
 
-        This function check if all required datasets are imported.
+        This function checks if all required datasets are imported also from the results directory.
 
         Raises
         ------
@@ -281,7 +258,7 @@ class GeneratorBasis(BaseModel):
     def use_processed_hydroobject(self, processed_file="processed", force_preprocess=False, snapping_distance=0.05):
         """actualize hydroobject and overige_watergang
 
-        replaces hydroobject and overige_watergang with the newest processed attributes
+        Replaces hydroobject and overige_watergang with the newest processed datasets
 
         Parameters
         ----------
@@ -362,7 +339,7 @@ class GeneratorBasis(BaseModel):
 
     def create_unique_codes(self, column="code"):
         """Make sure hydroobject and overige_watergang have unique code names"""
-        if self.hydroobject is None or self.overige_watergang is None:
+        if self.hydroobject is None and self.overige_watergang is None:
             raise ValueError(" x hydroobject or overige_watergang not loaded")
 
         logging.info(f" x Check for duplicate codes in hydroobject and overige_watergang")
@@ -383,15 +360,19 @@ class GeneratorBasis(BaseModel):
             logging.info(f"     - hydroobject has non-unique codes: {duplicated_codes}")
             self.hydroobject = make_unique_codes(self.hydroobject)
 
+        hydroobject = self.hydroobject[["code"]].astype("string")
+        hydroobject["source"] = "hydroobject"
+
+        if self.overige_watergang is None:
+            logging.info("   x no overige_watergang, hydroobject has unique codes")
+            return
+        
         # check overige_watergang
         if self.overige_watergang["code"].duplicated().sum() > 0:
             duplicated_codes = self.overige_watergang[self.overige_watergang["code"].duplicated()]["code"].unique()
             logging.info(f"     - overige_watergang has non-unique codes: {duplicated_codes}")
             self.overige_watergang = make_unique_codes(self.overige_watergang)
 
-        # check between hydroobject and overige_watergang
-        hydroobject = self.hydroobject[["code"]].astype("string")
-        hydroobject["source"] = "hydroobject"
         overige_watergang = self.overige_watergang[["code"]].astype("string")
         overige_watergang["source"] = "overige_watergang"
         

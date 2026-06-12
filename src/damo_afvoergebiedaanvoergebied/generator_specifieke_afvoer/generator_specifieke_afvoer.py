@@ -74,6 +74,7 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
     
     snapping_distance: float = 0.05
     use_specifieke_afvoer: float = 1.0
+    level_discharge_units: int = 0
 
     outflow_nodes_hydro: gpd.GeoDataFrame = None
     splitsing: gpd.GeoDataFrame = None
@@ -107,41 +108,42 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
             lambda x: ",".join([str(1/x) for i in range(x)])
         ).values.tolist()
 
-        self.split_nodes = self.split_nodes.sjoin(
-            self.splitsing, 
-            how="left", 
-            predicate="dwithin",
-            distance=5.0,
-            lsuffix=None, 
-            rsuffix='x'
-        )
+        if self.splitsing is not None:
+            self.split_nodes = self.split_nodes.sjoin(
+                self.splitsing, 
+                how="left", 
+                predicate="dwithin",
+                distance=5.0,
+                lsuffix=None, 
+                rsuffix='x'
+            )
 
-        def replace_downstream_split_dist(row, max_angle_difference=20.0):
-            if pd.isna(row["downstream_splits_dist_x"]) or \
-                pd.isna(row["downstream_angles_x"]):
+            def replace_downstream_split_dist(row, max_angle_difference=20.0):
+                if pd.isna(row["downstream_splits_dist_x"]) or \
+                    pd.isna(row["downstream_angles_x"]):
+                    return row
+
+                old_angles = [float(i) for i in row["downstream_angles"].split(",")]
+                old_dist = [float(i) for i in row["downstream_splits_dist"].split(",")]
+
+                new_angles = [float(i) for i in row["downstream_angles_x"].split(",")]
+                new_dist = [float(i) for i in row["downstream_splits_dist_x"].split(",")]
+
+                diff_angles_1 = [abs(a1 - a2) % 360.0 for a1, a2 in zip(old_angles, new_angles)]
+                diff_angles_2 = [abs(a1 - a2) % 360.0 for a1, a2 in zip(old_angles, new_angles[::-1])]
+
+                if sum(diff_angles_1) < sum(diff_angles_2):
+                    row["downstream_splits_dist"] = ",".join([str(i) for i in new_dist])
+                else:
+                    row["downstream_splits_dist"] = ",".join([str(i) for i in new_dist[::-1]])
                 return row
 
-            old_angles = [float(i) for i in row["downstream_angles"].split(",")]
-            old_dist = [float(i) for i in row["downstream_splits_dist"].split(",")]
-
-            new_angles = [float(i) for i in row["downstream_angles_x"].split(",")]
-            new_dist = [float(i) for i in row["downstream_splits_dist_x"].split(",")]
-
-            diff_angles_1 = [abs(a1 - a2) % 360.0 for a1, a2 in zip(old_angles, new_angles)]
-            diff_angles_2 = [abs(a1 - a2) % 360.0 for a1, a2 in zip(old_angles, new_angles[::-1])]
-
-            if sum(diff_angles_1) < sum(diff_angles_2):
-                row["downstream_splits_dist"] = ",".join([str(i) for i in new_dist])
-            else:
-                row["downstream_splits_dist"] = ",".join([str(i) for i in new_dist[::-1]])
-            return row
-
-        self.split_nodes = self.split_nodes.apply(lambda x: replace_downstream_split_dist(x), axis=1)
-        self.split_nodes = self.split_nodes.drop(columns=[
-            "upstream_angles_x",
-            "downstream_angles_x",
-            "downstream_splits_dist_x",
-        ])
+            self.split_nodes = self.split_nodes.apply(lambda x: replace_downstream_split_dist(x), axis=1)
+            self.split_nodes = self.split_nodes.drop(columns=[
+                "upstream_angles_x",
+                "downstream_angles_x",
+                "downstream_splits_dist_x",
+            ])
 
         downstream_splits = self.split_nodes[["downstream_edges", "downstream_splits_dist"]].copy()
         downstream_splits["downstream_edges"] = downstream_splits["downstream_edges"].apply(lambda x: x.split(","))
@@ -161,37 +163,43 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
         self.edges["downstream_splits_dist"] = self.edges["downstream_splits_dist"].fillna(1.0)
 
 
-    def read_specifieke_afvoer(self, file_name_specifieke_afvoer: str = None):
+    def read_specifieke_afvoer(self):
         """Read specific discharge data from a file."""
-        if file_name_specifieke_afvoer is None:
-            return None
         logging.info("   x read topographical data as input")
-        self.file_name_specifieke_afvoer = file_name_specifieke_afvoer
-        self.specifieke_afvoer = xr.open_dataset(Path(self.path, self.dir_basisdata, file_name_specifieke_afvoer))
-        self.specifieke_afvoer = self.specifieke_afvoer.rename_vars({"__xarray_dataarray_variable__": "specifieke_afvoer"})
-        if self.specifieke_afvoer.rio.crs is None:
-            self.specifieke_afvoer = self.specifieke_afvoer.rio.write_crs(28992)
+        if self.use_specifieke_afvoer != 0.0:
+            return None
+        if self.file_name_specifieke_afvoer.endswith(".tif"):
+            self.specifieke_afvoer = rioxarray.open_rasterio(Path(self.dir_basisdata, self.file_name_specifieke_afvoer))[0]
+            # self.specifieke_afvoer = self.specifieke_afvoer.to_dataset(name="specifieke_afvoer")
+            if self.specifieke_afvoer.rio.crs is None:
+                self.specifieke_afvoer = self.specifieke_afvoer.rio.write_crs(28992)
+        elif self.file_name_specifieke_afvoer.endswith(".nc"):
+            self.specifieke_afvoer = xr.open_dataset(Path(self.dir_basisdata, self.file_name_specifieke_afvoer))
+            self.specifieke_afvoer = self.specifieke_afvoer.rename_vars({"__xarray_dataarray_variable__": "specifieke_afvoer"})
+            if self.specifieke_afvoer.rio.crs is None:
+                self.specifieke_afvoer = self.specifieke_afvoer.rio.write_crs(28992)
         return self.specifieke_afvoer
     
 
-    def add_specifieke_afvoer_to_discharge_units(self, level_discharge_units=0, use_specifieke_afvoer=0):
+    def add_specifieke_afvoer_to_discharge_units(self):
         """Add specific discharge to discharge units"""
         logging.info(
             f"   x add specific discharge to discharge units"
         )
-        if 0 <= level_discharge_units <= 4:
-            self.afvoergebied = getattr(self, f"afvoergebied_{level_discharge_units}")
-            self.afvoergebied_gdf = getattr(self, f"afvoergebied_{level_discharge_units}_gdf")
-            area_afvoergebied = self.afvoergebied_gdf.geometry.area.sum()/10000.0
-            logging.info(
-                f"     - afvoergebied level {level_discharge_units} [{len(self.afvoergebied_gdf)}] with area {round(area_afvoergebied, 2)}[ha]"
-            )
+        if 0 <= self.level_discharge_units <= 4:
+            self.afvoergebied = getattr(self, f"afvoergebied_{self.level_discharge_units}")
+            self.afvoergebied_gdf = getattr(self, f"afvoergebied_{self.level_discharge_units}_gdf")
 
-        if self.afvoergebied_gdf is None or use_specifieke_afvoer<0.0:
+        if self.afvoergebied_gdf is None or self.use_specifieke_afvoer<0.0:
             logging.info("     - no drainage units or specific discharge defined")
             return self.afvoergebied_gdf
+        else:
+            area_afvoergebied = self.afvoergebied_gdf.geometry.area.sum()/10000.0
+            logging.info(
+                f"     - afvoergebied level {self.level_discharge_units} [{len(self.afvoergebied_gdf)}] with area {round(area_afvoergebied, 2)}[ha]"
+            )
 
-        if use_specifieke_afvoer == 0:
+        if self.use_specifieke_afvoer == 0:
             logging.info("     - add distributed specific discharge to afvoergebied [l/s]")
             # reproject specific afvoer to match afvoergebied
             afvoergebied = self.afvoergebied.rio.write_crs("EPSG:28992")
@@ -217,9 +225,9 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
             self.afvoergebied_gdf["specifieke_afvoer"] = self.afvoergebied_gdf["specifieke_afvoer"] * 2 * 2 / 1000 / 24 / 3600
             self.afvoergebied_gdf["specifieke_afvoer"] = self.afvoergebied_gdf["specifieke_afvoer"].fillna(0.0)
             
-        elif use_specifieke_afvoer > 0:
-            logging.info(f"     - add homogenic specific discharge {round(use_specifieke_afvoer, 2)} [l/s/ha] to drainage units (results in m3/s!)")
-            self.afvoergebied_gdf["specifieke_afvoer"] = self.afvoergebied_gdf.geometry.area / 10000.0 * use_specifieke_afvoer / 1000.0 * 24.0 * 3600.0
+        elif self.use_specifieke_afvoer > 0:
+            logging.info(f"     - add homogenic specific discharge {round(self.use_specifieke_afvoer, 2)} [l/s/ha] to drainage units (results in m3/s!)")
+            self.afvoergebied_gdf["specifieke_afvoer"] = self.afvoergebied_gdf.geometry.area / 10000.0 * self.use_specifieke_afvoer / 1000.0
 
         total_specifieke_afvoer = self.afvoergebied_gdf["specifieke_afvoer"].sum()
         logging.info(f"     - total specific discharge: {round(total_specifieke_afvoer, 2)} [m3/s]")

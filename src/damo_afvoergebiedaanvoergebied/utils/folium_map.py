@@ -521,12 +521,12 @@ def generate_folium_map(
     generator.folium_map = m
     if save_html:
         if html_file_name is None:
-            html_file_name = generator.name
+            html_file_name = generator.case_name
 
         generator.folium_html_path = Path(generator.path.parent, f"{html_file_name}.html")
         m.save(generator.folium_html_path)
 
         logging.info(f"   x html file saved: {html_file_name}.html")
         if open_html_map:
-            webbrowser.open(Path(generator.path, f"{html_file_name}.html"))
+            webbrowser.open(Path(generator.dir_path, f"{html_file_name}.html"))
     return m
