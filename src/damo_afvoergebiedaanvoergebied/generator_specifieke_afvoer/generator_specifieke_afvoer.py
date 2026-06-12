@@ -227,7 +227,7 @@ class GeneratorSpecifiekeAfvoer(GeneratorBasis):
             
         elif self.use_specifieke_afvoer > 0:
             logging.info(f"     - add homogenic specific discharge {round(self.use_specifieke_afvoer, 2)} [l/s/ha] to drainage units (results in m3/s!)")
-            self.afvoergebied_gdf["specifieke_afvoer"] = self.afvoergebied_gdf.geometry.area / 10000.0 * self.use_specifieke_afvoer / 1000.0 * 24.0 * 3600.0
+            self.afvoergebied_gdf["specifieke_afvoer"] = self.afvoergebied_gdf.geometry.area / 10000.0 * self.use_specifieke_afvoer / 1000.0
 
         total_specifieke_afvoer = self.afvoergebied_gdf["specifieke_afvoer"].sum()
         logging.info(f"     - total specific discharge: {round(total_specifieke_afvoer, 2)} [m3/s]")

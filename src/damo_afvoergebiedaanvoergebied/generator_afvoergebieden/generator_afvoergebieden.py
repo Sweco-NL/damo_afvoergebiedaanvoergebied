@@ -144,7 +144,7 @@ class GeneratorAfvoergebieden(GeneratorBasis):
             raise ValueError("   x topo_type must be GHG or TOPO")
         if file_name_topo is None:
             file_name_topo = self.file_name_topo
-        self.topo = rioxarray.open_rasterio(Path(self.path, self.dir_basisdata, file_name_topo))
+        self.topo = rioxarray.open_rasterio(Path(self.dir_path, self.dir_basisdata, file_name_topo))
         self.topo.name = self.topo_type
         if self.topo.rio.crs is None:
             self.topo = self.topo.rio.write_crs(28992)
@@ -356,6 +356,7 @@ class GeneratorAfvoergebieden(GeneratorBasis):
                 how="left",
                 on="code"
             )
+            alle_watergangen_1["downstream_order_code"] = alle_watergangen_1["order_code"]
 
         alle_watergangen_1["order_code"] = alle_watergangen_1["order_code"].fillna(alle_watergangen_1["downstream_order_code"])
         alle_watergangen_1 = alle_watergangen_1[alle_watergangen_1["downstream_edges"] != ''].copy()
