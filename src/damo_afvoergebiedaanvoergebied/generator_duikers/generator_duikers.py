@@ -1,5 +1,6 @@
 import logging
 import warnings
+import time
 from pathlib import Path
 
 import folium
@@ -22,6 +23,10 @@ from ..utils.general_functions import (
     line_to_vertices,
     split_waterways_by_endpoints,
 )
+
+def _format_duration(duration_seconds: float) -> str:
+    minutes, seconds = divmod(int(duration_seconds), 60)
+    return f"{minutes:02d}:{seconds:02d}"
 
 
 # Suppress specific warnings
@@ -67,6 +72,8 @@ class GeneratorDuikers(GeneratorBasis):
     potential_culverts_0: gpd.GeoDataFrame = None           # alle binnen 40m
     potential_culverts_1: gpd.GeoDataFrame = None           # filter kruizingen
     potential_culverts_2: gpd.GeoDataFrame = None           # scores
+    potential_culverts_2a: gpd.GeoDataFrame = None          # fictieve lengtes
+    potential_culverts_2b: gpd.GeoDataFrame = None          # filter op score en lengte
     potential_culverts_3: gpd.GeoDataFrame = None           # eerste resultaat
     potential_culverts_pre_filter: gpd.GeoDataFrame = None  # eerste resultaat
     potential_culverts_4: gpd.GeoDataFrame = None           # resultaat met nabewerking
@@ -175,7 +182,6 @@ class GeneratorDuikers(GeneratorBasis):
             self.write_results = write_results
 
         return self.water_line_pnts, self.duplicates
-
 
     def find_potential_culvert_locations(
         self,
@@ -428,6 +434,7 @@ class GeneratorDuikers(GeneratorBasis):
             return self.potential_culverts_2
 
         culverts = self.potential_culverts_1.copy()
+        
         logging.info("   x assigning scores to potential culverts")
         # 1e voorkeur
         culverts.loc[
@@ -542,7 +549,7 @@ class GeneratorDuikers(GeneratorBasis):
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
             & (culverts["WaterLineType"] == "hydroobject")
             & (culverts["crossings_peilgebied"] == True)
-            & (culverts["crossings_nwb"] == False),
+            & (culverts["crossings_nwb"] == True),
             "score",
         ] = 13
 
@@ -592,264 +599,400 @@ class GeneratorDuikers(GeneratorBasis):
         )
         return self.potential_culverts_2
 
-
-    def select_correct_score_based_on_score_and_length(
+    def calculate_length_and_angles_potential_culverts_2a(
         self,
-        read_results=None,
         factor_angle_on_length=2,
-    ) -> gpd.GeoDataFrame:
-        """Select the best possible score of culvert for each dangling point. The selection is based on both length of the culvert, angle, and score.
-        The angle increases the fictive length of a culvert, where a straight culvert has no increase and a culvert that has an angle of 90 degrees with the waterline has its length increased by the given 'factor_angle_on_length'.
-        The lowest score is prefered. However, when a higher score, has a shorter fictive length, a higher score can be chosen. This is done with the function 'select_best_line'.
-        This length is used select the best score, then culverts with the score same are filtered based on fictive length.
+    ):
+        """Calculate lengths, angles and fictive lengths.
 
+        Input
+        -----
+        self.potential_culverts_2
 
-        Parameters
-        ----------
-        read_results : boolean, optional
-            Read results and skip calculation when True and potential_culverts_3 already generated, by default None
-        factor_angle_on_length : int, optional
-            Factor by which potential culvert length is increased at an angle of 90 degrees, by default 3
-
-        Returns
-        -------
-        self.potential_culverts_3: gpd.GeoDataFrame
-            Filtered potential culverts geodataframe, with at most one potential culvert for each dangling point
-        self.potential_culverts_pre_filter: gpd.GeoDataFrame
-            Geodataframe of all potential culvert before filtering, including their lenght, fictive length, and angle
+        Output
+        ------
+        self.potential_culverts_2a
         """
-        if isinstance(read_results, bool):
-            self.read_results = read_results
-        if self.read_results and self.potential_culverts_3 is not None:
-            logging.info(
-                f"   x {len(self.potential_culverts_3)} potential culverts already generated"
-            )
-            return self.potential_culverts_3
+        step_start_time = time.perf_counter()
 
-        # Create copy of potential culverts and calculate length
         culverts = self.potential_culverts_2.copy()
+
+        if culverts.empty:
+            self.potential_culverts_2a = culverts.copy()
+            return self.potential_culverts_2a
+
         culverts["length"] = culverts.geometry.length
-        culverts["angle_culvert"] = culverts.apply(
-            lambda row: calculate_angle_reverse(row["geometry"])
-            if row["line_type_start_end"] == "dangling_start"
-            else calculate_angle_start(row["geometry"]),
-            axis=1,
-        )
-        culverts["angle_waterline"] = None
 
-        self.overige_watergang = self.overige_watergang.explode()
-
-        self.overige_watergang["angle_start"] = self.overige_watergang[
-            "geometry"
-        ].apply(calculate_angle_start)
-        self.overige_watergang["angle_end"] = self.overige_watergang[
-            "geometry"
-        ].apply(calculate_angle_end)
-
-        code_to_angle_start = self.overige_watergang.set_index("code")[
-            "angle_start"
-        ].to_dict()
-        code_to_angle_end = self.overige_watergang.set_index("code")[
-            "angle_end"
-        ].to_dict()
-
-        culverts["angle_waterline"] = culverts.apply(
-            lambda row: code_to_angle_start.get(row["dangling_code"])
-            if row["line_type_start_end"] == "dangling_start"
-            else code_to_angle_end.get(row["dangling_code"])
-            if row["line_type_start_end"] == "dangling_end"
-            else None,
-            axis=1,
+        is_dangling_start = (
+            culverts["line_type_start_end"] == "dangling_start"
         )
 
-        culverts["angle_difference"] = culverts.apply(
-            lambda row: calculate_angle_difference(
-                row["angle_culvert"], row["angle_waterline"]
-            ),
-            axis=1,
+        culverts["angle_culvert"] = None
+
+        culverts.loc[is_dangling_start, "angle_culvert"] = (
+            culverts.loc[is_dangling_start, "geometry"]
+            .map(calculate_angle_reverse)
         )
 
-        def calculate_fictive_length(
-            length, angle, factor_angle_on_length=factor_angle_on_length
-        ):
-            # Calculate the factor based on the angle
-            factor = 1 + (factor_angle_on_length - 1) * abs(angle) / 90
-            # Calculate the fictive length
-            fictive_length = length * factor
-            return fictive_length
-
-        # Calculate fictive length
-        culverts["fictive_length"] = culverts.apply(
-            lambda row: calculate_fictive_length(
-                row["length"], row["angle_difference"]
-            ),
-            axis=1,
+        culverts.loc[~is_dangling_start, "angle_culvert"] = (
+            culverts.loc[~is_dangling_start, "geometry"]
+            .map(calculate_angle_start)
         )
+
+        overige_watergang = (
+            self.overige_watergang
+            .explode(index_parts=False)
+            .copy()
+        )
+
+        overige_watergang["angle_start"] = (
+            overige_watergang["geometry"]
+            .map(calculate_angle_start)
+        )
+
+        overige_watergang["angle_end"] = (
+            overige_watergang["geometry"]
+            .map(calculate_angle_end)
+        )
+
+        if overige_watergang["code"].duplicated().any():
+            duplicate_codes = (
+                overige_watergang.loc[
+                    overige_watergang["code"].duplicated(keep=False),
+                    "code",
+                ]
+                .unique()
+            )
+
+            logging.warning(
+                f"{len(duplicate_codes)} waterline codes have duplicate geometries"
+            )
+
+        overige_watergang_lookup = (
+            overige_watergang
+            .drop_duplicates(subset="code", keep="last")
+        )
+
+        angle_lookup = (
+            overige_watergang_lookup
+            .set_index("code")[["angle_start", "angle_end"]]
+            .to_dict("index")
+        )
+        def get_waterline_angle(code, line_type):
+            values = angle_lookup.get(code)
+
+            if values is None:
+                return None
+
+            if line_type == "dangling_start":
+                return values["angle_start"]
+
+            if line_type == "dangling_end":
+                return values["angle_end"]
+
+            return None
+
+        culverts["angle_waterline"] = [
+            get_waterline_angle(code, line_type)
+            for code, line_type in zip(
+                culverts["dangling_code"],
+                culverts["line_type_start_end"],
+            )
+        ]
+
+        culverts["angle_difference"] = [
+            calculate_angle_difference(
+                angle_culvert,
+                angle_waterline,
+            )
+            for angle_culvert, angle_waterline in zip(
+                culverts["angle_culvert"],
+                culverts["angle_waterline"],
+            )
+        ]
+
+        angle_factor = (
+            1
+            + (factor_angle_on_length - 1)
+            * culverts["angle_difference"].abs()
+            / 90
+        )
+
+        culverts["fictive_length"] = (
+            culverts["length"] * angle_factor
+        )
+
+        self.potential_culverts_2a = culverts.copy()
+
+        logging.info(
+            "   x Calculated angles and fictive lengths in "
+            f"{_format_duration(time.perf_counter() - step_start_time)}"
+        )
+
+        return self.potential_culverts_2a
+
+    def filter_potential_culverts_2b(self):
+        """Filter potential culverts by length and score groups.
+
+        Input
+        -----
+        self.potential_culverts_2a
+
+        Output
+        ------
+        self.potential_culverts_2b
+        """
+        step_start_time = time.perf_counter()
+
+        culverts = self.potential_culverts_2a.copy()
+
+        def _log_score_counts(self, label, culverts):
+            """Log the number of culverts per score."""
+
+            if culverts.empty or "score" not in culverts.columns:
+                logging.info(f"{label}: no scores available")
+                return
+
+            score_counts = (
+                culverts["score"]
+                .value_counts()
+                .sort_index()
+                .to_dict()
+            )
+
+            logging.info(
+                f"{label}: score counts = {score_counts}"
+            )
+
+        _log_score_counts(self, "2a input", culverts)
 
         self.potential_culverts_pre_filter = culverts.copy()
-        # Drop features with a fictive length larger than 40
-        culverts = culverts[culverts["fictive_length"] <= self.max_culvert_length]
 
-        # Keep only shortest potential culverts when the score is equal
-        culverts = culverts.sort_values(by=["dangling_id", "score", "fictive_length"])
-        culverts = culverts.groupby(["dangling_id", "score"]).first().reset_index()
+        if culverts.empty:
+            self.potential_culverts_2b = culverts.copy()
+            return self.potential_culverts_2b
 
-        logging.info(f"     - {len(culverts)} potential culverts remaining")
+        # Remove candidates exceeding the maximum fictive length.
+        culverts = culverts.loc[
+            culverts["fictive_length"] <= self.max_culvert_length
+        ].copy()
 
-        # Remove potential culverts when they are not in the highest score group of 4 that is available
-        # Define score groups
-        def get_score_group(score):
-            if score <= 4:
-                return 1
-            elif score <= 8:
-                return 2
-            elif score <= 12:
-                return 3
-            else:
-                return 4
+        _log_score_counts(self, "After max length filter", culverts)
 
-        # Create a new column for score group
-        culverts["score_group"] = culverts["score"].apply(get_score_group)
-        # Find the highest score group for each dangling_id
-        highest_group = (
-            culverts.groupby("dangling_id")["score_group"].min().reset_index()
-        )
-        highest_group.columns = ["dangling_id", "highest_score_group"]
-        # Merge back to the original DataFrame to filter based on highest score group
-        culverts = culverts.merge(highest_group, on="dangling_id")
-        # Filter to keep only scores in the highest score group
-        culverts = culverts[culverts["score_group"] == culverts["highest_score_group"]]
-        # Drop the helper column
-        culverts = culverts.drop(columns=["score_group", "highest_score_group"])
+        if culverts.empty:
+            self.potential_culverts_2b = culverts.copy()
+            return self.potential_culverts_2b
 
-        logging.info(f"     - {len(culverts)} potential culverts remaining")
-
-        # Remove potential culverts of score 9 and lower when the other side of the watergang that a culvert with score 8 or less.
-        # Find dangling IDs that have a corresponding higher score in the same dangling_code
-        def filter_low_scores(group):
-            # Find the lowest score in the group
-            low_score_ids = group[group["score"] >= 9]["dangling_id"].unique()
-
-            # Check for any scores >= 8 in the group
-            if any(group["score"] >= 8):
-                # Drop all lines with low scores from dangling IDs
-                group = group[~group["dangling_id"].isin(low_score_ids)]
-
-            return group
-
-        # Apply the filtering function to each group
+        # Keep the shortest complete row per dangling_id and score.
         culverts = (
-            culverts.groupby("dangling_code")
-            .apply(filter_low_scores)
-            .reset_index(drop=True)
+            culverts
+            .sort_values(
+                by=[
+                    "dangling_id",
+                    "score",
+                    "fictive_length",
+                ],
+                kind="stable",
+            )
+            .drop_duplicates(
+                subset=["dangling_id", "score"],
+                keep="first",
+            )
+            .copy()
         )
 
-        logging.info(f"     - {len(culverts)} potential culverts remaining")
+        _log_score_counts(self, "After duplicate removal", culverts)
 
-        # Select correct score within group of 4 based on defined logic between score and lenght.
-        def select_best_lines(df, offset_1_2=0.75, offset_12_34=0.6, offset_3_4=0.75):
-            dangling_ids = df.dangling_id.unique()
+        # Scores 1-4: group 1
+        # Scores 5-8: group 2
+        # Scores 9-12: group 3
+        # Scores 13-16: group 4
+        culverts["score_group"] = (
+            (culverts["score"] - 1) // 4
+        ) + 1
 
-            best_lines = []
+        # Keep the best available score group per dangling_id.
+        best_score_group = (
+            culverts
+            .groupby("dangling_id")["score_group"]
+            .transform("min")
+        )
+        _log_score_counts(self, "After score-group filter", culverts)
 
-            for dangling_id in dangling_ids:
-                df_dangling_id = df[df.dangling_id == dangling_id]
+        culverts = culverts.loc[
+            culverts["score_group"] == best_score_group
+        ].drop(columns=["score_group"])
+
+        # Remove scores 9 or higher if the same dangling_code
+        # has a score 8 or lower.
+        has_low_score = (
+            culverts
+            .groupby("dangling_code")["score"]
+            .transform("min")
+            <= 8
+        )
+
+        remove_high_score = (
+            has_low_score
+            & (culverts["score"] >= 9)
+        )
+
+        culverts = culverts.loc[
+            ~remove_high_score
+        ].copy()
+
+        _log_score_counts(self, "After dangling-code filter", culverts)
+
+        self.potential_culverts_2b = culverts
+
+        logging.info(
+            "   x Filtered potential culverts in "
+            f"{_format_duration(time.perf_counter() - step_start_time)}"
+        )
+        logging.info(
+            f"     - {len(culverts)} potential culverts remaining"
+        )
+
+        return self.potential_culverts_2b
+
+    def select_best_potential_culverts_2c(
+        self,
+        offset_1_2=0.75,
+        offset_12_34=0.6,
+        offset_3_4=0.75,
+    ):
+        """Select the best score within each dangling_id.
+
+        Input
+        -----
+        self.potential_culverts_2b
+
+        Output
+        ------
+        self.potential_culverts_3
+        """
+        step_start_time = time.perf_counter()
+
+        culverts = self.potential_culverts_2b.copy()
+
+        if culverts.empty:
+            self.potential_culverts_3 = culverts.copy()
+            return self.potential_culverts_3
+
+        def select_best_score(lengths_by_score):
+            for base_score in (1, 5, 9, 13):
+                score_a = base_score
+                score_b = base_score + 1
+                score_c = base_score + 2
+                score_d = base_score + 3
+
+                length_a = lengths_by_score.get(score_a)
+                length_b = lengths_by_score.get(score_b)
+                length_c = lengths_by_score.get(score_c)
+                length_d = lengths_by_score.get(score_d)
 
                 selected_score = None
                 selected_length = None
-                # Loop through the defined groups
-                for base_score in [1, 5, 9, 13]:
-                    # Find the corresponding scores in the group
-                    score_a = base_score
-                    score_b = base_score + 1
-                    score_c = base_score + 2
-                    score_d = base_score + 3
 
-                    # Get lines for the score group
-                    line_a = df_dangling_id[df_dangling_id["score"] == score_a]
-                    line_b = df_dangling_id[df_dangling_id["score"] == score_b]
-                    line_c = df_dangling_id[df_dangling_id["score"] == score_c]
-                    line_d = df_dangling_id[df_dangling_id["score"] == score_d]
+                # Score A
+                if length_a is not None:
+                    selected_score = score_a
+                    selected_length = length_a
 
-                    # Select from score_a and score_b
-                    if not line_a.empty:
-                        selected_length = line_a["fictive_length"].values[0]
-                        selected_score = score_a
-
-                    if not line_b.empty and (
+                # Score B
+                if (
+                    length_b is not None
+                    and (
                         selected_length is None
-                        or line_b["fictive_length"].values[0]
-                        <= offset_1_2 * selected_length
-                    ):
-                        selected_length = line_b["fictive_length"].values[0]
-                        selected_score = score_b
+                        or length_b <= offset_1_2 * selected_length
+                    )
+                ):
+                    selected_score = score_b
+                    selected_length = length_b
 
-                    # Check conditions for selecting score_c
-                    if selected_length is None and not line_c.empty:
-                        selected_length = line_c["fictive_length"].values[0]
-                        selected_score = score_c
+                # Score C
+                if selected_length is None and length_c is not None:
+                    selected_score = score_c
+                    selected_length = length_c
 
+                if (
+                    length_c is not None
+                    and selected_score in (score_a, score_b)
+                    and length_c <= offset_12_34 * selected_length
+                ):
+                    selected_score = score_c
+                    selected_length = length_c
+
+                # Score D
+                if length_d is not None:
                     if (
-                        not line_c.empty
-                        and (selected_score in [score_a, score_b])
+                        selected_score == score_c
+                        and length_d <= offset_3_4 * selected_length
+                    ):
+                        selected_score = score_d
+                        selected_length = length_d
+
+                    elif (
+                        selected_score in (score_a, score_b)
+                        and length_d <= offset_12_34 * selected_length
                         and (
-                            line_c["fictive_length"].values[0]
-                            <= offset_12_34 * selected_length
+                            length_c is None
+                            or length_d <= offset_3_4 * length_c
                         )
                     ):
-                        selected_length = line_c["fictive_length"].values[0]
-                        selected_score = score_c
-
-                    # Check conditions for selecting score_d
-                    if not line_d.empty:
-                        if selected_score == score_c and (
-                            line_d["fictive_length"].values[0]
-                            <= offset_3_4 * selected_length
-                        ):
-                            selected_length = line_d["fictive_length"].values[0]
-                            selected_score = score_d
-                        elif selected_score in [score_a, score_b] and (
-                            line_d["fictive_length"].values[0]
-                            <= offset_12_34 * selected_length
-                        ):
-                            if line_c.empty or (
-                                line_d["fictive_length"].values[0]
-                                <= offset_3_4 * line_c["fictive_length"].values[0]
-                            ):
-                                selected_length = line_d["fictive_length"].values[0]
-                                selected_score = score_d
-
-                    # If selected_length is still None, check for line_d
-                    if selected_length is None and not line_d.empty:
-                        selected_length = line_d["fictive_length"].values[0]
                         selected_score = score_d
+                        selected_length = length_d
+
+                # Preserve the original fallback behavior.
+                if selected_length is None and length_d is not None:
+                    selected_score = score_d
 
                 if selected_score is not None:
-                    best_lines.append(
-                        {"dangling_id": dangling_id, "selected_score": selected_score}
-                    )
+                    return selected_score
 
-            return pd.DataFrame(best_lines)
+            return None
 
-        culverts = culverts.merge(
-            select_best_lines(culverts), how="left", on="dangling_id"
+        selected_scores = {}
+
+        for dangling_id, group in culverts.groupby(
+            "dangling_id",
+            sort=False,
+        ):
+            lengths_by_score = dict(
+                zip(
+                    group["score"].astype(int),
+                    group["fictive_length"],
+                )
+            )
+
+            selected_scores[dangling_id] = select_best_score(
+                lengths_by_score
+            )
+
+        culverts["selected_score"] = culverts["dangling_id"].map(
+            selected_scores
         )
-        culverts = culverts[culverts["selected_score"] == culverts["score"]]
-        culverts = culverts.set_crs(28992)
 
-        # Set copy and save data
-        self.potential_culverts_3 = culverts.copy()
-        logging.info(
-            f"     - {len(self.potential_culverts_3)} potential culverts remaining"
-        )
+        culverts = culverts.loc[
+            culverts["selected_score"] == culverts["score"]
+        ].copy()
+
+        self.potential_culverts_3 = culverts
+
         if self.write_results:
-            self.export_results_to_gpkg_or_nc(list_layers=[
-                "potential_culverts_3",
-                # "potential_culverts_pre_filter",
-            ])
+            self.export_results_to_gpkg_or_nc(
+                list_layers=["potential_culverts_3"]
+            )
 
-        return self.potential_culverts_3, self.potential_culverts_pre_filter
+        logging.info(
+            "   x Selected best potential culverts in "
+            f"{_format_duration(time.perf_counter() - step_start_time)}"
+        )
+        logging.info(
+            f"     - {len(culverts)} potential culverts remaining"
+        )
 
+        return self.potential_culverts_3
 
     def post_process_potential_culverts(self):
         """Postprocess culverts. removing double culverts, or culverts going to one point from the same waterline. 
