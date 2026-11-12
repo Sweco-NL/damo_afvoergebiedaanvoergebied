@@ -105,18 +105,32 @@ def split_waterways_by_endpoints(hydroobjects, relevant_culverts):
     # Prepare input data
     # ------------------------------------------------------------------
 
-    lines = remove_z_dims(hydroobjects.copy())
-    culverts = remove_z_dims(relevant_culverts.copy())
+    lines = hydroobjects.copy()
+    culverts = relevant_culverts.copy()
 
-    if lines.crs != culverts.crs:
-        culverts = culverts.to_crs(lines.crs)
-
+    # Explode multipart geometries before calling remove_z_dims().
+    # This is necessary because the current remove_z_dims() function does
+    # not support MultiLineString geometries.
     lines = (
         lines
         .explode(index_parts=False)
         .reset_index(drop=True)
     )
 
+    culverts = (
+        culverts
+        .explode(index_parts=False)
+        .reset_index(drop=True)
+    )
+
+    # Now all MultiLineStrings have become LineStrings.
+    lines = remove_z_dims(lines)
+    culverts = remove_z_dims(culverts)
+
+    if lines.crs != culverts.crs:
+        culverts = culverts.to_crs(lines.crs)
+
+    # Keep only valid LineStrings.
     lines = lines.loc[
         lines.geometry.notna()
         & lines.geometry.geom_type.eq("LineString")
