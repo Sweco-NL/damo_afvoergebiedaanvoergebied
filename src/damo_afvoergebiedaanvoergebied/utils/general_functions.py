@@ -7,14 +7,16 @@ from shapely.geometry import (
     Polygon,
     MultiPolygon,
     base,
+    MultiPoint,
 )
-from shapely.ops import split, linemerge, nearest_points
+from shapely.ops import split, linemerge, nearest_points, substring
 import numpy as np
 from typing import TypeVar
 import time
 import logging
 import warnings
 import shapely
+from collections import defaultdict
 
 
 def shorten_line_two_vertices(line, offset):
@@ -33,7 +35,7 @@ def shorten_line_two_vertices(line, offset):
         return line  # Return the original line if not a LineString
 
 
-def line_to_vertices(gdf, distance=10.0, keep_columns=["code", "WaterLineType"]):
+def line_to_vertices(gdf, distance=10.0, keep_columns=["code", "waterline_type"]):
     all_points = []
 
     for _, row in gdf.iterrows():
@@ -89,182 +91,283 @@ def line_to_vertices(gdf, distance=10.0, keep_columns=["code", "WaterLineType"])
 
 
 def split_waterways_by_endpoints(hydroobjects, relevant_culverts):
-    end_points = relevant_culverts["geometry"].apply(
-        lambda line: Point(line.coords[-1])
+    """
+    Split hydroobjects at their own endpoints and at the final endpoints
+    of relevant culverts.
+
+    The original point coordinates are retained as the canonical split
+    coordinates. This is important because later network construction
+    functions require neighbouring geometries to have exactly identical
+    endpoint coordinates.
+    """
+
+    # ------------------------------------------------------------------
+    # Prepare input data
+    # ------------------------------------------------------------------
+
+    lines = remove_z_dims(hydroobjects.copy())
+    culverts = remove_z_dims(relevant_culverts.copy())
+
+    if lines.crs != culverts.crs:
+        culverts = culverts.to_crs(lines.crs)
+
+    lines = (
+        lines
+        .explode(index_parts=False)
+        .reset_index(drop=True)
     )
-    end_points_gdf = relevant_culverts.copy()
-    end_points_gdf.set_geometry(end_points, inplace=True)
-    end_points_gdf = remove_z_dims(end_points_gdf)
 
-    # Step 1: Convert MultiLineStrings to LineStrings
-    hydroobjects = hydroobjects.explode("geometry").reset_index(drop=True)
-    hydroobjects = remove_z_dims(hydroobjects)
-    # hydroobjects = gpd.GeoDataFrame(hydroobjects, geometry="geometry", crs=28992)
+    lines = lines.loc[
+        lines.geometry.notna()
+        & lines.geometry.geom_type.eq("LineString")
+    ].copy()
 
-    # Create 'NAAM' and 'status' if not present
-    if "status" not in hydroobjects.columns:
-        hydroobjects["status"] = "unchanged"
+    culverts = culverts.loc[
+        culverts.geometry.notna()
+        & culverts.geometry.geom_type.eq("LineString")
+    ].copy()
 
-    if "NAAM" not in hydroobjects.columns:
-        hydroobjects["NAAM"] = "unknown"
+    if lines.empty:
+        return lines
 
-    # Create lists to store start and end points
-    start_points = []
-    end_points = []
+    # Keep the columns expected by later functions.
+    # if "status" not in lines.columns:
+    #     lines["status"] = "unchanged"
 
-    # Iterate through the lines and extract start and end points
-    for line in hydroobjects.geometry:
-        start_points.append(Point(line.coords[0]))  # Start point
-        end_points.append(Point(line.coords[-1]))
+    # if "NAAM" not in lines.columns:
+    #     lines["NAAM"] = "unknown"
 
-    # If you want to keep them as separate rows instead of columns, you can do this:
-    start_points_gdf = gpd.GeoDataFrame(geometry=start_points, crs="EPSG:28992")
-    end_points_gdf_ho = gpd.GeoDataFrame(geometry=end_points, crs="EPSG:28992")
+    lines = lines.reset_index(drop=True)
+    lines.index = pd.RangeIndex(len(lines))
+    lines.index.name = None
 
-    # Combine them into a single GeoDataFrame if desired
-    combined_points_gdf = gpd.GeoDataFrame(
-        pd.concat([start_points_gdf, end_points_gdf_ho], ignore_index=True),
-        crs="EPSG:28992",
+    # ------------------------------------------------------------------
+    # Create split points
+    #
+    # The actual coordinates of these points are retained. Do not replace
+    # them with the result of line.interpolate(), because the old function
+    # used the original point coordinates as network node coordinates.
+    # ------------------------------------------------------------------
+
+    points = []
+
+    # Hydroobject start and end points
+    for line in lines.geometry:
+        points.append(Point(line.coords[0]))
+        points.append(Point(line.coords[-1]))
+
+    # Final endpoint of each relevant culvert
+    for line in culverts.geometry:
+        points.append(Point(line.coords[-1]))
+
+    split_points = gpd.GeoDataFrame(
+        {"geometry": points},
+        crs=lines.crs,
     )
-    combined_end_points_gdf = gpd.GeoDataFrame(
-        pd.concat([combined_points_gdf, end_points_gdf], ignore_index=True),
-        crs="EPSG:28992",
+
+    split_points = (
+        split_points
+        .drop_duplicates(subset="geometry")
+        .reset_index(drop=True)
     )
-    combined_end_points_gdf = combined_end_points_gdf.drop_duplicates(subset="geometry")
 
-    def split_lines_at_points(gdf_lines, gdf_points):
-        # Create list of coordinates of linestring in gdf_lines
-        gdf_lines["coords"] = gdf_lines.apply(lambda x: list(x.geometry.coords), axis=1)
+    if split_points.empty:
+        return lines
 
-        # Create segments with coords
-        gdf_lines["segments"] = gdf_lines.apply(
-            lambda x: [
-                LineString(x["coords"][i - 1 : i + 1])
-                for i in range(1, len(x["coords"]))
+    # ------------------------------------------------------------------
+    # Match points to complete hydroobjects
+    # ------------------------------------------------------------------
+
+    line_geometries = lines[["geometry"]].copy()
+    line_geometries.index = pd.RangeIndex(len(line_geometries))
+    line_geometries.index.name = None
+
+    matches = gpd.sjoin_nearest(
+        split_points,
+        line_geometries,
+        how="inner",
+        distance_col="_distance_to_line",
+    )
+
+    if matches.empty:
+        return lines
+
+    # ------------------------------------------------------------------
+    # Determine split distances
+    #
+    # The distance is calculated on the hydroobject, but the point stored
+    # with it remains the original point from split_points.
+    # ------------------------------------------------------------------
+
+    split_locations = {}
+
+    for source_index, point in zip(
+        matches["index_right"],
+        matches.geometry,
+    ):
+        line = lines.loc[source_index, "geometry"]
+
+        distance = line.project(point)
+        line_length = line.length
+
+        # Snap numerical noise to the actual line endpoints.
+        tolerance = max(line_length * 1e-12, 1e-9)
+
+        if distance <= tolerance:
+            distance = 0.0
+
+        elif line_length - distance <= tolerance:
+            distance = line_length
+
+        split_locations.setdefault(source_index, []).append(
+            (distance, point)
+        )
+
+    # ------------------------------------------------------------------
+    # Split hydroobjects
+    # ------------------------------------------------------------------
+
+    output_rows = []
+
+    for source_index, row in lines.iterrows():
+        line = row.geometry
+        line_length = line.length
+
+        locations = split_locations.get(source_index, [])
+
+        # Sort by position along the hydroobject.
+        locations = sorted(
+            locations,
+            key=lambda item: item[0],
+        )
+
+        # Remove duplicate or numerically identical positions.
+        unique_locations = []
+
+        tolerance = max(line_length * 1e-12, 1e-9)
+
+        for distance, point in locations:
+            if not unique_locations:
+                unique_locations.append((distance, point))
+                continue
+
+            previous_distance = unique_locations[-1][0]
+
+            if abs(distance - previous_distance) <= tolerance:
+                # Keep the first point as the canonical coordinate.
+                continue
+
+            unique_locations.append((distance, point))
+
+        # Only interior points cause a split.
+        internal_locations = [
+            (distance, point)
+            for distance, point in unique_locations
+            if 0.0 < distance < line_length
+        ]
+
+        if not internal_locations:
+            output_rows.append(row.to_dict())
+            continue
+
+        # Distances used by substring().
+        boundaries = [
+            0.0,
+            *[
+                distance
+                for distance, point in internal_locations
             ],
-            axis=1,
-        )
+            line_length,
+        ]
 
-        # Create gdf from segments of linestring
-        gdf_segments = gpd.GeoDataFrame(
-            gdf_lines[["code", "segments", "NAAM", "status"]]
-            .explode("segments")
-            .rename(columns={"segments": "geometry"}),
-            geometry="geometry",
-            crs=gdf_lines.crs,
-        ).reset_index(drop=True)
+        # Canonical coordinates for every boundary.
+        #
+        # Interior boundaries use the original split point coordinates.
+        # The first and last boundary use the original hydroobject
+        # coordinates.
+        boundary_points = {
+            0.0: Point(line.coords[0]),
+            line_length: Point(line.coords[-1]),
+        }
 
-        # Determine which segment point of points_gdf are located on
-        gdf_segments = gdf_segments.merge(
-            gdf_points[["geometry"]]
-            .sjoin_nearest(gdf_segments.drop(columns="code"))
-            .groupby("index_right")
-            .agg(
-                {
-                    "geometry": lambda x: list(x.apply(lambda geom: (geom.x, geom.y))),
-                }
+        for distance, point in internal_locations:
+            boundary_points[distance] = point
+
+        # Create segments.
+        for start_distance, end_distance in zip(
+            boundaries[:-1],
+            boundaries[1:],
+        ):
+            if end_distance <= start_distance:
+                continue
+
+            segment = substring(
+                line,
+                start_distance,
+                end_distance,
             )
-            .reset_index(),
-            how="outer",
-            left_index=True,
-            right_on="index_right",
-            suffixes=("", "_2"),
-        ).reset_index(drop=True)
 
-        def split_linestring(linestring, coordinates):
-            # Convert coordinates to Points
-            points = [Point(coord) for coord in coordinates]
+            if segment.is_empty or segment.length == 0:
+                continue
 
-            # Sort points by their position on the LineString
-            points = sorted(points, key=lambda point: linestring.project(point))
+            start_point = boundary_points[start_distance]
+            end_point = boundary_points[end_distance]
 
-            segments = []
-            prev_point = Point(linestring.coords[0])
+            # Explicitly overwrite the endpoints generated by substring().
+            #
+            # This is the crucial step: the end of one segment and the
+            # start of the next segment receive exactly the same coordinate.
+            coordinates = list(segment.coords)
 
-            for point in points:
-                segment = LineString([prev_point, point])
-                segments.append(segment)
-                prev_point = point
+            if len(coordinates) < 2:
+                continue
 
-            # Add the last segment
-            segments.append(LineString([prev_point, Point(linestring.coords[-1])]))
-            return segments
+            coordinates[0] = start_point.coords[0]
+            coordinates[-1] = end_point.coords[0]
 
-        def split_and_explode(row):
-            if not row["geometry_2"] or isinstance(row["geometry_2"], float):
-                return [row["geometry"]]
-            else:
-                return split_linestring(row["geometry"], row["geometry_2"])
+            segment = LineString(coordinates)
 
-        gdf_segments["geometry"] = gdf_segments.apply(split_and_explode, axis=1)
+            values = row.to_dict()
+            values["geometry"] = segment
+            output_rows.append(values)
 
-        # Explode the list of geometries into separate rows
-        gdf_segments = gdf_segments.explode("geometry").reset_index(drop=True)
+    # ------------------------------------------------------------------
+    # Create result
+    # ------------------------------------------------------------------
 
-        # Determine which segments are located between the same points of points_gdf
-        gdf_segments["index_right_diff"] = gdf_segments["index_right"].diff(1)
-        gdf_segments["index_right_cumsum"] = gdf_segments["index_right_diff"].map(
-            {0.0: 1, 1.0: 0}
-        )
-        gdf_segments.loc[0, "index_right_cumsum"] = 0.0
-        gdf_segments["index_right_cumsum"] = (
-            gdf_segments["index_right_cumsum"].cumsum().astype(int)
-        )
+    result = gpd.GeoDataFrame(
+        output_rows,
+        geometry="geometry",
+        crs=lines.crs,
+    ).reset_index(drop=True)
 
-        # Group segments that are between points, creating a list of geometries in geometry
-        gdf_segments = (
-            gdf_segments.groupby(["index_right_cumsum", "code"])
-            .agg(
-                {
-                    "code": "first",
-                    "geometry": list,
-                    "NAAM": "first",
-                    "status": "first",
-                }
-            )
-            .reset_index(drop=True)
+    result["geometry_len"] = result.geometry.length
+
+    # ------------------------------------------------------------------
+    # Add suffixes to duplicate codes
+    # ------------------------------------------------------------------
+
+    if "code" in result.columns:
+        result["code"] = result["code"].astype(str)
+
+        duplicate_codes = result["code"].duplicated(
+            keep=False
         )
 
-        # Remove segments with a length of 0 (created points that are already between 2 linestrings of gdf_lines)
-        gdf_segments["geometry_len"] = gdf_segments.apply(
-            lambda x: sum([y.length for y in x["geometry"]]), axis=1
-        )
-        gdf_segments = gdf_segments[gdf_segments["geometry_len"] > 0.0]
+        result.loc[duplicate_codes, "status"] = "split"
 
-        # Merge the geometries of the segments that are listed in geometry
-        gdf_segments["geometry"] = gdf_segments.apply(
-            lambda x: linemerge(x["geometry"]), axis=1
-        )
+        occurrence = result.groupby(
+            "code",
+            sort=False,
+        ).cumcount()
 
-        # Create gdf from
-        gdf_segments = gpd.GeoDataFrame(
-            gdf_segments.reset_index(drop=True), geometry="geometry", crs=gdf_lines.crs
+        result.loc[duplicate_codes, "code"] = (
+            result.loc[duplicate_codes, "code"]
+            + "-"
+            + occurrence.loc[duplicate_codes].astype(str)
         )
 
-        # Function to add suffixes to duplicate codes
-        def add_suffixes(df, column):
-            counts = df[column].value_counts()
-            suffixes = {code: 0 for code in counts.index if counts[code] > 1}
-
-            def suffix_code(code):
-                if code in suffixes:
-                    suffix = suffixes[code]
-                    suffixes[code] += 1
-                    df.loc[df[column] == code, "status"] = "split"
-                    return f"{code}-{suffix}"
-                return code
-
-            df[column] = df[column].apply(suffix_code)
-            return df
-
-        # Apply the function to your GeoDataFrame
-        gdf_segments = add_suffixes(gdf_segments, "code")
-
-        return gdf_segments
-
-    result = split_lines_at_points(hydroobjects, combined_end_points_gdf)
     return result
-
 
 # Function to check if line endpoints need to be flipped
 def check_and_flip(line, start_points, end_points):

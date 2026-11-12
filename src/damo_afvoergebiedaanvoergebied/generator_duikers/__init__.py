@@ -102,25 +102,34 @@ def run_generator_duikers(
         f"   x Split hydroobjects at endpoints of culverts in "
         f"{_format_duration(time.perf_counter() - step_start_time)}"
     )
-    # check if culverts are in the right direction
+
+    #add culverts to overige watergang as objects
     step_start_time = time.perf_counter()
-    culvert.check_culverts_direction()
+    culvert.add_culvert_to_overige_watergang_as_seperate_object()
     logging.info(
-        f"   x Checked culverts direction in "
+        f"   x Added culverts to overige watergang as objects in "
         f"{_format_duration(time.perf_counter() - step_start_time)}"
-    )
-    step_start_time = time.perf_counter()
-    culvert.combine_culvert_with_line()
-    logging.info(
-        f"   x Combined culverts with lines in "
-        f"{_format_duration(time.perf_counter() - step_start_time)}"
-    )
-    step_start_time = time.perf_counter()
-    culvert.splits_hydroobject_by_endpoind_of_culverts_and_combine_2()
-    logging.info(
-        f"   x Split hydroobjects at endpoints of culverts in "
-        f"{_format_duration(time.perf_counter() - step_start_time)}"
-    )
+    )   
+    # # check if culverts are in the right direction
+    # step_start_time = time.perf_counter()
+    # culvert.check_culverts_direction()
+    # logging.info(
+    #     f"   x Checked culverts direction in "
+    #     f"{_format_duration(time.perf_counter() - step_start_time)}"
+    # )
+    # step_start_time = time.perf_counter()
+    # culvert.combine_culvert_with_line()
+    # logging.info(
+    #     f"   x Combined culverts with lines in "
+    #     f"{_format_duration(time.perf_counter() - step_start_time)}"
+    # )
+    # step_start_time = time.perf_counter()
+    # culvert.splits_hydroobject_by_endpoind_of_culverts_and_combine_2()
+    # logging.info(
+    #     f"   x Split hydroobjects at endpoints of culverts in "
+    #     f"{_format_duration(time.perf_counter() - step_start_time)}"
+    # )
+
     step_start_time = time.perf_counter()
     culvert.get_shortest_path_from_overige_watergang_to_hydroobjects()
     logging.info(
