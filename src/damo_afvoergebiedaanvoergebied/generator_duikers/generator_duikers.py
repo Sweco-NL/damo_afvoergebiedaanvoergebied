@@ -1413,10 +1413,9 @@ class GeneratorDuikers(GeneratorBasis):
         nodes, edges, _ = create_graph_from_edges(
             self.overige_watergang_processed_1, directed=True
         )
-        nodes, edges, G = create_graph_from_edges(
+        _, _, G = create_graph_from_edges(
             self.overige_watergang_processed_1, directed=False
         )
-        nodes.to_file(self.dir_results / "nodes.gpkg", layer="nodes", driver="GPKG")
 
         # get outflow points and add nodes information
         outflow_nodes_hydro = (
