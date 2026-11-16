@@ -18,16 +18,20 @@ def run_generator_gebiedsorde(
     order = GeneratorGebiedsOrde(path=path)
 
     if generate_order_no:
+        logging.info("generate_order_no")
         order.generate_outflow_nodes()
         order.generate_order_level_for_hydroobjects()
 
     if generate_order_code:
+        logging.info("generate_order_code")
         order.generate_order_code_for_hydroobjects()
 
     if generate_order_code_overig:
+        logging.info("generate_order_code_overig")
         order.generate_order_no_order_code_for_other_waterlines()
 
     if create_html_map:
+        logging.info("generate_folium_map")
         order.generate_folium_map(open_html_map=open_html_map)
 
     logging.info(f"   x Case finished in {round(time.time()-start_time, 3)} seconds")

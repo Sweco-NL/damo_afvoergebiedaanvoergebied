@@ -469,6 +469,10 @@ class GeneratorGebiedsOrde(GeneratorBasis):
         len_edges_hydro_without_order = len(self.edges_hydro[self.edges_hydro.order_no < 0])
         logging_message = f"     - order levels generated: {len_edges_hydro_with_order} edges_hydro - {len_edges_hydro_without_order} left"
         logging.info(logging_message)
+
+        display(self.nodes_hydro.head())
+        display(self.nodes.head())
+
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
                 "edges_hydro",
@@ -748,7 +752,8 @@ class GeneratorGebiedsOrde(GeneratorBasis):
                 ),
                 axis=1,
             )
-        
+
+        display(self.nodes_hydro.head())
         self.hydroobject_processed_1 = self.edges_hydro.copy()
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
@@ -785,7 +790,8 @@ class GeneratorGebiedsOrde(GeneratorBasis):
             return None, None
         
         logging.info(f"     - coupling overige watergangen to outflow_nodes_hydro")
-        
+
+        display(self.nodes_hydro)
         outflow_nodes_overig = self.outflow_nodes_overig[
             ["nodeID", "geometry"]
         ].sjoin(
@@ -843,11 +849,20 @@ class GeneratorGebiedsOrde(GeneratorBasis):
 
         self.outflow_nodes_overig = (
             outflow_nodes_overig.drop(
-                columns=["downstream_edges", "downstream_order_no", "downstream_order_code"],
+                columns=[
+                    "downstream_edges", 
+                    "downstream_order_no", 
+                    "downstream_order_code"
+                ],
                 errors="ignore",
             ).merge(
                 outflow_nodes_hydro[
-                    ["nodeID", "downstream_edges", "downstream_order_no", "downstream_order_code"]
+                    [
+                        "nodeID", 
+                        "downstream_edges", 
+                        "downstream_order_no", 
+                        "downstream_order_code"
+                    ]
                 ],
                 how="left",
                 on="nodeID",
@@ -857,8 +872,12 @@ class GeneratorGebiedsOrde(GeneratorBasis):
         if self.edges_overig is not None:
             self.edges_overig = self.edges_overig.drop(
                 columns=[
-                    "nodeID", "downstream_edges", "downstream_order_no", "downstream_order_code"
-                ]
+                    "nodeID", 
+                    "downstream_edges", 
+                    "downstream_order_no", 
+                    "downstream_order_code"
+                ], 
+                errors="ignore"
             )
         elif self.edges_overig is None and self.overige_watergang_processed_3 is not None:
             self.edges_overig = self.overige_watergang_processed_3.copy()

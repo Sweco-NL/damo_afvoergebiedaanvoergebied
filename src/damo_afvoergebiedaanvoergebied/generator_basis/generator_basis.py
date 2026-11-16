@@ -384,8 +384,10 @@ class GeneratorBasis(BaseModel):
             duplicated_codes = combined.loc[combined["code"].duplicated(), "code"].unique()
             logging.info(f"     - hydroobject and overige_watergang have overlapping codes: {duplicated_codes}")
             combined = make_unique_codes(combined)
-            self.hydroobject["code"] = combined[combined["source"] == "hydroobject"]["code"].values
-            self.overige_watergang["code"] = combined[combined["source"] == "overige_watergang"]["code"].values
+            self.hydroobject["source"] = None
+            self.overige_watergang["source"] = None
+            self.hydroobject[["code", "source"]] = combined[combined["source"] == "hydroobject"][["code", "source"]].copy()
+            self.overige_watergang[["code", "source"]] = combined[combined["source"] == "overige_watergang"][["code", "source"]].copy()
 
         duplicated_codes = combined.loc[combined["code"].duplicated(), "code"].unique()
         logging.info(f"     - hydroobject and overige_watergang have overlapping codes: {duplicated_codes}")

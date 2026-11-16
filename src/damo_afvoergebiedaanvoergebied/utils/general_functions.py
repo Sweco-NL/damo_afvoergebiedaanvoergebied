@@ -35,7 +35,7 @@ def shorten_line_two_vertices(line, offset):
         return line  # Return the original line if not a LineString
 
 
-def line_to_vertices(gdf, distance=10.0, keep_columns=["code", "waterline_type"]):
+def line_to_vertices(gdf, distance=10.0, keep_columns=["code", "source"]):
     all_points = []
 
     for _, row in gdf.iterrows():

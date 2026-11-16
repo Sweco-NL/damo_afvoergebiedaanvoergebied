@@ -150,7 +150,6 @@ class GeneratorDuikers(GeneratorBasis):
         gdf_waterlines = None
         for waterline_name in waterlines:
             waterline = getattr(self, waterline_name)
-            waterline["waterline_type"] = waterline_name
 
             if gdf_waterlines is None:
                 gdf_waterlines = waterline.copy()
@@ -247,7 +246,7 @@ class GeneratorDuikers(GeneratorBasis):
         # Filter for end points (only overige watergangen and not when connected)
         end_pnts = self.water_line_pnts[
             (self.water_line_pnts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (self.water_line_pnts["waterline_type"] == "overige_watergang")
+            & (self.water_line_pnts["source"] == "overige_watergang")
         ]
         end_pnts = end_pnts.drop_duplicates(subset="geometry", keep=False)
         end_pnts = end_pnts.rename(
@@ -440,7 +439,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 1e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["waterline_type"] == "hydroobject")
+            & (culverts["source"] == "hydroobject")
             & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == False),
             "score",
@@ -449,7 +448,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 2e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["waterline_type"] == "hydroobject")
+            & (culverts["source"] == "hydroobject")
             & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == False),
             "score",
@@ -458,7 +457,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 3e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["waterline_type"] == "overige_watergang")
+            & (culverts["source"] == "overige_watergang")
             & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == False),
             "score",
@@ -467,7 +466,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 4e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["waterline_type"] == "overige_watergang")
+            & (culverts["source"] == "overige_watergang")
             & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == False),
             "score",
@@ -476,7 +475,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 5e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["waterline_type"] == "hydroobject")
+            & (culverts["source"] == "hydroobject")
             & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == True),
             "score",
@@ -485,7 +484,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 6e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["waterline_type"] == "hydroobject")
+            & (culverts["source"] == "hydroobject")
             & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == True),
             "score",
@@ -494,7 +493,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 7e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["waterline_type"] == "overige_watergang")
+            & (culverts["source"] == "overige_watergang")
             & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == True),
             "score",
@@ -503,7 +502,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 8e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["waterline_type"] == "overige_watergang")
+            & (culverts["source"] == "overige_watergang")
             & (culverts["crossings_peilgebied"] == False)
             & (culverts["crossings_nwb"] == True),
             "score",
@@ -512,7 +511,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 9e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["waterline_type"] == "hydroobject")
+            & (culverts["source"] == "hydroobject")
             & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == False),
             "score",
@@ -521,7 +520,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 10e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["waterline_type"] == "hydroobject")
+            & (culverts["source"] == "hydroobject")
             & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == False),
             "score",
@@ -530,7 +529,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 11e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["waterline_type"] == "overige_watergang")
+            & (culverts["source"] == "overige_watergang")
             & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == False),
             "score",
@@ -539,7 +538,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 12e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["waterline_type"] == "overige_watergang")
+            & (culverts["source"] == "overige_watergang")
             & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == False),
             "score",
@@ -548,7 +547,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 13e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["waterline_type"] == "hydroobject")
+            & (culverts["source"] == "hydroobject")
             & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == True),
             "score",
@@ -557,7 +556,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 14e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["waterline_type"] == "hydroobject")
+            & (culverts["source"] == "hydroobject")
             & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == True),
             "score",
@@ -566,7 +565,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 15e voorkeur
         culverts.loc[
             (culverts["line_type"].isin(["dangling_start", "dangling_end"]))
-            & (culverts["waterline_type"] == "overige_watergang")
+            & (culverts["source"] == "overige_watergang")
             & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == True),
             "score",
@@ -575,7 +574,7 @@ class GeneratorDuikers(GeneratorBasis):
         # 16e voorkeur
         culverts.loc[
             (culverts["line_type"] == "other")
-            & (culverts["waterline_type"] == "overige_watergang")
+            & (culverts["source"] == "overige_watergang")
             & (culverts["crossings_peilgebied"] == True)
             & (culverts["crossings_nwb"] == True),
             "score",
@@ -1060,7 +1059,7 @@ class GeneratorDuikers(GeneratorBasis):
         culverts = culverts.drop(columns="code_pair")
 
         # check if overige watergang already has another connection and choose shortest:
-        duplicate_culverts = culverts.loc[culverts["waterline_type"]=="hydroobject"]
+        duplicate_culverts = culverts.loc[culverts["source"]=="hydroobject"]
         duplicate_culverts = duplicate_culverts.sort_values(
             [
                 "dangling_code", 
@@ -1113,12 +1112,12 @@ class GeneratorDuikers(GeneratorBasis):
 
         other_culverts_hydro = potential.loc[
             other_mask
-            & potential["waterline_type"].eq("hydroobject")
+            & potential["source"].eq("hydroobject")
         ].copy()
 
         other_culverts_other = potential.loc[
             other_mask
-            & potential["waterline_type"].eq("overige_watergang")
+            & potential["source"].eq("overige_watergang")
         ].copy()
 
         logging.info(
@@ -1172,7 +1171,7 @@ class GeneratorDuikers(GeneratorBasis):
         # Select hydroobject-connected culverts.
         # .copy() is important because a new column is created below.
         culverts_hydro = potential.loc[
-            potential["waterline_type"].eq("hydroobject")
+            potential["source"].eq("hydroobject")
         ].copy()
 
         # Keep only valid LineStrings
@@ -1285,7 +1284,7 @@ class GeneratorDuikers(GeneratorBasis):
         # Concatenate and fillna
         combined = pd.concat([lines, culvert], ignore_index=True)
         combined["status"] = combined["status"].fillna("unchanged")
-        combined["waterline_type"] = combined["waterline_type"].fillna("culvert")
+        combined["source"] = combined["source"].fillna("culvert")
 
         # Recreate GeoDataFrame
         self.overige_watergang_processed_1 = gpd.GeoDataFrame(
