@@ -52,6 +52,7 @@ class GeneratorDuikers(GeneratorBasis):
     rws_water: gpd.GeoDataFrame = None
     outflow_nodes: gpd.GeoDataFrame = None
 
+    duiker: gpd.GeoDataFrame = None
     bebouwing: gpd.GeoDataFrame = None
     kering: gpd.GeoDataFrame = None
     nwb: gpd.GeoDataFrame = None

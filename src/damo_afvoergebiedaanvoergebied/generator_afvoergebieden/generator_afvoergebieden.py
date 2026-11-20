@@ -21,6 +21,7 @@ from ..generator_basis import GeneratorBasis
 import pyflwdir
 from ..utils.pyflwdir import run_pyflwdir
 from ..utils.folium_map import generate_folium_map
+from ..utils.general_functions import thiessen_clipped_line_buffers
 
 
 def change_stroomrichting_d8_to_d16(dir_d8):
@@ -73,6 +74,7 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         "hydroobject",
         "overige_watergang", 
         "alle_watergangen_0",
+        "alle_wateren",
         "afvoergebied_0",
         "afvoergebied_0_gdf",
         "afvoergebied_1",
@@ -92,6 +94,7 @@ class GeneratorAfvoergebieden(GeneratorBasis):
 
     alle_watergangen_0: gpd.GeoDataFrame = None
     alle_watergangen_0_buffer: gpd.GeoDataFrame = None
+    alle_wateren: gpd.GeoDataFrame = None
     alle_watergangen_1: gpd.GeoDataFrame = None
 
     topo_waterways: xr.Dataset = None
@@ -193,19 +196,29 @@ class GeneratorAfvoergebieden(GeneratorBasis):
         logging.info("     - give each waterway an unique id")
         # create buffer around waterways to burn into topo
         self.alle_watergangen_0["color_id"] = np.random.shuffle(np.arange(len(self.alle_watergangen_0)))
-        self.alle_watergangen_0_buffer = self.alle_watergangen_0.copy()
-        self.alle_watergangen_0_buffer.geometry = self.alle_watergangen_0.geometry.buffer(self.topo_burn_width_waterways, cap_style="flat")
+        self.alle_watergangen_0_buffer = thiessen_clipped_line_buffers(
+            lines=self.alle_watergangen_0,
+            id_column="code",
+            buffer_distance=self.topo_burn_width_waterways,
+        )
+
+        # combine with rws-water
         if self.rws_water is None:
-            alle_wateren = self.alle_watergangen_0.copy()
+            self.alle_wateren = self.alle_watergangen_0.copy()
         else:
-            alle_wateren = alle_watergangen_0_buffer = pd.concat([
+            rws_water = self.rws_water.rename({
+                "rws_code": "code",
+            })
+            rws_water["edge_id"] = len(self.alle_watergangen_0) + rws_water.reset_index(drop=True).index
+            rws_water["color_id"] = np.random.shuffle(np.arange(len(rws_water)))
+            self.alle_wateren = pd.concat([
+                rws_water,
                 self.alle_watergangen_0_buffer,
-                self.rws_water[["rws_code", "geometry"]].copy().rename(columns={"rws_code": "code"})
             ])
-        alle_wateren["depth_waterways"] = self.topo_smooth_depth
+        self.alle_wateren["depth_waterways"] = self.topo_smooth_depth
 
         topo_waterways = make_geocube(
-            vector_data=alle_wateren,
+            vector_data=self.alle_wateren,
             measurements=["depth_waterways"],
             like=self.topo_processed,
         )["depth_waterways"].fillna(0.0)
@@ -234,6 +247,7 @@ class GeneratorAfvoergebieden(GeneratorBasis):
                 list_layers=[
                     "alle_watergangen_0", 
                     "alle_watergangen_0_buffer", 
+                    "alle_wateren", 
                     "topo_processed"
                 ]
             )
@@ -245,11 +259,11 @@ class GeneratorAfvoergebieden(GeneratorBasis):
 
         # create raster with unique id of each waterway
         logging.info("     - convert waterways to raster with unique id for each waterway")
-        if self.alle_watergangen_0_buffer is None or self.topo_processed is None:
+        if self.alle_wateren is None or self.topo_processed is None:
             raise ValueError("   x run preprocess_topo to preprocess the data")
 
         self.afvoergebied_0 = make_geocube(
-            vector_data=self.alle_watergangen_0_buffer,
+            vector_data=self.alle_wateren,
             measurements=["edge_id"],
             like=self.topo_processed,
         )["edge_id"].fillna(-1)

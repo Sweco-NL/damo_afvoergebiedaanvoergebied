@@ -720,3 +720,263 @@ def check_duplicate_codes(gdf, column):
 
     gdf[column] = temp_column
     return gdf
+
+
+def thiessen_clipped_line_buffers(
+    lines: gpd.GeoDataFrame,
+    id_column: str,
+    buffer_distance: float,
+    sample_spacing: float | None = None,
+    aoi: gpd.GeoDataFrame | None = None,
+    quad_segs: int = 4,
+) -> gpd.GeoDataFrame:
+    """
+    Create non-overlapping buffers around lines:
+
+        result = buffer(line) ∩ Thiessen_polygon(line_id)
+
+    Parameters
+    ----------
+    lines
+        GeoDataFrame containing LineString or MultiLineString geometries.
+
+    id_column
+        Column identifying the output feature. Lines with the same ID
+        are dissolved before sampling and buffering.
+
+    buffer_distance
+        Buffer distance in CRS units, normally metres.
+
+    sample_spacing
+        Distance between points sampled along each line. Smaller values
+        improve the approximation but make Voronoi slower.
+        Default: buffer_distance / 4.
+
+    aoi
+        Optional polygon GeoDataFrame limiting the output extent.
+
+    quad_segs
+        Buffer roundness. Lower values are faster; 4 is often sufficient.
+    """
+
+    if lines.crs is None:
+        raise ValueError("lines must have a CRS.")
+
+    if id_column not in lines.columns:
+        raise ValueError(f"Column '{id_column}' does not exist.")
+
+    if buffer_distance <= 0:
+        raise ValueError("buffer_distance must be greater than zero.")
+
+    if sample_spacing is None:
+        sample_spacing = buffer_distance / 4
+
+    if sample_spacing <= 0:
+        raise ValueError("sample_spacing must be greater than zero.")
+
+    # Keep only necessary data and valid line geometries
+    lines = lines[[id_column, "geometry"]].copy()
+    lines = lines[
+        lines.geometry.notna()
+        & ~lines.geometry.is_empty
+    ].copy()
+
+    if lines.empty:
+        return gpd.GeoDataFrame(
+            columns=[id_column, "geometry"],
+            geometry="geometry",
+            crs=lines.crs,
+        )
+
+    # Ensure multipart lines are handled correctly
+    lines = lines.explode(index_parts=False, ignore_index=True)
+
+    if not lines.geom_type.isin(["LineString"]).all():
+        raise ValueError(
+            "Input must contain only LineString or MultiLineString geometries."
+        )
+
+    # -----------------------------------------------------------------
+    # 1. Dissolve line parts sharing the same ID
+    # -----------------------------------------------------------------
+
+    line_groups = lines.dissolve(
+        by=id_column,
+        as_index=False,
+    )
+
+    # -----------------------------------------------------------------
+    # 2. Sample points along each dissolved line geometry
+    # -----------------------------------------------------------------
+
+    sample_ids = []
+    sample_points = []
+
+    for line_id, geometry in zip(
+        line_groups[id_column],
+        line_groups.geometry,
+    ):
+        for part in shapely.get_parts(geometry):
+
+            if part.is_empty or part.length == 0:
+                continue
+
+            # Includes both start and end point
+            n_intervals = max(
+                1,
+                int(np.ceil(part.length / sample_spacing)),
+            )
+
+            distances = np.linspace(
+                0,
+                part.length,
+                n_intervals + 1,
+            )
+
+            points = shapely.line_interpolate_point(
+                part,
+                distances,
+            )
+
+            sample_points.extend(points)
+            sample_ids.extend([line_id] * len(points))
+
+    if not sample_points:
+        return gpd.GeoDataFrame(
+            columns=[id_column, "geometry"],
+            geometry="geometry",
+            crs=lines.crs,
+        )
+
+    samples = gpd.GeoDataFrame(
+        {
+            id_column: sample_ids,
+            "geometry": sample_points,
+        },
+        geometry="geometry",
+        crs=lines.crs,
+    )
+
+    # -----------------------------------------------------------------
+    # 3. Remove duplicate Voronoi sites
+    #
+    # Necessary at shared endpoints and overlapping line vertices.
+    # The first ID encountered owns an identical coordinate.
+    # -----------------------------------------------------------------
+
+    coordinates = shapely.get_coordinates(samples.geometry.array)
+
+    _, unique_indices = np.unique(
+        coordinates,
+        axis=0,
+        return_index=True,
+    )
+
+    samples = (
+        samples
+        .iloc[np.sort(unique_indices)]
+        .reset_index(drop=True)
+    )
+
+    # -----------------------------------------------------------------
+    # 4. Define the Voronoi extent / clip extent
+    # -----------------------------------------------------------------
+
+    if aoi is not None:
+        if aoi.crs != lines.crs:
+            aoi = aoi.to_crs(lines.crs)
+
+        clip_geometry = aoi.geometry.union_all()
+
+    else:
+        # Create a sufficiently large polygon around the full dataset.
+        minx, miny, maxx, maxy = lines.total_bounds
+        margin = buffer_distance * 2
+
+        clip_geometry = shapely.box(
+            minx - margin,
+            miny - margin,
+            maxx + margin,
+            maxy + margin,
+        )
+
+    # -----------------------------------------------------------------
+    # 5. Create Thiessen / Voronoi polygons
+    # -----------------------------------------------------------------
+
+    sites = shapely.multipoints(samples.geometry.array)
+
+    voronoi = shapely.voronoi_polygons(
+        sites,
+        extend_to=clip_geometry,
+        ordered=True,  # Requires Shapely >= 2.1
+    )
+
+    thiessen_cells = gpd.GeoDataFrame(
+        {
+            id_column: samples[id_column].to_numpy(),
+            "geometry": list(voronoi.geoms),
+        },
+        geometry="geometry",
+        crs=lines.crs,
+    )
+
+    # Limit Voronoi cells to AOI / extent
+    thiessen_cells["geometry"] = shapely.intersection(
+        thiessen_cells.geometry.array,
+        clip_geometry,
+    )
+
+    thiessen_cells = thiessen_cells[
+        thiessen_cells.geometry.notna()
+        & ~thiessen_cells.geometry.is_empty
+    ].copy()
+
+    # Merge point-level Voronoi cells into one polygon per line ID
+    thiessen_by_id = thiessen_cells.dissolve(
+        by=id_column,
+        as_index=False,
+    )
+
+    # -----------------------------------------------------------------
+    # 6. Buffer the dissolved lines
+    # -----------------------------------------------------------------
+
+    buffers = line_groups[[id_column]].copy()
+
+    buffers["geometry"] = shapely.buffer(
+        line_groups.geometry.array,
+        distance=buffer_distance,
+        quad_segs=quad_segs,
+    )
+
+    # -----------------------------------------------------------------
+    # 7. Match by ID, then clip buffer with its Thiessen polygon
+    # -----------------------------------------------------------------
+
+    result = buffers.merge(
+        thiessen_by_id[[id_column, "geometry"]],
+        on=id_column,
+        how="inner",
+        suffixes=("_buffer", "_thiessen"),
+    )
+
+    result["geometry"] = shapely.intersection(
+        result["geometry_buffer"].array,
+        result["geometry_thiessen"].array,
+    )
+
+    result = result.drop(
+        columns=["geometry_buffer", "geometry_thiessen"],
+    )
+
+    result = gpd.GeoDataFrame(
+        result,
+        geometry="geometry",
+        crs=lines.crs,
+    )
+
+    return result[
+        result.geometry.notna()
+        & ~result.geometry.is_empty
+    ].reset_index(drop=True)
