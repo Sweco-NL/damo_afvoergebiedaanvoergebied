@@ -242,8 +242,8 @@ def generate_folium_map(
 
     if is_attribute_not_none(generator, f"edges_overig"):
         overige_watergang_processed = generator.edges_overig.copy()
-    elif is_attribute_not_none(generator, f"overige_watergang_processed_3"):
-        overige_watergang_processed = generator.overige_watergang_processed_3.copy()
+    elif is_attribute_not_none(generator, f"overige_watergang_processed_2"):
+        overige_watergang_processed = generator.overige_watergang_processed_2.copy()
     else:
         overige_watergang_processed = None
 

@@ -86,12 +86,9 @@ class GeneratorDuikers(GeneratorBasis):
     overige_watergang_processed_0: gpd.GeoDataFrame = None
     # overige_watergang including splits by culverts and post process
     overige_watergang_processed_1: gpd.GeoDataFrame = None
-    # overige_watergang including splits by culverts
-    overige_watergang_processed_2: gpd.GeoDataFrame = None
-
     # overige_watergang including outflow_nodes_hydro to hydroobjects and redirected
-    overige_watergang_processed_3: gpd.GeoDataFrame = None
-    overige_watergang_processed_3_nodes: gpd.GeoDataFrame = None
+    overige_watergang_processed_2: gpd.GeoDataFrame = None
+    overige_watergang_processed_2_nodes: gpd.GeoDataFrame = None
 
     # outflow points from overige watergangen to hydroobject
     outflow_nodes_overig: gpd.GeoDataFrame = None
@@ -1221,49 +1218,6 @@ class GeneratorDuikers(GeneratorBasis):
         )
 
 
-    # def check_culverts_direction(self):
-    #     """Culverts can be generated in the wrong direction compared to the waterlines, if this is the case, they are flipped.
-
-    #     Returns
-    #     -------
-    #     self.potential_culverts_5: gpd.GeoDataFrame
-    #         Geodataframe containing corrected culverts
-    #     """
-    #     culvert = self.potential_culverts_4.copy()
-    #     lines = pd.concat(
-    #         [self.hydroobject_processed_0, self.overige_watergang_processed_0],
-    #         ignore_index=True,
-    #     )
-
-    #     # Extract starting and ending points from gdf2
-    #     gdf2_start_points = lines.geometry.apply(lambda geom: geom.coords[0])
-    #     gdf2_end_points = lines.geometry.apply(lambda geom: geom.coords[-1])
-
-    #     # Initialize the 'flipped' column if it doesn't exist
-    #     if "flipped" not in culvert.columns:
-    #         culvert["flipped"] = 0
-
-    #     # Apply the check_and_flip function to each line in gdf1
-    #     results = culvert.geometry.apply(
-    #         lambda line: check_and_flip(
-    #             line, gdf2_start_points.tolist(), gdf2_end_points.tolist()
-    #         )
-    #     )
-
-    #     # Update the geometry and flipped columns
-    #     culvert["geometry"] = results.apply(lambda x: x[0])
-    #     culvert["flipped"] += results.apply(lambda x: 1 if x[1] else 0)
-    #     logging.info("     - culvert direction checked")
-
-    #     self.potential_culverts_5 = culvert.copy()
-
-    #     if self.write_results:
-    #         self.export_results_to_gpkg_or_nc(list_layers=[
-    #             "potential_culverts_5",
-    #         ])
-    #     return self.potential_culverts_5
-
-
     def add_culvert_to_overige_watergang_as_seperate_object(self):
         """Add culverts as separate objects to overige_watergang_processed_0."""
 
@@ -1357,32 +1311,6 @@ class GeneratorDuikers(GeneratorBasis):
                 "overige_watergang_processed_1",
             ])
         return self.overige_watergang_processed_1
-
-
-    def splits_hydroobject_by_endpoind_of_culverts_and_combine_2(
-        self, write_results=True
-    ):
-        """After a second check of the culvert direction, the hydroobjects and overige_watergang must be split again for some instances and the remaining flipped culverts are combined with the overige_watergang.
-
-        Returns
-        -------
-        self.overige_watergang_processed_1: gpd.GeoDataFrame
-            Geodataframe containing processed overige_waterganghere the waterline is combined with culverts
-        """
-        # split overige watergangen opnieuw
-        overige_watergang = self.overige_watergang_processed_1.copy()
-        overige_watergang = split_waterways_by_endpoints(
-            overige_watergang, overige_watergang
-        )
-        logging.info("     - overige watergangen weer gesplit")
-
-        self.overige_watergang_processed_2 = overige_watergang.copy()
-
-        if self.write_results:
-            self.export_results_to_gpkg_or_nc(list_layers=[
-                "overige_watergang_processed_2",
-            ])
-        return self.overige_watergang_processed_2
 
 
     def get_shortest_path_from_overige_watergang_to_hydroobjects(
@@ -1509,14 +1437,14 @@ class GeneratorDuikers(GeneratorBasis):
                 edges_cleaned.loc[edges_cleaned["reversed_direction"], "geometry"].reverse()
             )
 
-            self.overige_watergang_processed_3_nodes = overige_watergang_nodes.copy()
-            self.overige_watergang_processed_3 = edges_cleaned.copy()
+            self.overige_watergang_processed_2_nodes = overige_watergang_nodes.copy()
+            self.overige_watergang_processed_2 = edges_cleaned.copy()
 
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
                 "outflow_nodes_overig",
-                "overige_watergang_processed_3_nodes",
-                "overige_watergang_processed_3",
+                "overige_watergang_processed_2_nodes",
+                "overige_watergang_processed_2",
             ])
         return outflow_nodes_hydro, overige_watergang_nodes, edges, edges_cleaned
 

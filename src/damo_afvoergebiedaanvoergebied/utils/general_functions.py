@@ -108,27 +108,21 @@ def split_waterways_by_endpoints(hydroobjects, relevant_culverts):
     lines = hydroobjects.copy()
     culverts = relevant_culverts.copy()
 
-    # Explode multipart geometries before calling remove_z_dims().
-    # This is necessary because the current remove_z_dims() function does
-    # not support MultiLineString geometries.
+    # explode to prevent MultiLineStrings
     lines = (
         lines
         .explode(index_parts=False)
         .reset_index(drop=True)
     )
-
     culverts = (
         culverts
         .explode(index_parts=False)
         .reset_index(drop=True)
     )
 
-    # Now all MultiLineStrings have become LineStrings.
-    lines = remove_z_dims(lines)
-    culverts = remove_z_dims(culverts)
-
-    if lines.crs != culverts.crs:
-        culverts = culverts.to_crs(lines.crs)
+    # Remove z dimension
+    lines.geometry = lines.geometry.force_2d()
+    culverts.geometry = culverts.geometry.force_2d()
 
     # Keep only valid LineStrings.
     lines = lines.loc[
@@ -496,20 +490,6 @@ def find_edge_smallest_angle_difference(reference_angle, angles, edge_codes):
     )
     min_index = np.argmin(angle_differences)
     return angle_differences, edge_codes[min_index]
-
-
-def remove_z_dims(_gdf: gpd.GeoDataFrame):
-    _gdf.geometry = [
-        (Point(g.coords[0][:2]) if len(g.coords[0]) > 2 else Point(g.coords[0]))
-        if isinstance(g, Point)
-        else (
-            (LineString([c[:2] if len(c) > 2 else c for c in g.coords]))
-            if isinstance(g, LineString)
-            else Polygon([c[:2] if len(c) > 2 else c for c in g.exterior.coords])
-        )
-        for g in _gdf.geometry.values
-    ]
-    return _gdf
 
 
 def get_endpoints_from_lines(lines: gpd.GeoDataFrame) -> gpd.GeoDataFrame:

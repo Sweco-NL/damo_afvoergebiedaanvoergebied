@@ -47,7 +47,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
     required_results: list[str] = [
         "hydroobject_processed_0", 
         "rws_water",
-        "overige_watergang_processed_3", 
+        "overige_watergang_processed_2", 
         "outflow_nodes_overig",
         "nodes_hydro",
         "edges_hydro",
@@ -63,7 +63,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
     outflow_nodes_overig: gpd.GeoDataFrame = None
 
     overige_watergang: gpd.GeoDataFrame = None
-    overige_watergang_processed_3: gpd.GeoDataFrame = None
+    overige_watergang_processed_2: gpd.GeoDataFrame = None
 
     edges_hydro: gpd.GeoDataFrame = None
     nodes_hydro: gpd.GeoDataFrame = None
@@ -470,9 +470,6 @@ class GeneratorGebiedsOrde(GeneratorBasis):
         logging_message = f"     - order levels generated: {len_edges_hydro_with_order} edges_hydro - {len_edges_hydro_without_order} left"
         logging.info(logging_message)
 
-        display(self.nodes_hydro.head())
-        display(self.nodes.head())
-
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
                 "edges_hydro",
@@ -753,7 +750,6 @@ class GeneratorGebiedsOrde(GeneratorBasis):
                 axis=1,
             )
 
-        display(self.nodes_hydro.head())
         self.hydroobject_processed_1 = self.edges_hydro.copy()
         if self.write_results:
             self.export_results_to_gpkg_or_nc(list_layers=[
@@ -791,7 +787,6 @@ class GeneratorGebiedsOrde(GeneratorBasis):
         
         logging.info(f"     - coupling overige watergangen to outflow_nodes_hydro")
 
-        display(self.nodes_hydro)
         outflow_nodes_overig = self.outflow_nodes_overig[
             ["nodeID", "geometry"]
         ].sjoin(
@@ -879,8 +874,8 @@ class GeneratorGebiedsOrde(GeneratorBasis):
                 ], 
                 errors="ignore"
             )
-        elif self.edges_overig is None and self.overige_watergang_processed_3 is not None:
-            self.edges_overig = self.overige_watergang_processed_3.copy()
+        elif self.edges_overig is None and self.overige_watergang_processed_2 is not None:
+            self.edges_overig = self.overige_watergang_processed_2.copy()
         else:
             self.edges_overig = gpd.GeoDataFrame()
         
@@ -937,7 +932,7 @@ class GeneratorGebiedsOrde(GeneratorBasis):
         )
 
 
-    def generate_folium_map(self, html_file_name:str="", **kwargs):
+    def generate_folium_map(self, html_file_name : str = "", **kwargs):
         if html_file_name == "":
             html_file_name = self.case_id + "_order_code"
         self.folium_map = generate_folium_map(

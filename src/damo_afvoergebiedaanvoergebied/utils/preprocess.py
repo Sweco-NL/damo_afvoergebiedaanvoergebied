@@ -4,7 +4,6 @@ from pathlib import Path
 
 
 from .general_functions import (
-    remove_z_dims,
     snap_unconnected_endpoints_to_endpoint_or_line,
     split_waterways_by_endpoints,
     check_duplicate_codes,
@@ -16,7 +15,7 @@ def preprocess_hydroobject(hydroobject, snapping_distance=0.05):
     hydroobject = hydroobject.explode()
 
     # Setup hydroobject correctly
-    hydroobject = remove_z_dims(hydroobject)
+    hydroobject.geometry = hydroobject.geometry.force_2d()
 
     # check duplicates
     hydroobject = check_duplicate_codes(hydroobject, "code")

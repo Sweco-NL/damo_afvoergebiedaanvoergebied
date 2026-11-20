@@ -417,6 +417,7 @@ class GeneratorBasis(BaseModel):
                 edges = self.edges_hydro.copy()
             else:
                 self.edges_overig["edge_id"] = self.edges_overig.reset_index().index + len(self.edges_hydro)
+                self.edges_overig["source"] = "overige_watergang"
                 edges = pd.concat([
                     self.edges_hydro,
                     self.edges_overig
@@ -425,13 +426,10 @@ class GeneratorBasis(BaseModel):
             for line_type in ["hydroobject", "overige_watergang"]:
                 gdf = getattr(self, line_type)
                 for i in range(10):
-                    if not hasattr(self, f"{line_type}_{processed}_{i}"):
-                        break
-                    gdf_processed = getattr(self, f"{line_type}_{processed}_{i}")
+                    gdf_processed = getattr(self, f"{line_type}_{processed}_{i}", None)
                     if gdf_processed is None:
-                        break
-                    else:
-                        gdf = gdf_processed.copy()
+                        continue
+                    gdf = gdf_processed.copy()
                 if gdf is None:
                     continue
                 gdf["source"] = line_type
